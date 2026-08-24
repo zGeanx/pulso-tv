@@ -110,10 +110,6 @@ export default function AgendaClient() {
           <h1>Agenda esportiva</h1>
           <p>Confira todos os confrontos organizados por jogos ao vivo agora, próximos de hoje e encerrados.</p>
         </div>
-        <div className="directory-count">
-          <strong>{loading ? "—" : filtered.length}</strong>
-          <span>{filtered.length === 1 ? "evento disponível" : "eventos disponíveis"}</span>
-        </div>
       </section>
 
       <section className="directory-content page-shell">
