@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SiteFooter, SiteHeader } from "../components/site-chrome";
-import { listSports } from "../../lib/reidoscanais/client";
-import type { SportsEvent } from "../../lib/reidoscanais/types";
+import { listChannels, listSports } from "../../lib/reidoscanais/client";
+import type { Channel, SportsEvent } from "../../lib/reidoscanais/types";
 
 function timeLabel(event: SportsEvent) {
   return new Date(Number(event.start_timestamp) * 1000).toLocaleTimeString("pt-BR", {
@@ -14,20 +14,33 @@ function timeLabel(event: SportsEvent) {
 
 export default function DisneyClient() {
   const [events, setEvents] = useState<SportsEvent[]>([]);
+  const [featuredChannels, setFeaturedChannels] = useState<Channel[]>([]);
   const [category, setCategory] = useState("Destaques");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.all([
+    Promise.allSettled([
       listSports({ status: "live" }, controller.signal),
       listSports({ status: "upcoming" }, controller.signal),
+      listChannels("Esportes", controller.signal),
     ])
-      .then(([live, upcoming]) => setEvents([...live, ...upcoming]))
-      .catch((loadError) => {
-        if (loadError instanceof DOMException && loadError.name === "AbortError") return;
-        setError("Não foi possível carregar os eventos da área Disney+.");
+      .then(([liveResult, upcomingResult, channelsResult]) => {
+        if (controller.signal.aborted) return;
+
+        const live = liveResult.status === "fulfilled" ? liveResult.value : [];
+        const upcoming = upcomingResult.status === "fulfilled" ? upcomingResult.value : [];
+        const sportsChannels = channelsResult.status === "fulfilled" ? channelsResult.value : [];
+
+        setEvents([...live, ...upcoming]);
+        setFeaturedChannels(
+          sportsChannels.filter((channel) => /^(?:ESPN(?:\s*\d+)?|Disney)/i.test(channel.name.trim()))
+        );
+
+        if ([liveResult, upcomingResult, channelsResult].every((result) => result.status === "rejected")) {
+          setError("Não foi possível carregar os eventos da área Disney+.");
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -74,9 +87,6 @@ export default function DisneyClient() {
           <section aria-labelledby="disney-events-title">
             <div className="section-heading" style={{ marginBottom: 20 }}>
               <h2 id="disney-events-title" style={{ fontSize: 24, textTransform: "none" }}>{category}</h2>
-              <p className="result-count">
-                <strong>{filtered.length}</strong> {filtered.length === 1 ? "evento disponível" : "eventos disponíveis"}
-              </p>
             </div>
 
             {loading ? (
@@ -111,6 +121,36 @@ export default function DisneyClient() {
                     <span className="disney-card-copy">
                       <small>{event.competition ?? event.category}</small>
                       <strong>{event.title}</strong>
+                    </span>
+                  </a>
+                ))}
+              </div>
+            ) : featuredChannels.length ? (
+              <div className="disney-grid">
+                {featuredChannels.map((channel, index) => (
+                  <a
+                    className="disney-card"
+                    href={`/canal/${encodeURIComponent(channel.id)}`}
+                    key={channel.id}
+                  >
+                    <span
+                      className="disney-poster"
+                      style={
+                        channel.logo_url
+                          ? {
+                              backgroundImage: `url(${channel.logo_url})`,
+                              backgroundSize: "contain",
+                              backgroundRepeat: "no-repeat",
+                            }
+                          : undefined
+                      }
+                    >
+                      {!channel.logo_url && <b>{String(index + 1).padStart(2, "0")}</b>}
+                      <span className="disney-status live">● AO VIVO</span>
+                    </span>
+                    <span className="disney-card-copy">
+                      <small>{channel.name}</small>
+                      <strong>{channel.epg?.current?.title ?? "Programação ao vivo"}</strong>
                     </span>
                   </a>
                 ))}
