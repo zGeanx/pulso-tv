@@ -274,7 +274,7 @@ export default function PlayerClient({
               </div>
 
               {/* Player Details & Match Header */}
-              <div style={{ padding: "24px 28px 32px" }}>
+              <div className="player-details-body">
                 {/* Badges Bar */}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 16 }}>
                   <span className="on-air" style={{ fontSize: 11 }}>
