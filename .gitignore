@@ -1,0 +1,30 @@
+# Dependências
+/node_modules/
+/.pnpm-store/
+
+# Variáveis e credenciais
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Builds e caches
+/dist/
+/.next/
+/.vinext/
+/out/
+/coverage/
+/.wrangler/
+
+# Arquivos locais
+/.openai/
+/graphify-out/
+/outputs/
+/work/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
