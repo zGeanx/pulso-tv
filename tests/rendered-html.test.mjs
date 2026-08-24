@@ -21,9 +21,8 @@ test("server-renders the Pulso TV experience", async () => {
 
   const html = await response.text();
   assert.match(html, /<html lang="pt-BR">/i);
-  assert.match(html, /<title>Pulso TV — canais e eventos ao vivo<\/title>/i);
+  assert.match(html, /<title>Pulso TV \| Canais e eventos ao vivo<\/title>/i);
   assert.match(html, /Seu lugar na/);
-  assert.match(html, /Agenda esportiva/);
   assert.match(html, /Canais por categoria/);
   assert.match(html, /href="\/canais"/);
   assert.match(html, /href="\/agenda"/);
@@ -42,11 +41,11 @@ test("keeps navigation and content in independent routes", async () => {
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /useEffect, useState/);
+  assert.match(page, /useEffect, useMemo, useState/);
   assert.match(page, /setQuery/);
   assert.match(page, /setSportsEvents/);
-  assert.match(page, /sportsLoading/);
-  assert.match(page, /Nenhum evento ao vivo ou próximo no momento/);
+  assert.doesNotMatch(page, /Carregando agenda esportiva/);
+  assert.match(page, /sportsEvents\.filter/);
   assert.doesNotMatch(page, /setSchedule|categoryIcons|const today/);
   assert.doesNotMatch(page, /href="#(?:canais|agenda|categorias)"/);
   assert.doesNotMatch(siteChrome, /next\/link|<Link/);
