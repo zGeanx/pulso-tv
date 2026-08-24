@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { SiteFooter, SiteHeader } from "../../components/site-chrome";
 import {
   ChevronRightIcon,
@@ -203,9 +202,9 @@ export default function PlayerClient({
                 marginBottom: 16,
               }}
             >
-              <Link href="/" style={{ color: "var(--text-secondary)" }}>
+              <a href="/" style={{ color: "var(--text-secondary)" }}>
                 Início
-              </Link>
+              </a>
               <ChevronRightIcon style={{ width: 12, height: 12 }} />
               <a href={sectionHref} style={{ color: "var(--text-secondary)" }}>
                 {sectionLabel}
