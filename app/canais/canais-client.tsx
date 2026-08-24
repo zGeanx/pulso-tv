@@ -106,10 +106,6 @@ export default function CanaisClient() {
           <h1>Canais de TV ao vivo</h1>
           <p>Explore todos os canais disponíveis. Clique em qualquer canal para abrir o player exclusivo.</p>
         </div>
-        <div className="directory-count">
-          <strong>{loading ? "—" : filtered.length}</strong>
-          <span>{filtered.length === 1 ? "canal encontrado" : "canais encontrados"}</span>
-        </div>
       </section>
 
       <section className="directory-content page-shell" aria-labelledby="channel-directory-title">
