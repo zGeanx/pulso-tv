@@ -31,12 +31,14 @@ test("server-renders the Pulso TV experience", async () => {
 });
 
 test("keeps navigation and content in independent routes", async () => {
-  const [page, layout, siteChrome, channelsPage, agendaPage, disneyPage, packageJson] = await Promise.all([
+  const [page, layout, siteChrome, channelsPage, channelsClient, agendaPage, agendaClient, disneyPage, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/site-chrome.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/canais/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/canais/canais-client.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/agenda/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/agenda/agenda-client.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/disneyplus/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
@@ -53,6 +55,8 @@ test("keeps navigation and content in independent routes", async () => {
   assert.match(channelsPage, /CanaisClient/);
   assert.match(agendaPage, /AgendaClient/);
   assert.match(disneyPage, /DisneyClient/);
+  assert.doesNotMatch(channelsClient, /className="directory-count"/);
+  assert.doesNotMatch(agendaClient, /className="directory-count"/);
   assert.match(layout, /lang="pt-BR"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });
