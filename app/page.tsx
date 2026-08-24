@@ -164,12 +164,23 @@ export default function Home() {
   const [sportsEvents, setSportsEvents] = useState<ApiEvent[]>([]);
   const [featuredEvent, setFeaturedEvent] = useState<ApiEvent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sportsLoading, setSportsLoading] = useState(true);
+  const [sportsError, setSportsError] = useState(false);
 
   const heroPlayable = featuredEvent
     ? eventToChannel(featuredEvent)
     : channels[0] ?? null;
   const homeTeam = featuredEvent?.teams?.home;
   const awayTeam = featuredEvent?.teams?.away;
+  const heroTitle =
+    featuredEvent?.title ??
+    heroPlayable?.name ??
+    (sportsLoading ? "Carregando programação ao vivo..." : "Nenhum destaque disponível");
+  const heroDescription =
+    featuredEvent?.competition ??
+    featuredEvent?.category ??
+    heroPlayable?.show ??
+    (sportsLoading ? "Consultando a programação" : "Programação indisponível no momento");
   function openItem(channel: Channel) {
     window.location.assign(`/${channel.route}/${encodeURIComponent(channel.id)}`);
   }
@@ -208,10 +219,17 @@ export default function Home() {
       .then(([livePayload, upcomingPayload]: [ApiResponse<ApiEvent[]>, ApiResponse<ApiEvent[]>]) => {
         const live = livePayload.success ? livePayload.data : [];
         const upcoming = upcomingPayload.success ? upcomingPayload.data : [];
+        setSportsError(!livePayload.success || !upcomingPayload.success);
         setFeaturedEvent(live[0] ?? upcoming[0] ?? null);
         setSportsEvents([...live, ...upcoming]);
       })
-      .catch(() => {});
+      .catch((loadError) => {
+        if (loadError instanceof DOMException && loadError.name === "AbortError") return;
+        setSportsError(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setSportsLoading(false);
+      });
 
     return () => controller.abort();
   }, []);
@@ -249,9 +267,9 @@ export default function Home() {
         <div className="spotlight" aria-label="Destaque ao vivo">
           <div className="spotlight-top">
             <span className="on-air">
-              <i /> {featuredEvent?.status === "live" ? "AO VIVO" : "EM BREVE"}
+              <i /> {featuredEvent?.status === "live" ? "AO VIVO" : featuredEvent ? "EM BREVE" : heroPlayable ? "CANAL AO VIVO" : "SEM DESTAQUE"}
             </span>
-            <span>{featuredEvent?.embeds?.[0]?.quality ?? "FULL HD"}</span>
+            <span>{featuredEvent?.embeds?.[0]?.quality ?? heroPlayable?.embeds[0]?.quality ?? "FULL HD"}</span>
           </div>
 
           {homeTeam && awayTeam ? (
@@ -287,14 +305,14 @@ export default function Home() {
             </div>
           ) : (
             <div style={{ flex: 1, display: "grid", placeItems: "center", padding: 24, textAlign: "center", fontSize: 24, fontWeight: 800 }}>
-              {featuredEvent?.title ?? "Carregando programação ao vivo..."}
+              {heroTitle}
             </div>
           )}
 
           <div className="spotlight-bottom">
             <div>
-              <small>{featuredEvent?.competition ?? featuredEvent?.category ?? "Destaque"}</small>
-              <strong>{featuredEvent?.title ?? "Confira a programação"}</strong>
+              <small>{featuredEvent?.competition ?? featuredEvent?.category ?? heroPlayable?.category ?? "Destaque"}</small>
+              <strong>{featuredEvent?.title ?? heroDescription}</strong>
             </div>
             <button
               disabled={!heroPlayable}
@@ -345,7 +363,12 @@ export default function Home() {
         </div>
 
         <div className="agenda-cards-grid">
-          {sportsEvents.length ? (
+          {sportsLoading ? (
+            <div className="empty-state" role="status">
+              <strong>Carregando agenda esportiva...</strong>
+              <span>Consultando eventos ao vivo e próximos jogos.</span>
+            </div>
+          ) : sportsEvents.length ? (
             sportsEvents.slice(0, 10).map((event) => {
               const time = formatEventTime(event.start_timestamp);
               const isLive = event.status === "live";
@@ -386,9 +409,9 @@ export default function Home() {
               );
             })
           ) : (
-            <div className="empty-state">
-              <strong>Carregando agenda esportiva...</strong>
-              <span>Consultando eventos ao vivo e próximos jogos.</span>
+            <div className="empty-state" role={sportsError ? "alert" : "status"}>
+              <strong>{sportsError ? "Programação indisponível." : "Nenhum evento ao vivo ou próximo no momento."}</strong>
+              <span>{sportsError ? "Não foi possível consultar a agenda agora. Tente novamente em instantes." : "A agenda será atualizada assim que houver novas transmissões."}</span>
             </div>
           )}
         </div>
