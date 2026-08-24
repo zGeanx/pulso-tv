@@ -32,9 +32,10 @@ test("server-renders the Pulso TV experience", async () => {
 });
 
 test("keeps navigation and content in independent routes", async () => {
-  const [page, layout, channelsPage, agendaPage, disneyPage, packageJson] = await Promise.all([
+  const [page, layout, siteChrome, channelsPage, agendaPage, disneyPage, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/site-chrome.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/canais/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/agenda/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/disneyplus/page.tsx", import.meta.url), "utf8"),
@@ -44,8 +45,12 @@ test("keeps navigation and content in independent routes", async () => {
   assert.match(page, /useEffect, useState/);
   assert.match(page, /setQuery/);
   assert.match(page, /setSportsEvents/);
+  assert.match(page, /sportsLoading/);
+  assert.match(page, /Nenhum evento ao vivo ou próximo no momento/);
   assert.doesNotMatch(page, /setSchedule|categoryIcons|const today/);
   assert.doesNotMatch(page, /href="#(?:canais|agenda|categorias)"/);
+  assert.doesNotMatch(siteChrome, /next\/link|<Link/);
+  assert.match(siteChrome, /<a[\s\S]*href=\{item\.href\}/);
   assert.match(channelsPage, /CanaisClient/);
   assert.match(agendaPage, /AgendaClient/);
   assert.match(disneyPage, /DisneyClient/);
