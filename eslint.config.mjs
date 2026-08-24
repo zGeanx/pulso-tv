@@ -27,6 +27,11 @@ const eslintConfig = defineConfig([
   jsxA11y.flatConfigs.recommended,
   next.configs["core-web-vitals"],
   {
+    // Native anchors force full document navigation and avoid Vinext's broken
+    // RSC prefetch interception in production.
+    rules: {
+      "@next/next/no-html-link-for-pages": "off",
+    },
     languageOptions: {
       globals: {
         ...globals.browser,
