@@ -1474,73 +1474,115 @@ footer {
 
 /* Player Details Body */
 .player-details-body {
-  padding: 24px 28px 32px;
+  padding: 16px 14px 24px;
 }
 
-/* VPN / Troubleshooting Callout Card */
+@media (min-width: 768px) {
+  .player-details-body {
+    padding: 24px 28px 32px;
+  }
+}
+
+/* VPN / Troubleshooting Callout Card (Mobile-First) */
 .vpn-callout-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
   margin-top: 24px;
-  padding: 18px 22px;
+  padding: 16px;
   background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
+  box-sizing: border-box;
+  width: 100%;
 }
+
 .vpn-callout-left {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
-  flex: 1;
-  min-width: 0;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
+
 .vpn-icon-wrap {
-  width: 42px;
-  height: 42px;
-  border-radius: 6px;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
   background: rgba(16, 185, 129, 0.15);
   color: var(--primary);
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
+
 .vpn-callout-copy {
   flex: 1;
   min-width: 0;
 }
+
 .vpn-callout-copy h2 {
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 4px;
+  line-height: 1.35;
 }
+
 .vpn-callout-copy p {
   font-size: 12.5px;
   color: var(--text-secondary);
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.5;
 }
+
 .vpn-callout-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 9px 18px;
-  font-size: 13px;
+  gap: 8px;
+  padding: 11px 16px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #ffffff;
   background: var(--primary);
-  border-radius: 6px;
+  border-radius: 8px;
   text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
   transition: all var(--ease-smooth) 0.2s;
 }
+
 .vpn-callout-btn:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
+}
+
+@media (min-width: 860px) {
+  .vpn-callout-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 18px 22px;
+  }
+  .vpn-callout-left {
+    flex: 1;
+    gap: 14px;
+  }
+  .vpn-icon-wrap {
+    width: 42px;
+    height: 42px;
+  }
+  .vpn-callout-btn {
+    display: inline-flex;
+    width: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 9px 18px;
+    font-size: 13px;
+  }
 }
 
 /* "Mais Futebol" / Suggestions Section */
@@ -1965,10 +2007,7 @@ footer nav a:hover {
   .category-grid { grid-template-columns: 1fr; gap: 12px; }
   .disney-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
-  /* Player Mobile Details & VPN Callout */
-  .player-details-body {
-    padding: 18px 14px 24px;
-  }
+  /* Player Mobile Toolbar */
   .player-toolbar {
     padding: 10px 12px;
     flex-direction: column;
@@ -1978,22 +2017,6 @@ footer nav a:hover {
   .player-toolbar-left, .player-toolbar-right {
     width: 100%;
     justify-content: flex-start;
-  }
-  .vpn-callout-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    padding: 16px 14px;
-  }
-  .vpn-callout-left {
-    width: 100%;
-  }
-  .vpn-callout-btn {
-    width: 100%;
-    padding: 12px 16px;
-    font-size: 13.5px;
-    box-sizing: border-box;
-    justify-content: center;
   }
 
   /* Footer Mobile */
