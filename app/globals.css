@@ -424,6 +424,63 @@ html[data-theme="light"] .theme-segment.active {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-card);
 }
+
+.channel-spotlight-stage {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-card);
+}
+.channel-spotlight-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 6px;
+}
+.channel-spotlight-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.channel-spotlight-logo b {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.channel-spotlight-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.channel-spotlight-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.channel-spotlight-info strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.channel-spotlight-info small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
 .team {
   display: flex;
   flex-direction: column;
@@ -1736,6 +1793,54 @@ footer {
   background: var(--bg-surface);
   color: var(--text-muted);
   text-align: center;
+}
+
+/* ──────── Footer ──────── */
+footer {
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  padding: 42px 0 36px;
+  margin-top: 50px;
+}
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+.footer-brand-column {
+  max-width: 540px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-disclaimer {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+.footer-copyright {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+footer nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+footer nav a {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+footer nav a:hover {
+  color: var(--primary);
 }
 
 /* ──────── Responsive ──────── */

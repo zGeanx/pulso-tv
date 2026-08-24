@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { SearchIcon, SunIcon, MoonIcon, BrandIcon } from "./icons";
 
 type SiteHeaderProps = {
@@ -62,12 +63,12 @@ export function ThemeToggle() {
 
 export function Brand({ footer = false }: { footer?: boolean }) {
   return (
-    <a className={`brand${footer ? " footer-brand" : ""}`} href="/" aria-label="Pulso TV, página inicial">
+    <Link className={`brand${footer ? " footer-brand" : ""}`} href="/" aria-label="Pulso TV, página inicial">
       <span className="brand-logo-wrap">
         <BrandIcon />
       </span>
       <span>PULSO<span>TV</span></span>
-    </a>
+    </Link>
   );
 }
 
@@ -80,7 +81,7 @@ export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderPr
 
       <nav className={menuOpen ? "nav open" : "nav"} aria-label="Principal">
         {navigation.map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             className={active === item.href ? "active" : undefined}
@@ -88,7 +89,7 @@ export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderPr
             onClick={() => setMenuOpen(false)}
           >
             {item.label}
-          </a>
+          </Link>
         ))}
       </nav>
 
@@ -123,17 +124,21 @@ export function SiteFooter() {
   return (
     <footer>
       <div className="page-shell footer-inner">
-        <div>
+        <div className="footer-brand-column">
           <Brand footer />
-          <p>O sinal certo, na hora certa. Streaming e TV ao vivo sem complicação.</p>
+          <p className="footer-disclaimer">
+            A Pulso TV não armazena arquivos em seus servidores. Nosso site apenas indexa conteúdos de mídia hospedados por serviços de terceiros.
+          </p>
+          <span className="footer-copyright">
+            © 2026 Pulso TV. Todos os direitos reservados.
+          </span>
         </div>
         <nav aria-label="Rodapé">
-          <a href="/">Início</a>
-          <a href="/canais">Canais</a>
-          <a href="/agenda">Agenda</a>
-          <a href="/disneyplus">Disney+</a>
+          <Link href="/">Início</Link>
+          <Link href="/canais">Canais</Link>
+          <Link href="/agenda">Agenda</Link>
+          <Link href="/disneyplus">Disney+</Link>
         </nav>
-        <span className="footer-note">Transmissões e eventos organizados em páginas próprias.</span>
       </div>
     </footer>
   );

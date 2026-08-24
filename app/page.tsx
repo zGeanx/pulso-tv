@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SiteFooter, SiteHeader } from "./components/site-chrome";
 import {
   PlayIcon,
@@ -164,23 +164,22 @@ export default function Home() {
   const [sportsEvents, setSportsEvents] = useState<ApiEvent[]>([]);
   const [featuredEvent, setFeaturedEvent] = useState<ApiEvent | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sportsLoading, setSportsLoading] = useState(true);
-  const [sportsError, setSportsError] = useState(false);
+
+  const featuredChannel = useMemo(() => {
+    if (!channels.length) return null;
+    return (
+      channels.find((c) => {
+        const name = c.name.toLowerCase();
+        return name.includes("globo") || name.includes("sportv") || name.includes("espn") || name.includes("band");
+      }) || channels[0]
+    );
+  }, [channels]);
 
   const heroPlayable = featuredEvent
     ? eventToChannel(featuredEvent)
-    : channels[0] ?? null;
+    : featuredChannel ?? null;
   const homeTeam = featuredEvent?.teams?.home;
   const awayTeam = featuredEvent?.teams?.away;
-  const heroTitle =
-    featuredEvent?.title ??
-    heroPlayable?.name ??
-    (sportsLoading ? "Carregando programação ao vivo..." : "Nenhum destaque disponível");
-  const heroDescription =
-    featuredEvent?.competition ??
-    featuredEvent?.category ??
-    heroPlayable?.show ??
-    (sportsLoading ? "Consultando a programação" : "Programação indisponível no momento");
   function openItem(channel: Channel) {
     window.location.assign(`/${channel.route}/${encodeURIComponent(channel.id)}`);
   }
@@ -219,17 +218,10 @@ export default function Home() {
       .then(([livePayload, upcomingPayload]: [ApiResponse<ApiEvent[]>, ApiResponse<ApiEvent[]>]) => {
         const live = livePayload.success ? livePayload.data : [];
         const upcoming = upcomingPayload.success ? upcomingPayload.data : [];
-        setSportsError(!livePayload.success || !upcomingPayload.success);
         setFeaturedEvent(live[0] ?? upcoming[0] ?? null);
         setSportsEvents([...live, ...upcoming]);
       })
-      .catch((loadError) => {
-        if (loadError instanceof DOMException && loadError.name === "AbortError") return;
-        setSportsError(true);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setSportsLoading(false);
-      });
+      .catch(() => {});
 
     return () => controller.abort();
   }, []);
@@ -267,9 +259,9 @@ export default function Home() {
         <div className="spotlight" aria-label="Destaque ao vivo">
           <div className="spotlight-top">
             <span className="on-air">
-              <i /> {featuredEvent?.status === "live" ? "AO VIVO" : featuredEvent ? "EM BREVE" : heroPlayable ? "CANAL AO VIVO" : "SEM DESTAQUE"}
+              <i /> {featuredEvent ? (featuredEvent.status === "live" ? "AO VIVO" : "EM BREVE") : "AO VIVO"}
             </span>
-            <span>{featuredEvent?.embeds?.[0]?.quality ?? heroPlayable?.embeds[0]?.quality ?? "FULL HD"}</span>
+            <span>{featuredEvent?.embeds?.[0]?.quality ?? "1080p FULL HD"}</span>
           </div>
 
           {homeTeam && awayTeam ? (
@@ -303,16 +295,39 @@ export default function Home() {
                 <span>{awayTeam.name}</span>
               </div>
             </div>
+          ) : featuredChannel ? (
+            <div className="channel-spotlight-stage">
+              <div className="channel-spotlight-logo">
+                {featuredChannel.logoUrl ? (
+                  <img src={featuredChannel.logoUrl} alt={featuredChannel.name} />
+                ) : (
+                  <b>{featuredChannel.short}</b>
+                )}
+              </div>
+              <div className="channel-spotlight-info">
+                <span className="channel-spotlight-badge">NO AR AGORA</span>
+                <strong>{featuredChannel.show}</strong>
+                <small>{featuredChannel.name} · {featuredChannel.time}</small>
+              </div>
+            </div>
           ) : (
-            <div style={{ flex: 1, display: "grid", placeItems: "center", padding: 24, textAlign: "center", fontSize: 24, fontWeight: 800 }}>
-              {heroTitle}
+            <div style={{ flex: 1, display: "grid", placeItems: "center", padding: 24, textAlign: "center", fontSize: 15, color: "var(--text-secondary)" }}>
+              {loading ? "Carregando sinal ao vivo..." : "Transmissão pronta"}
             </div>
           )}
 
           <div className="spotlight-bottom">
             <div>
-              <small>{featuredEvent?.competition ?? featuredEvent?.category ?? heroPlayable?.category ?? "Destaque"}</small>
-              <strong>{featuredEvent?.title ?? heroDescription}</strong>
+              <small>
+                {featuredEvent
+                  ? (featuredEvent.competition ?? featuredEvent.category ?? "Destaque esportivo")
+                  : (featuredChannel?.category ?? "Canal em destaque")}
+              </small>
+              <strong>
+                {featuredEvent
+                  ? featuredEvent.title
+                  : (featuredChannel?.name ?? "Assista aos canais")}
+              </strong>
             </div>
             <button
               disabled={!heroPlayable}
@@ -348,74 +363,67 @@ export default function Home() {
         </form>
       </section>
 
-      {/* ─── Agenda Esportiva (16:9 Cards Model) ─── */}
-      <section className="agenda-section page-shell" aria-labelledby="agenda-title">
-        <div className="section-heading">
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ color: "var(--crimson)", display: "flex", alignItems: "center" }}>
-              <FlameIcon style={{ width: 24, height: 24 }} />
-            </span>
-            <h2 id="agenda-title">Agenda esportiva</h2>
+      {/* ─── Agenda Esportiva (Apenas exibida quando houver jogos ao vivo ou próximos) ─── */}
+      {sportsEvents.filter((e) => e.status === "live" || e.status === "upcoming").length > 0 && (
+        <section className="agenda-section page-shell" aria-labelledby="agenda-title">
+          <div className="section-heading">
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ color: "var(--crimson)", display: "flex", alignItems: "center" }}>
+                <FlameIcon style={{ width: 24, height: 24 }} />
+              </span>
+              <h2 id="agenda-title">Agenda esportiva</h2>
+            </div>
+            <a href="/agenda">
+              Ver todos <ArrowRightIcon style={{ width: 14, height: 14 }} />
+            </a>
           </div>
-          <a href="/agenda">
-            Ver todos <ArrowRightIcon style={{ width: 14, height: 14 }} />
-          </a>
-        </div>
 
-        <div className="agenda-cards-grid">
-          {sportsLoading ? (
-            <div className="empty-state" role="status">
-              <strong>Carregando agenda esportiva...</strong>
-              <span>Consultando eventos ao vivo e próximos jogos.</span>
-            </div>
-          ) : sportsEvents.length ? (
-            sportsEvents.slice(0, 10).map((event) => {
-              const time = formatEventTime(event.start_timestamp);
-              const isLive = event.status === "live";
-              const isFinished = event.status === "finished";
-              return (
-                <a
-                  className={`agenda-match-card${isFinished ? " finished" : ""}`}
-                  key={event.id}
-                  href={`/assistir/${encodeURIComponent(event.id)}`}
-                >
-                  <div className="agenda-card-thumb">
-                    {event.poster ? (
-                      <img src={event.poster} alt={event.title} />
-                    ) : (
-                      <div className="agenda-thumb-placeholder">
-                        <span>{event.title}</span>
-                      </div>
-                    )}
-                    <span className={`agenda-card-badge ${isLive ? "live" : "upcoming"}`}>
-                      {isLive ? (
-                        <>
-                          <i /> AO VIVO
-                        </>
+          <div className="agenda-cards-grid">
+            {sportsEvents
+              .filter((e) => e.status === "live" || e.status === "upcoming")
+              .slice(0, 10)
+              .map((event) => {
+                const time = formatEventTime(event.start_timestamp);
+                const isLive = event.status === "live";
+                const isFinished = event.status === "finished";
+                return (
+                  <a
+                    className={`agenda-match-card${isFinished ? " finished" : ""}`}
+                    key={event.id}
+                    href={`/assistir/${encodeURIComponent(event.id)}`}
+                  >
+                    <div className="agenda-card-thumb">
+                      {event.poster ? (
+                        <img src={event.poster} alt={event.title} />
                       ) : (
-                        <>
-                          <ClockIcon style={{ width: 11, height: 11 }} /> Hoje - {time}
-                        </>
+                        <div className="agenda-thumb-placeholder">
+                          <span>{event.title}</span>
+                        </div>
                       )}
-                    </span>
-                  </div>
-                  <div className="agenda-card-body">
-                    <strong>{decodeText(event.title)}</strong>
-                    <small>
-                      {[decodeText(event.competition) || "Futebol", `Hoje - ${time}`].filter(Boolean).join(" · ")}
-                    </small>
-                  </div>
-                </a>
-              );
-            })
-          ) : (
-            <div className="empty-state" role={sportsError ? "alert" : "status"}>
-              <strong>{sportsError ? "Programação indisponível." : "Nenhum evento ao vivo ou próximo no momento."}</strong>
-              <span>{sportsError ? "Não foi possível consultar a agenda agora. Tente novamente em instantes." : "A agenda será atualizada assim que houver novas transmissões."}</span>
-            </div>
-          )}
-        </div>
-      </section>
+                      <span className={`agenda-card-badge ${isLive ? "live" : "upcoming"}`}>
+                        {isLive ? (
+                          <>
+                            <i /> AO VIVO
+                          </>
+                        ) : (
+                          <>
+                            <ClockIcon style={{ width: 11, height: 11 }} /> Hoje - {time}
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <div className="agenda-card-body">
+                      <strong>{decodeText(event.title)}</strong>
+                      <small>
+                        {[decodeText(event.competition) || "Futebol", `Hoje - ${time}`].filter(Boolean).join(" · ")}
+                      </small>
+                    </div>
+                  </a>
+                );
+              })}
+          </div>
+        </section>
+      )}
 
       {/* ─── Channels by Category Rows (Compact Model) ─── */}
       <section className="channels-section page-shell" aria-labelledby="channels-title">
