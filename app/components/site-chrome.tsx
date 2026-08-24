@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { SearchIcon, SunIcon, MoonIcon, BrandIcon } from "./icons";
 
 type SiteHeaderProps = {
@@ -63,12 +62,12 @@ export function ThemeToggle() {
 
 export function Brand({ footer = false }: { footer?: boolean }) {
   return (
-    <Link className={`brand${footer ? " footer-brand" : ""}`} href="/" aria-label="Pulso TV, página inicial">
+    <a className={`brand${footer ? " footer-brand" : ""}`} href="/" aria-label="Pulso TV, página inicial">
       <span className="brand-logo-wrap">
         <BrandIcon />
       </span>
       <span>PULSO<span>TV</span></span>
-    </Link>
+    </a>
   );
 }
 
@@ -81,7 +80,7 @@ export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderPr
 
       <nav className={menuOpen ? "nav open" : "nav"} aria-label="Principal">
         {navigation.map((item) => (
-          <Link
+          <a
             key={item.href}
             href={item.href}
             className={active === item.href ? "active" : undefined}
@@ -89,7 +88,7 @@ export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderPr
             onClick={() => setMenuOpen(false)}
           >
             {item.label}
-          </Link>
+          </a>
         ))}
       </nav>
 
@@ -134,10 +133,10 @@ export function SiteFooter() {
           </span>
         </div>
         <nav aria-label="Rodapé">
-          <Link href="/">Início</Link>
-          <Link href="/canais">Canais</Link>
-          <Link href="/agenda">Agenda</Link>
-          <Link href="/disneyplus">Disney+</Link>
+          <a href="/">Início</a>
+          <a href="/canais">Canais</a>
+          <a href="/agenda">Agenda</a>
+          <a href="/disneyplus">Disney+</a>
         </nav>
       </div>
     </footer>
