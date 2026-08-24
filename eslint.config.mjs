@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "dist/**",
     "out/**",
     "build/**",
+    ".pnpm-store/**",
+    ".wrangler/**",
     "graphify-out/**",
     "work/**",
     "next-env.d.ts",
