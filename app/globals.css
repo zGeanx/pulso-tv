@@ -1135,38 +1135,6 @@ html[data-theme="light"] .agenda-card-badge.finished {
   line-height: 1.5;
 }
 
-/* Pill Badge Counter (Symmetrical & Structured) */
-.directory-count {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 18px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-card);
-  border-radius: 8px;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(16px);
-  transition: all var(--ease-smooth) 0.2s;
-}
-.directory-count:hover {
-  transform: translateY(-2px);
-  border-color: var(--primary);
-}
-.directory-count strong {
-  font: 800 18px/1 var(--display);
-  color: #ffffff;
-  background: var(--primary);
-  padding: 5px 12px;
-  border-radius: 4px;
-  display: inline-block;
-}
-.directory-count span {
-  color: var(--text-secondary);
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
 .directory-content { padding: 28px 0 80px; }
 
 .directory-search {
@@ -1903,7 +1871,6 @@ footer nav a:hover {
     padding: 28px 0 18px;
   }
   .directory-hero h1 { font-size: 28px; letter-spacing: -1px; }
-  .directory-count { width: 100%; justify-content: center; }
 
   /* Mobile Horizontal Carousel for Category Channels on Home */
   .channel-row-section {
