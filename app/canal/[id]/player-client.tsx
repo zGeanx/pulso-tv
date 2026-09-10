@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SiteFooter, SiteHeader } from "../../components/site-chrome";
+import { AdBanner } from "../../components/ad-banner";
 import {
   ChevronRightIcon,
   MonitorPlayIcon,
@@ -365,6 +366,9 @@ export default function PlayerClient({
                 <p style={{ margin: "14px 0 0", color: "var(--text-secondary)", fontSize: "14.5px", lineHeight: "1.6" }}>
                   {channel.description || channel.show || `Assista à transmissão ao vivo de ${channel.name} com qualidade HD e múltiplos sinais.`}
                 </p>
+
+                {/* Ad Banner Slot (Monetização) */}
+                <AdBanner slot="playerBottom" />
 
                 {/* VPN / Troubleshooting Callout Card (Cloudflare 1.1.1.1) */}
                 <aside className="vpn-callout-card" aria-label="Dica VPN">
