@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SiteFooter, SiteHeader } from "./components/site-chrome";
+import { AdBanner } from "./components/ad-banner";
 import {
   PlayIcon,
   ArrowRightIcon,
@@ -362,6 +363,11 @@ export default function Home() {
           <kbd>ENTER</kbd>
         </form>
       </section>
+
+      {/* ─── Ad Banner (Slot Home Feed) ─── */}
+      <div className="page-shell" style={{ marginTop: 12, marginBottom: 8 }}>
+        <AdBanner slot="homeFeed" />
+      </div>
 
       {/* ─── Agenda Esportiva (Apenas exibida quando houver jogos ao vivo ou próximos) ─── */}
       {sportsEvents.filter((e) => e.status === "live" || e.status === "upcoming").length > 0 && (
