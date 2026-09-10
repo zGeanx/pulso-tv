@@ -10,11 +10,6 @@ export const metadata: Metadata = {
     template: "%s | Pulso TV",
   },
   description: "Encontre canais, eventos esportivos e a programação que está ao vivo agora.",
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
-  },
   openGraph: {
     title: "Pulso TV | Canais e eventos ao vivo",
     description: "Encontre canais, eventos esportivos e a programação que está ao vivo agora.",
@@ -33,5 +28,15 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR"><body>{children}</body></html>;
+  return (
+    <html lang="pt-BR">
+      <head>
+        {/* Keep icons in the initial head even when channel metadata streams later. */}
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="shortcut icon" href="/favicon.svg" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+      </head>
+      <body>{children}</body>
+    </html>
+  );
 }
