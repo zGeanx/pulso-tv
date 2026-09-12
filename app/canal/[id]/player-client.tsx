@@ -266,7 +266,8 @@ export default function PlayerClient({
                   </button>
                   <button
                     className={`player-tool-btn ${theaterMode ? "primary" : ""}`}
-                    onClick={() => setTheaterMode(!theaterMode)}
+                    onClick={() => setTheaterMode((active) => !active)}
+                    aria-pressed={theaterMode}
                   >
                     <TheaterIcon style={{ width: 15, height: 15 }} />
                     <span>Modo Teatro</span>

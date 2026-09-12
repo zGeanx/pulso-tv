@@ -1345,9 +1345,18 @@ footer {
   transition: all var(--ease-smooth) 0.3s;
 }
 
-.theater-active {
-  max-width: 100% !important;
-  width: 100% !important;
+.player-shell-card.theater-active {
+  width: 100vw;
+  max-width: none;
+  margin-left: calc(50% - 50vw);
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+}
+
+.player-shell-card.theater-active .player-screen-wrap {
+  height: min(56.25vw, calc(100vh - 150px));
+  aspect-ratio: auto;
 }
 
 .player-screen-wrap {
@@ -1557,6 +1566,12 @@ footer {
 .vpn-callout-btn:hover {
   background: var(--primary-hover);
   transform: translateY(-1px);
+}
+
+@media (max-width: 859px) {
+  .vpn-callout-card {
+    display: none;
+  }
 }
 
 @media (min-width: 860px) {
@@ -2210,4 +2225,3 @@ footer nav a:hover {
     text-align: center;
   }
 }
-
