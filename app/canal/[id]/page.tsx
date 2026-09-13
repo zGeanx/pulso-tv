@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { sanitizeEmbeds } from "../../../lib/reidoscanais/embed-security";
 import PlayerClient, { type Playable } from "./player-client";
 
 const API_URL = "https://api.reidoscanais.st";
@@ -74,7 +75,7 @@ function normalizeChannel(channel: ApiChannel): Playable {
     color: categoryColors[category] ?? "#2f7dff",
     logoUrl: channel.logo_url || channel.epg?.current?.image,
     description: channel.description || channel.epg?.current?.title,
-    embeds: channel.embeds ?? [],
+    embeds: sanitizeEmbeds(channel.embeds),
   };
 }
 
@@ -91,7 +92,7 @@ function normalizeEvent(event: ApiEvent): Playable {
     logoUrl: event.poster,
     competition: event.competition,
     description: event.description,
-    embeds: event.embeds ?? [],
+    embeds: sanitizeEmbeds(event.embeds),
   };
 }
 
