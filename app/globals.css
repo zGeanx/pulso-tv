@@ -1582,6 +1582,23 @@ footer {
   border-radius: 4px;
   text-transform: uppercase;
 }
+.player-tool-btn.player-tool-vip {
+  text-decoration: none;
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.12) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  color: #fb923c;
+}
+.player-tool-btn.player-tool-vip:hover {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.22) 0%, rgba(220, 38, 38, 0.18) 100%);
+  border-color: rgba(234, 88, 12, 0.6);
+  color: #fdba74;
+  box-shadow: 0 0 14px rgba(234, 88, 12, 0.2);
+}
+.player-quality-badge.vip {
+  background: rgba(234, 88, 12, 0.25);
+  color: #fb923c;
+  border: 1px solid rgba(234, 88, 12, 0.4);
+}
 
 /* Event Matchup Stage */
 .event-matchup-stage {
@@ -2591,3 +2608,123 @@ footer nav a:hover {
     text-align: center;
   }
 }
+
+/* ──────── Adsterra Banner 300x250 (Desktop & Mobile) ──────── */
+.adsterra-banner-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 22px auto;
+  padding: 12px 16px 16px;
+  width: fit-content;
+  max-width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.adsterra-banner-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
+
+.adsterra-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 300px;
+  max-width: 100%;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.adsterra-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.adsterra-banner-format {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  opacity: 0.55;
+  letter-spacing: 0.04em;
+}
+
+.adsterra-banner-viewport {
+  width: 300px;
+  height: 250px;
+  min-width: 300px;
+  min-height: 250px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.adsterra-banner-viewport iframe {
+  width: 300px !important;
+  height: 250px !important;
+  border: none !important;
+}
+
+/* Formato 320x50 (Mobile Leaderboard Compacto) */
+.adsterra-banner-card.format-320x50,
+.adsterra-banner-card.compact {
+  padding: 8px 12px 10px;
+  margin: 14px auto;
+}
+
+.adsterra-banner-card.format-320x50 .adsterra-banner-viewport {
+  width: 320px;
+  height: 50px;
+  min-width: 320px;
+  min-height: 50px;
+}
+
+.adsterra-banner-card.format-320x50 .adsterra-banner-viewport iframe {
+  width: 320px !important;
+  height: 50px !important;
+}
+
+@media (max-width: 360px) {
+  .adsterra-banner-card.format-320x50 {
+    padding: 6px 4px 8px;
+  }
+  .adsterra-banner-card.format-320x50 .adsterra-banner-header {
+    width: 290px;
+  }
+  .adsterra-banner-card.format-320x50 .adsterra-banner-viewport {
+    transform: scale(0.92);
+    transform-origin: center top;
+    margin-bottom: -4px;
+  }
+}
+
+/* Ajuste de escala para telas ultracompactas (ex: 320px) sem overflow horizontal no 300x250 */
+@media (max-width: 340px) {
+  .adsterra-banner-card.format-300x250 {
+    padding: 8px 6px 12px;
+  }
+  .adsterra-banner-card.format-300x250 .adsterra-banner-header {
+    width: 270px;
+  }
+  .adsterra-banner-card.format-300x250 .adsterra-banner-viewport {
+    transform: scale(0.9);
+    transform-origin: center top;
+    margin-bottom: -25px;
+  }
+}
+
+
