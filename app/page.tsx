@@ -228,7 +228,8 @@ export default function Home() {
   }, []);
 
   return (
-    <main>
+    <main className="home-page">
+      <div className="home-hero-background" aria-hidden="true" />
       <SiteHeader active="/" searchValue={query} onSearchChange={setQuery} />
 
       {/* ─── Hero Section ─── */}
@@ -238,7 +239,7 @@ export default function Home() {
             <span className="live-dot" /> {channels.length > 0 ? `${channels.length} canais ao vivo` : "Transmissão em tempo real"}
           </div>
           <h1>
-            Seu lugar na<br />primeira <em>fila.</em>
+            Seu lugar na primeira <em>fila.</em>
           </h1>
           <p>
             Encontre o que está ao vivo agora, acompanhe a grade esportiva e abra qualquer canal em sua página própria.
@@ -444,9 +445,14 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="empty-state" role="status">
-            <strong>Carregando canais...</strong>
-            <span>Buscando sinais e programação em tempo real.</span>
+          <div className="skeleton-grid" role="status" aria-label="Carregando canais...">
+            {Array.from({ length: 14 }).map((_, index) => (
+              <div className="skeleton-card" key={`skel-${index}`}>
+                <div className="skeleton-logo" />
+                <div className="skeleton-title" />
+                <div className="skeleton-sub" />
+              </div>
+            ))}
           </div>
         ) : (
           (() => {
@@ -513,7 +519,8 @@ export default function Home() {
 
         <div style={{ textAlign: "center", marginTop: 20 }}>
           <a className="button primary" href="/canais" style={{ minWidth: 240 }}>
-            Ver todos os {channels.length} canais <ArrowRightIcon style={{ width: 14, height: 14 }} />
+            {channels.length > 0 ? `Ver todos os ${channels.length} canais` : "Ver grade completa de canais"}{" "}
+            <ArrowRightIcon style={{ width: 14, height: 14 }} />
           </a>
         </div>
       </section>
