@@ -18,7 +18,7 @@ import {
   ClockIcon,
 } from "./components/icons";
 
-const API_URL = "https://api.reidoscanais.st";
+const API_URL = "/api/reidoscanais";
 
 type Embed = {
   provider: string;
