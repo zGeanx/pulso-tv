@@ -432,6 +432,11 @@ export default function Home() {
         </section>
       )}
 
+      {/* ─── Banner de Anúncio / Publicidade (Desktop & Mobile) ─── */}
+      <div className="page-shell">
+        <AdBanner slot="homeFeed" />
+      </div>
+
       {/* ─── Channels by Category Rows (Compact Model) ─── */}
       <section className="channels-section page-shell" aria-labelledby="channels-title">
         <div className="section-heading">
