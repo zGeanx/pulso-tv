@@ -3045,6 +3045,7 @@ footer nav a:hover {
 }
 
 .house-placement-copy {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -3126,8 +3127,10 @@ footer nav a:hover {
 
 .house-placement.format-320x50 .house-placement-action {
   margin-top: 0;
-  padding: 5px 10px;
-  font-size: 11px;
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  font-size: 10.5px;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
