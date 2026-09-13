@@ -1492,12 +1492,34 @@ footer {
 
 /* ──────── Player Cinematic Shell & Rei dos Canais Layout ──────── */
 .player-shell-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-inline: auto;
   overflow: hidden;
   border-radius: var(--radius-xl);
   background: var(--bg-surface);
   border: 1px solid var(--border-card);
   box-shadow: var(--shadow-lg);
   transition: all var(--ease-smooth) 0.3s;
+}
+
+.channel-page-shell {
+  min-width: 0;
+  padding-block: 28px 72px;
+}
+
+.channel-breadcrumb {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.channel-breadcrumb strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .player-shell-card.theater-active {
@@ -1544,6 +1566,100 @@ footer {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+.player-signal-picker {
+  position: relative;
+  z-index: 2;
+  width: min(320px, 100%);
+}
+.player-signal-trigger {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px 7px 12px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  transition: border-color var(--ease-smooth) 0.2s, background var(--ease-smooth) 0.2s;
+}
+.player-signal-trigger:hover,
+.player-signal-trigger[aria-expanded="true"] {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+.player-signal-current {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+.player-signal-current > span {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+.player-signal-current strong {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-signal-chevron {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transform: rotate(90deg);
+  transition: transform var(--ease-smooth) 0.2s;
+}
+.player-signal-chevron.open {
+  transform: rotate(-90deg);
+}
+.player-signal-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  max-height: 250px;
+  padding: 6px;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+.player-signal-option {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+.player-signal-option > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.player-signal-option:hover,
+.player-signal-option[aria-selected="true"] {
+  color: var(--text-primary);
+  background: rgba(16, 185, 129, 0.12);
+}
+.player-signal-option[aria-selected="true"] {
+  box-shadow: inset 2px 0 0 var(--primary);
 }
 .player-tool-btn {
   display: inline-flex;
@@ -2373,6 +2489,12 @@ footer nav a:hover {
     width: 100%;
     justify-content: flex-start;
   }
+  .player-signal-picker {
+    width: 100%;
+  }
+  .player-signal-menu {
+    max-height: min(250px, calc(100vh - 150px));
+  }
 
   /* Footer Mobile */
   .footer-inner {
@@ -2609,121 +2731,48 @@ footer nav a:hover {
   }
 }
 
-/* ──────── Adsterra Banner 300x250 (Desktop & Mobile) ──────── */
+/* ──────── Adsterra Banners (bare creative, responsive) ──────── */
 .adsterra-banner-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: block;
   margin: 22px auto;
-  padding: 12px 16px 16px;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-card);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.adsterra-banner-card:hover {
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
-}
-
-.adsterra-banner-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 300px;
-  max-width: 100%;
-  margin-bottom: 8px;
-  padding: 0 4px;
-}
-
-.adsterra-banner-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-}
-
-.adsterra-banner-format {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-muted);
-  opacity: 0.55;
-  letter-spacing: 0.04em;
+.adsterra-banner-frame {
+  position: relative;
+  width: 100%;
+  margin-inline: auto;
+  overflow: hidden;
 }
 
 .adsterra-banner-viewport {
-  width: 300px;
-  height: 250px;
-  min-width: 300px;
-  min-height: 250px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.2);
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform-origin: top center;
   overflow: hidden;
 }
 
 .adsterra-banner-viewport iframe {
-  width: 300px !important;
-  height: 250px !important;
-  border: none !important;
+  display: block;
+  border: 0 !important;
 }
 
-/* Formato 320x50 (Mobile Leaderboard Compacto) */
+/* Formato 320x50 (leaderboard compacto) */
 .adsterra-banner-card.format-320x50,
 .adsterra-banner-card.compact {
-  padding: 8px 12px 10px;
   margin: 14px auto;
 }
 
-.adsterra-banner-card.format-320x50 .adsterra-banner-viewport {
-  width: 320px;
-  height: 50px;
-  min-width: 320px;
-  min-height: 50px;
-}
-
-.adsterra-banner-card.format-320x50 .adsterra-banner-viewport iframe {
-  width: 320px !important;
-  height: 50px !important;
-}
-
 @media (max-width: 360px) {
-  .adsterra-banner-card.format-320x50 {
-    padding: 6px 4px 8px;
-  }
-  .adsterra-banner-card.format-320x50 .adsterra-banner-header {
-    width: 290px;
-  }
-  .adsterra-banner-card.format-320x50 .adsterra-banner-viewport {
-    transform: scale(0.92);
-    transform-origin: center top;
-    margin-bottom: -4px;
-  }
-}
-
-/* Ajuste de escala para telas ultracompactas (ex: 320px) sem overflow horizontal no 300x250 */
-@media (max-width: 340px) {
-  .adsterra-banner-card.format-300x250 {
-    padding: 8px 6px 12px;
-  }
-  .adsterra-banner-card.format-300x250 .adsterra-banner-header {
-    width: 270px;
-  }
-  .adsterra-banner-card.format-300x250 .adsterra-banner-viewport {
-    transform: scale(0.9);
-    transform-origin: center top;
-    margin-bottom: -25px;
+  .channel-page-shell {
+    width: calc(100% - 16px);
+    padding-block: 16px 56px;
   }
 }
 
@@ -3194,8 +3243,8 @@ footer nav a:hover {
 }
 
 .native-social-bar-close {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.08);
@@ -3213,15 +3262,24 @@ footer nav a:hover {
 
 @media (max-width: 640px) {
   .native-social-bar {
-    top: 12px;
+    top: auto;
+    bottom: max(12px, env(safe-area-inset-bottom));
     right: 12px;
     left: 12px;
     width: auto;
     max-width: none;
     padding: 8px 10px;
   }
+
+  .native-social-bar-close {
+    width: 44px;
+    height: 44px;
+  }
 }
 
-
-
+@media (max-width: 400px) {
+  .native-social-bar-text small {
+    display: none;
+  }
+}
 
