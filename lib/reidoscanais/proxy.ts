@@ -1,5 +1,35 @@
 const API_BASE = "https://api.reidoscanais.st";
 
+type JsonResponseOptions = {
+  status?: number;
+  cacheControl?: string;
+};
+
+export function jsonApiResponse(
+  body: unknown,
+  { status = 200, cacheControl = "no-store" }: JsonResponseOptions = {},
+) {
+  return Response.json(body, {
+    status,
+    headers: {
+      "Cache-Control": cacheControl,
+      "Content-Type": "application/json; charset=utf-8",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
+
+function invalidUpstreamResponse() {
+  return jsonApiResponse(
+    {
+      success: false,
+      data: null,
+      message: "A API de canais retornou uma resposta inválida.",
+    },
+    { status: 502 },
+  );
+}
+
 type ProxyOptions = {
   path: string;
   params?: Record<string, string>;
@@ -22,21 +52,27 @@ export async function proxyApi({
       headers: { Accept: "application/json" },
     });
 
-    const body = await upstream.text();
+    if ([204, 205, 304].includes(upstream.status)) {
+      return invalidUpstreamResponse();
+    }
 
-    return new Response(body, {
+    const body = await upstream.text();
+    let payload: unknown;
+
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      return invalidUpstreamResponse();
+    }
+
+    return jsonApiResponse(payload, {
       status: upstream.status,
-      headers: {
-        "Content-Type":
-          upstream.headers.get("content-type") ??
-          "application/json; charset=utf-8",
-        "Cache-Control": upstream.ok
-          ? `public, max-age=0, s-maxage=${maxAge}, stale-while-revalidate=60`
-          : "no-store",
-      },
+      cacheControl: upstream.ok
+        ? `public, max-age=0, s-maxage=${maxAge}, stale-while-revalidate=60`
+        : "no-store",
     });
   } catch {
-    return Response.json(
+    return jsonApiResponse(
       {
         success: false,
         data: null,
