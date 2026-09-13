@@ -28,6 +28,30 @@ test("includes the site favicon in the channel document head", async (t) => {
   assert.match(head, /<link\b(?=[^>]*\brel="icon")(?=[^>]*\bhref="\/favicon.svg")[^>]*>/i);
 });
 
+test("prioritizes loading and offers live resync for playable channels", async (t) => {
+  t.mock.method(globalThis, "fetch", async (url) => Response.json({
+    success: true,
+    data: String(url).endsWith("/channels")
+      ? [{
+          id: "test-channel",
+          name: "Canal de teste",
+          embeds: [{
+            provider: "Servidor Premium",
+            quality: "FULL HD",
+            embed_url: "https://rdcanais.net/test-channel",
+          }],
+        }]
+      : [],
+  }));
+
+  const response = await render("/canal/test-channel");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /loading="eager"/);
+  assert.match(html, /Sincronizar ao vivo/);
+  assert.match(html, /rel="preconnect" href="https:\/\/rdcanais\.net"/);
+});
+
 test("server-renders the Pulso TV experience", async () => {
   const response = await render();
   assert.equal(response.status, 200);
