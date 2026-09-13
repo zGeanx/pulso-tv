@@ -106,6 +106,22 @@ function decodeText(text?: string) {
     .replace(/&gt;/g, ">");
 }
 
+function getEmbedOrigin(embedUrl?: string) {
+  if (!embedUrl) return null;
+  try {
+    return new URL(embedUrl).origin;
+  } catch {
+    return null;
+  }
+}
+
+function withLiveReloadToken(embedUrl: string, reloadToken: number) {
+  if (!reloadToken) return embedUrl;
+  const url = new URL(embedUrl);
+  url.searchParams.set("pulso_live", String(reloadToken));
+  return url.toString();
+}
+
 export default function PlayerClient({
   channel,
   sectionHref = "/canais",
@@ -116,10 +132,16 @@ export default function PlayerClient({
   const [theaterMode, setTheaterMode] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [playerReloadToken, setPlayerReloadToken] = useState(0);
+  const [isPlayerReloading, setIsPlayerReloading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
 
   const safeEmbeds = sanitizeEmbeds(channel?.embeds);
   const selectedEmbed = safeEmbeds[embedIndex] ?? null;
+  const embedOrigin = getEmbedOrigin(selectedEmbed?.embed_url);
+  const selectedEmbedUrl = selectedEmbed
+    ? withLiveReloadToken(selectedEmbed.embed_url, playerReloadToken)
+    : null;
   const embedMenuId = useId();
   const isSport = channel?.category?.toLowerCase().includes("esporte") || channel?.category?.toLowerCase().includes("futebol") || sectionHref === "/agenda";
 
@@ -202,11 +224,24 @@ export default function PlayerClient({
 
   function selectEmbed(index: number) {
     setEmbedIndex(index);
+    setPlayerReloadToken(0);
+    setIsPlayerReloading(false);
     setIsEmbedMenuOpen(false);
+  }
+
+  function syncLiveStream() {
+    setIsPlayerReloading(true);
+    setPlayerReloadToken(Date.now());
   }
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg-canvas)" }}>
+      {embedOrigin && (
+        <>
+          <link rel="preconnect" href={embedOrigin} />
+          <link rel="dns-prefetch" href={embedOrigin} />
+        </>
+      )}
       <SiteHeader active={sectionHref === "/agenda" ? "/agenda" : "/canais"} />
 
       <section className="page-shell channel-page-shell">
@@ -222,7 +257,6 @@ export default function PlayerClient({
                 gap: 8,
                 color: "var(--text-muted)",
                 fontSize: 13,
-                marginBottom: 16,
               }}
             >
               <a href="/" style={{ color: "var(--text-secondary)" }}>
@@ -240,13 +274,15 @@ export default function PlayerClient({
             <article className={`player-shell-card ${theaterMode ? "theater-active" : ""}`}>
               {/* Player Video Frame */}
               <div className="player-screen-wrap">
-                {selectedEmbed ? (
+                {selectedEmbed && selectedEmbedUrl ? (
                   <iframe
-                    key={selectedEmbed.embed_url}
-                    src={selectedEmbed.embed_url}
+                    key={selectedEmbedUrl}
+                    src={selectedEmbedUrl}
                     title={`Transmissão ao vivo de ${channel.name}`}
                     allow={EMBED_ALLOW}
                     allowFullScreen
+                    loading="eager"
+                    onLoad={() => setIsPlayerReloading(false)}
                     sandbox={
                       requiresUnsandboxedEmbed(selectedEmbed.embed_url)
                         ? undefined
@@ -331,6 +367,19 @@ export default function PlayerClient({
                 </div>
 
                 <div className="player-toolbar-right">
+                  {selectedEmbed && (
+                    <button
+                      className="player-tool-btn"
+                      type="button"
+                      onClick={syncLiveStream}
+                      disabled={isPlayerReloading}
+                      aria-busy={isPlayerReloading}
+                      title="Recarregar o sinal na posição ao vivo mais recente"
+                    >
+                      <ClockIcon style={{ width: 15, height: 15 }} />
+                      <span>{isPlayerReloading ? "Sincronizando…" : "Sincronizar ao vivo"}</span>
+                    </button>
+                  )}
                   <button className="player-tool-btn" onClick={handleCopyEmbed}>
                     <CodeIcon style={{ width: 15, height: 15 }} />
                     <span>{copiedEmbed ? "Copiado!" : "Copiar embed"}</span>
