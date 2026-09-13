@@ -1,11 +1,14 @@
-import { proxyApi } from "../../../../lib/reidoscanais/proxy";
+import {
+  jsonApiResponse,
+  proxyApi,
+} from "../../../../lib/reidoscanais/proxy";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const category = url.searchParams.get("category")?.trim() ?? "";
 
   if (category.length > 80) {
-    return Response.json(
+    return jsonApiResponse(
       { success: false, data: [], message: "Categoria inválida." },
       { status: 400 },
     );
