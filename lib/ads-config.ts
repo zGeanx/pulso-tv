@@ -59,10 +59,6 @@ const adsenseSlots = {
   homeFeed: process.env.NEXT_PUBLIC_ADSENSE_HOME_SLOT?.trim() ?? "",
 };
 
-function configuredType(slotId: string): "adsense" | "affiliate" {
-  return ADSENSE_CLIENT_ID && slotId ? "adsense" : "affiliate";
-}
-
 /**
  * CONFIGURAÇÃO GERAL DE ANÚNCIOS DO PULSO TV
  * 
