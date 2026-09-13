@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ADSENSE_CLIENT_ID } from "../lib/ads-config";
+import { EMBED_FRAME_CSP } from "../lib/reidoscanais/embed-security";
 
 const siteUrl = "https://pulso-tv-ao-vivo.zgeanx.chatgpt.site";
 
@@ -31,10 +33,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR">
       <head>
+        <meta httpEquiv="Content-Security-Policy" content={EMBED_FRAME_CSP} />
         {/* Keep icons in the initial head even when channel metadata streams later. */}
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="shortcut icon" href="/favicon.svg" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
+        {ADSENSE_CLIENT_ID && (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(ADSENSE_CLIENT_ID)}`}
+            crossOrigin="anonymous"
+          />
+        )}
       </head>
       <body>{children}</body>
     </html>
