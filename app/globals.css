@@ -102,6 +102,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
 button { color: inherit; border: none; background: transparent; cursor: pointer; }
 a { color: inherit; text-decoration: none; }
 
+:where(a, button, input):focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
+}
+
 .page-shell {
   width: min(1240px, calc(100% - 40px));
   margin-inline: auto;
@@ -266,6 +271,9 @@ html[data-theme="light"] .theme-segment.active {
 }
 
 .menu-toggle {
+  display: none;
+}
+.mobile-nav-theme {
   display: none;
 }
 
@@ -1152,6 +1160,10 @@ html[data-theme="light"] .agenda-card-badge.finished {
 
 .directory-content { padding: 28px 0 80px; }
 
+.directory-toolbar {
+  position: relative;
+}
+
 .directory-search {
   display: flex;
   align-items: center;
@@ -1174,6 +1186,48 @@ html[data-theme="light"] .agenda-card-badge.finished {
   font-size: 14px;
   outline: none;
   width: 100%;
+}
+
+.directory-search-clear {
+  width: 32px;
+  height: 32px;
+  margin: -6px -8px -6px 0;
+  border-radius: 6px;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.directory-search-clear:hover {
+  color: var(--text-primary);
+  background: var(--bg-card-hover);
+}
+
+.directory-result-line {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 16px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+.directory-result-line strong {
+  color: var(--text-primary);
+}
+.directory-result-line span {
+  margin-left: auto;
+  max-width: 55%;
+  padding: 4px 9px;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-full);
+  color: var(--primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-load-more {
+  display: none;
 }
 
 .directory-empty, .empty-state {
@@ -1904,16 +1958,27 @@ footer nav a:hover {
 }
 
 @media (max-width: 768px) {
-  .page-shell { width: min(100% - 28px, 1240px); }
-  .site-header { height: 66px; padding: 0 16px; justify-content: space-between; }
+  .page-shell { width: min(100% - 24px, 1240px); }
+  .site-header { height: 62px; padding: 0 12px; gap: 10px; justify-content: space-between; }
+  .brand { font-size: 19px; gap: 8px; }
+  .brand-logo-wrap svg { width: 34px; height: 34px; }
   .header-search { display: none; }
+
+  .header-actions { gap: 8px; }
+  .desktop-theme-toggle { display: none; }
+  .theme-switch-segmented { padding: 2px; }
+  .theme-segment { width: 34px; height: 34px; }
 
   .menu-toggle {
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
     gap: 4px;
-    padding: 6px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 8px;
     background: none;
     border: none;
     cursor: pointer;
@@ -1924,38 +1989,144 @@ footer nav a:hover {
     height: 2px;
     background: var(--text-primary);
     border-radius: 2px;
+    transition: transform var(--ease-smooth) 0.2s, opacity var(--ease-smooth) 0.2s;
   }
+  .menu-toggle.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2) { opacity: 0; }
+  .menu-toggle.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
   .nav {
     display: none;
     position: absolute;
-    top: 65px;
-    left: 0;
-    right: 0;
-    padding: 16px;
+    top: 61px;
+    right: 12px;
+    width: min(248px, calc(100vw - 24px));
+    padding: 10px;
     background: var(--bg-surface);
     backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border-card);
+    border: 1px solid var(--border-card);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    box-shadow: var(--shadow-md);
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
   }
   .nav.open { display: flex; }
+  .nav a { min-height: 44px; display: flex; align-items: center; }
+  .mobile-nav-theme {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-top: 6px;
+    padding: 14px 6px 4px;
+    border-top: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+  }
 
   /* Hero Mobile */
-  .hero { margin-top: 14px; padding: 32px 18px; gap: 28px; }
-  .hero h1 { font-size: 34px; letter-spacing: -1.5px; }
-  .hero-actions { flex-direction: column; }
+  .hero {
+    margin-top: 12px;
+    padding: 26px 18px 18px;
+    gap: 20px;
+    border-radius: 22px;
+  }
+  .hero::before { width: 250px; height: 250px; }
+  .eyebrow { margin-bottom: 16px; padding: 5px 11px; }
+  .hero h1 { font-size: 34px; letter-spacing: -1.5px; margin-bottom: 12px; }
+  .hero p { font-size: 14.5px; line-height: 1.55; margin-bottom: 20px; }
+  .hero-actions { flex-direction: column; gap: 10px; }
   .button { width: 100%; }
+  .hero-actions .button { height: 46px; }
+  .spotlight { padding: 16px; gap: 14px; border-radius: 16px; }
+  .score-stage { padding: 12px 6px; }
+  .score-stage .team img { width: 52px !important; height: 52px !important; }
+  .team { max-width: 96px; }
+  .team span { font-size: 12px; }
+  .spotlight-bottom { padding-top: 12px; gap: 12px; }
+  .spotlight-bottom > div { min-width: 0; }
+  .spotlight-bottom strong {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Home Search Mobile */
+  .quick-find {
+    margin-top: 22px;
+    padding: 22px 18px;
+    gap: 16px;
+    border-radius: 18px;
+  }
+  .quick-find h2 { font-size: 22px; }
+  .quick-find-sub { line-height: 1.45; }
+  .main-search { min-height: 48px; padding: 10px 14px; }
+  .main-search input { min-width: 0; font-size: 14px; }
+  .main-search kbd { display: none; }
+
+  /* Sports Rail Mobile */
+  .agenda-section { padding: 32px 0 18px; }
+  .agenda-cards-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    margin-inline: -12px;
+    padding: 3px 12px 14px;
+    scrollbar-width: none;
+  }
+  .agenda-cards-grid::-webkit-scrollbar { display: none; }
+  .agenda-match-card {
+    flex: 0 0 min(82vw, 310px);
+    scroll-snap-align: start;
+  }
+
+  .section-heading { gap: 12px; margin-bottom: 16px; }
+  .section-heading h2 { font-size: 22px; }
+  .section-heading > a {
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 7px 11px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
 
   /* Directory Hero Mobile */
   .directory-hero {
+    min-height: auto;
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
-    padding: 28px 0 18px;
+    gap: 12px;
+    padding: 24px 0 16px;
   }
-  .directory-hero h1 { font-size: 28px; letter-spacing: -1px; }
+  .directory-hero h1 { font-size: 29px; letter-spacing: -1px; line-height: 1.1; }
+  .directory-hero p { margin-top: 8px; font-size: 13.5px; }
+
+  .directory-content { padding: 0 0 56px; scroll-margin-top: 62px; }
+  .directory-toolbar {
+    position: sticky;
+    top: 62px;
+    z-index: 20;
+    margin-inline: -12px;
+    padding: 12px 12px 2px;
+    background: color-mix(in srgb, var(--bg-canvas) 94%, transparent);
+    border-bottom: 1px solid var(--border-subtle);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .directory-search { min-height: 48px; margin-bottom: 10px; padding: 9px 14px; }
+  .directory-search input { min-width: 0; font-size: 14px; }
+  .directory-search-clear { width: 38px; height: 38px; margin: -4px -8px -4px 0; }
+  .directory-toolbar .light-tabs {
+    margin-inline: -12px;
+    padding: 0 12px 10px;
+  }
+  .directory-toolbar .light-tabs button { min-height: 40px; padding: 8px 14px; }
+  .directory-result-line { display: flex; margin: 14px 0 12px; }
 
   /* Mobile Horizontal Carousel for Category Channels on Home */
   .channel-row-section {
@@ -1986,22 +2157,50 @@ footer nav a:hover {
     scroll-snap-align: start;
   }
 
-  /* 2-Column Grid on Directory Page (/canais) */
-  .directory-content .compact-channel-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+  /* Scannable Channel List on Directory Page (/canais) */
+  .directory-content .directory-channel-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
-  .directory-card-compact {
-    padding: 10px;
+  .directory-channel-grid .channel-card-compact {
+    min-height: 78px;
+    padding: 8px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
   }
-  .directory-card-compact .card-logo-box, .channel-card-compact .card-logo-box {
+  .channel-row-section .channel-card-compact .card-logo-box {
     height: 74px;
   }
-  .channel-card-compact .card-name, .directory-card-compact .card-name {
+  .directory-channel-grid .channel-card-compact .card-logo-box {
+    width: 82px;
+    height: 58px;
+    margin: 0;
+    flex: 0 0 82px;
+    padding: 7px;
+  }
+  .directory-channel-grid .channel-card-compact .card-info {
+    min-width: 0;
+    text-align: left;
+    gap: 5px;
+  }
+  .directory-channel-grid .channel-card-compact .card-name {
+    font-size: 14px;
+  }
+  .directory-channel-grid .channel-card-compact .card-show {
+    font-size: 11.5px;
+  }
+  .channel-row-section .channel-card-compact .card-name {
     font-size: 12.5px;
   }
-  .channel-card-compact .card-show, .directory-card-compact .card-show {
+  .channel-row-section .channel-card-compact .card-show {
     font-size: 10.5px;
+  }
+  .directory-channel-grid:not(.expanded) > :nth-child(n + 25) { display: none; }
+  .directory-load-more {
+    display: inline-flex;
+    margin-top: 16px;
+    min-height: 48px;
   }
 
   /* Schedule / Event Rows on Mobile */
@@ -2019,7 +2218,17 @@ footer nav a:hover {
   .schedule-row time, .event-time { font-size: 16px; }
 
   /* Category Grid & Disney Grid Mobile */
-  .category-grid { grid-template-columns: 1fr; gap: 12px; }
+  .category-showcase { padding: 18px 0 54px; }
+  .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .category-grid button {
+    min-height: 148px;
+    padding: 16px;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+  .cat-icon { width: 42px; height: 42px; border-radius: 12px; }
+  .category-grid strong { font-size: 14px; }
+  .category-grid small { font-size: 11px; line-height: 1.35; }
   .disney-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
 
   /* Player Mobile Toolbar */
@@ -2042,6 +2251,15 @@ footer nav a:hover {
   }
   .footer-inner nav { justify-content: center; }
   .footer-note { text-align: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ──────── Monetization & Ad Banners ──────── */
