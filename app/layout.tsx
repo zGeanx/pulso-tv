@@ -29,6 +29,11 @@ export const metadata: Metadata = {
     description: "Encontre canais, eventos esportivos e a programação que está ao vivo agora.",
     images: [`${siteUrl}/og.png`],
   },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
