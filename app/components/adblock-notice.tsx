@@ -7,6 +7,7 @@ import { ShieldCheckIcon, CloseIcon, FlameIcon, ArrowRightIcon } from "./icons";
 const DISMISS_KEY = "pulso_adblock_dismissed";
 const POP_FIRED_KEY = "pulso_native_pop_fired";
 const SOCIAL_BAR_DISMISSED_KEY = "pulso_social_bar_dismissed";
+const AD_RENDER_FAILED_EVENT = "pulso:ad-render-failed";
 
 export function AdblockNotice() {
   const [detected, setDetected] = useState(false);
@@ -18,6 +19,9 @@ export function AdblockNotice() {
 
     let isMounted = true;
     let initialDismissed = false;
+    let blockedStateHandled = false;
+    let socialBarTimer: ReturnType<typeof setTimeout> | undefined;
+    let firstClickHandler: ((event: MouseEvent) => void) | undefined;
 
     try {
       if (sessionStorage.getItem(DISMISS_KEY) === "1") {
@@ -26,6 +30,50 @@ export function AdblockNotice() {
     } catch {
       // Silencioso
     }
+
+    const activateBlockedState = () => {
+      if (!isMounted) return;
+
+      setDetected(true);
+      if (!initialDismissed) {
+        setNoticeDismissed(false);
+      }
+
+      if (blockedStateHandled) return;
+      blockedStateHandled = true;
+
+      // Alternativa própria somente em desktop; o primeiro toque deve chegar ao player.
+      const smartlink = ADS_CONFIG.smartlink?.url;
+      const supportsPointerPopunder = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+      if (ADS_CONFIG.globalEnabled && smartlink && supportsPointerPopunder) {
+        firstClickHandler = (event: MouseEvent) => {
+          try {
+            if (sessionStorage.getItem(POP_FIRED_KEY) === "1") return;
+            if ((event.target as HTMLElement)?.closest(".site-support-close, .site-support-btn-dismiss, .native-social-bar-close")) {
+              return;
+            }
+            sessionStorage.setItem(POP_FIRED_KEY, "1");
+            window.open(smartlink, "_blank");
+          } catch {
+            // Silencioso
+          }
+        };
+
+        window.addEventListener("click", firstClickHandler, { once: true });
+      }
+
+      try {
+        if (sessionStorage.getItem(SOCIAL_BAR_DISMISSED_KEY) !== "1") {
+          socialBarTimer = setTimeout(() => {
+            if (isMounted) setShowNativeSocialBar(true);
+          }, 5000);
+        }
+      } catch {
+        // Silencioso
+      }
+    };
+
+    window.addEventListener(AD_RENDER_FAILED_EVENT, activateBlockedState);
 
     async function checkAdblock() {
       let isBlocked = false;
@@ -86,44 +134,7 @@ export function AdblockNotice() {
       if (!isMounted) return;
 
       if (isBlocked) {
-        setDetected(true);
-        if (!initialDismissed) {
-          setNoticeDismissed(false);
-        }
-
-        // ─── BYPASS 1: Popunder Nativo com Smartlink ───
-        // Apenas em desktop: em telas touch, o primeiro toque precisa chegar ao player.
-        const smartlink = ADS_CONFIG.smartlink?.url;
-        const supportsPointerPopunder = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-        if (ADS_CONFIG.globalEnabled && smartlink && supportsPointerPopunder) {
-          const onFirstClick = (e: MouseEvent) => {
-            try {
-              if (sessionStorage.getItem(POP_FIRED_KEY) === "1") return;
-              // Não dispara se clicou em fechar modais/avisos
-              if ((e.target as HTMLElement)?.closest(".site-support-close, .site-support-btn-dismiss, .native-social-bar-close")) {
-                return;
-              }
-              sessionStorage.setItem(POP_FIRED_KEY, "1");
-              window.open(smartlink, "_blank");
-            } catch {
-              // Silencioso
-            }
-          };
-
-          window.addEventListener("click", onFirstClick, { once: true });
-        }
-
-        // ─── BYPASS 2: Social Bar Nativa ───
-        // Exibe uma barra flutuante após 5 segundos se a rede de anúncios foi bloqueada
-        try {
-          if (sessionStorage.getItem(SOCIAL_BAR_DISMISSED_KEY) !== "1") {
-            setTimeout(() => {
-              if (isMounted) setShowNativeSocialBar(true);
-            }, 5000);
-          }
-        } catch {
-          // Silencioso
-        }
+        activateBlockedState();
       }
     }
 
@@ -132,6 +143,9 @@ export function AdblockNotice() {
     return () => {
       isMounted = false;
       clearTimeout(timer);
+      if (socialBarTimer) clearTimeout(socialBarTimer);
+      if (firstClickHandler) window.removeEventListener("click", firstClickHandler);
+      window.removeEventListener(AD_RENDER_FAILED_EVENT, activateBlockedState);
     };
   }, []);
 
