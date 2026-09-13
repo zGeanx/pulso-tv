@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { sanitizeEmbeds } from "../../../lib/reidoscanais/embed-security";
 import PlayerClient, { type Playable } from "../../canal/[id]/player-client";
 
 const API_URL = "https://api.reidoscanais.st";
 const SITE_URL = "https://pulso-tv-ao-vivo.zgeanx.chatgpt.site";
+const API_TIMEOUT_MS = 7000;
 
 type ApiEvent = {
   id: string;
@@ -60,16 +62,30 @@ function normalizeEvent(event: ApiEvent): Playable {
   };
 }
 
-async function findEvent(id: string): Promise<Playable | null> {
+async function requestEvents(status: string): Promise<ApiEvent[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
   try {
-    const responses = await Promise.all(["live", "upcoming", "finished"].map((status) => fetch(`${API_URL}/sports?status=${status}`, { headers: { Accept: "application/json" }, cache: "no-store" })));
-    const payloads = await Promise.all(responses.map((response) => response.json() as Promise<ApiResponse<ApiEvent[]>>));
-    const event = payloads.flatMap((payload) => payload.success ? payload.data : []).find((item) => String(item.id) === id);
-    return event ? normalizeEvent(event) : null;
+    const response = await fetch(`${API_URL}/sports?status=${status}`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    const payload = (await response.json()) as ApiResponse<ApiEvent[]>;
+    return response.ok && payload.success ? payload.data : [];
   } catch {
-    return null;
+    return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }
+
+const findEvent = cache(async (id: string): Promise<Playable | null> => {
+  const eventLists = await Promise.all(["live", "upcoming", "finished"].map(requestEvents));
+  const event = eventLists.flat().find((item) => String(item.id) === id);
+  return event ? normalizeEvent(event) : null;
+});
 
 function validImageUrl(value?: string) {
   if (!value) return undefined;
