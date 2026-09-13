@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState, useId } from "react";
-import { ADS_CONFIG, type AdSlotConfig, type AffiliateAd } from "../../lib/ads-config";
+import { useEffect, useId, useRef, useState } from "react";
+import { ADS_CONFIG, ADSENSE_CLIENT_ID, type AdSlotConfig, type AffiliateAd } from "../../lib/ads-config";
 import { ArrowRightIcon } from "./icons";
+
+declare global {
+  interface Window {
+    adsbygoogle?: Array<Record<string, unknown>>;
+  }
+}
 
 interface AdBannerProps {
   slot: "playerBottom" | "homeFeed";
@@ -11,19 +17,47 @@ interface AdBannerProps {
 }
 
 export function AdBanner({ slot, className = "", variant = "horizontal" }: AdBannerProps) {
-  const [mounted, setMounted] = useState(false);
   const [activeAdIndex, setActiveAdIndex] = useState(0);
   const containerId = useId();
+  const adRequested = useRef(false);
 
   const slotConfig: AdSlotConfig | undefined = ADS_CONFIG.slots[slot];
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    if (slotConfig?.type !== "adsense" || !ADSENSE_CLIENT_ID || !slotConfig.adsenseSlotId || adRequested.current) {
+      return;
+    }
+
+    adRequested.current = true;
+    try {
+      window.adsbygoogle = window.adsbygoogle || [];
+      window.adsbygoogle.push({});
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("AdSense could not initialize this slot.", error);
+      }
+    }
+  }, [slotConfig]);
 
   // Se anúncios estiverem desativados globalmente ou no slot
   if (!ADS_CONFIG.globalEnabled || !slotConfig || !slotConfig.enabled) {
     return null;
+  }
+
+  if (slotConfig.type === "adsense" && ADSENSE_CLIENT_ID && slotConfig.adsenseSlotId) {
+    return (
+      <aside className={`ad-network-slot ${variant} ${className}`} aria-label="Publicidade">
+        <span className="ad-network-label">Publicidade</span>
+        <ins
+          className="adsbygoogle"
+          style={{ display: "block" }}
+          data-ad-client={ADSENSE_CLIENT_ID}
+          data-ad-slot={slotConfig.adsenseSlotId}
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+      </aside>
+    );
   }
 
   // Renderização de Script/HTML customizado (Redes como Adsterra, Monetag, etc.)
@@ -83,7 +117,7 @@ export function AdBanner({ slot, className = "", variant = "horizontal" }: AdBan
         </div>
       </a>
 
-      {ads.length > 1 && mounted && (
+      {ads.length > 1 && (
         <div className="ad-indicators">
           {ads.map((_, idx) => (
             <button
