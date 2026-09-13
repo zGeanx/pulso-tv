@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { ADS_CONFIG, type AdsterraBannerConfig } from "../../lib/ads-config";
 import { FlameIcon, ArrowRightIcon } from "./icons";
 
+const AD_RENDER_FAILED_EVENT = "pulso:ad-render-failed";
+
 interface AdsterraBannerProps {
   className?: string;
   label?: string;
@@ -45,6 +47,15 @@ export function AdsterraBanner({
 
     const container = containerRef.current;
     container.innerHTML = "";
+    setIsBlocked(false);
+
+    let failureReported = false;
+    const reportRenderFailure = () => {
+      if (failureReported) return;
+      failureReported = true;
+      setIsBlocked(true);
+      window.dispatchEvent(new CustomEvent(AD_RENDER_FAILED_EVENT));
+    };
 
     const iframe = document.createElement("iframe");
     iframe.title = label;
@@ -102,17 +113,39 @@ export function AdsterraBanner({
       if (process.env.NODE_ENV !== "production") {
         console.warn("Falha ao inicializar o banner Adsterra:", err);
       }
+      reportRenderFailure();
     }
 
-    // Checagem de adblock: se o script da adsterra falhou na rede
-    const probeTimer = setTimeout(() => {
-      fetch(bannerConfig.scriptUrl, { method: "HEAD", mode: "no-cors", cache: "no-store" })
-        .catch(() => {
-          setIsBlocked(true);
+    // Uma resposta de rede não garante que a peça foi renderizada: filtros
+    // cosméticos podem remover o conteúdo depois que o script carregou.
+    const renderTimer = window.setTimeout(() => {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        const body = doc?.body;
+        const creatives = Array.from(
+          body?.querySelectorAll<HTMLElement>(
+            "a, iframe, img, video, object, embed, canvas, svg",
+          ) ?? [],
+        );
+        const visibleElement = creatives.find((element) => {
+          const rect = element.getBoundingClientRect();
+          const style = doc?.defaultView?.getComputedStyle(element);
+          return rect.width > 1
+            && rect.height > 1
+            && style?.display !== "none"
+            && style?.visibility !== "hidden"
+            && style?.opacity !== "0";
         });
-    }, 2000);
 
-    return () => clearTimeout(probeTimer);
+        if (!visibleElement) {
+          reportRenderFailure();
+        }
+      } catch {
+        reportRenderFailure();
+      }
+    }, 4500);
+
+    return () => window.clearTimeout(renderTimer);
   }, [bannerConfig, label]);
 
   if (!ADS_CONFIG.globalEnabled || !bannerConfig?.enabled) {
@@ -122,44 +155,44 @@ export function AdsterraBanner({
   const isCompact = height <= 100;
   const smartlinkUrl = ADS_CONFIG.smartlink?.url;
 
-  // Fallback nativo quando o adblock/Brave bloqueia a rede de anúncios
+  // Divulgação própria exibida quando a peça externa não é renderizada.
   if (isBlocked && ADS_CONFIG.smartlink?.enabled && smartlinkUrl) {
     return (
       <aside
-        className={`sponsor-fallback-card format-${width}x${height} ${isCompact ? "compact" : ""} ${className}`}
+        className={`house-placement format-${width}x${height} ${isCompact ? "compact" : ""} ${className}`}
         aria-label={label}
       >
         <a
           href={smartlinkUrl}
           target="_blank"
           rel="noopener noreferrer nofollow"
-          className="sponsor-fallback-link"
+          className="house-placement-link"
         >
-          <div className="sponsor-fallback-header">
-            <span className="sponsor-fallback-badge">
+          <div className="house-placement-header">
+            <span className="house-placement-label">
               <span className="ad-badge-dot" />
               Patrocinado · Pulso TV
             </span>
-            <span className="sponsor-fallback-tag">4K VIP</span>
+            <span className="house-placement-tag">4K VIP</span>
           </div>
 
-          <div className="sponsor-fallback-content">
-            <div className="sponsor-fallback-icon">
+          <div className="house-placement-content">
+            <div className="house-placement-icon">
               <FlameIcon style={{ width: isCompact ? 18 : 26, height: isCompact ? 18 : 26, color: "#f97316" }} />
             </div>
-            <div className="sponsor-fallback-text">
-              <strong className="sponsor-fallback-title">
+            <div className="house-placement-copy">
+              <strong className="house-placement-title">
                 {isCompact ? "Sinal Rápido sem travamentos" : "Liberar Transmissão em Alta Definição"}
               </strong>
               {!isCompact && (
-                <p className="sponsor-fallback-desc">
+                <p className="house-placement-description">
                   Assista a todos os jogos e canais com conexão otimizada e velocidade máxima.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="sponsor-fallback-cta">
+          <div className="house-placement-action">
             <span>Acessar Sinal</span>
             <ArrowRightIcon style={{ width: 14, height: 14 }} />
           </div>
