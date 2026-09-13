@@ -38,6 +38,7 @@ export default function CanaisClient() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAllOnMobile, setShowAllOnMobile] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -111,37 +112,50 @@ export default function CanaisClient() {
       <section className="directory-content page-shell" aria-labelledby="channel-directory-title">
         <h2 className="sr-only" id="channel-directory-title">Lista de canais</h2>
 
-        <label className="directory-search">
-          <SearchIcon style={{ color: "var(--text-muted)", flexShrink: 0 }} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar canal por nome, número ou programa..."
-            aria-label="Buscar canal"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              style={{ color: "var(--text-muted)", padding: 4, display: "grid", placeItems: "center" }}
-              aria-label="Limpar busca"
-            >
-              <CloseIcon style={{ width: 14, height: 14 }} />
-            </button>
-          )}
-        </label>
+        <div className="directory-toolbar">
+          <label className="directory-search">
+            <SearchIcon style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+            <input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setShowAllOnMobile(false);
+              }}
+              placeholder="Buscar canal ou programa"
+              aria-label="Buscar canal"
+            />
+            {query && (
+              <button
+                className="directory-search-clear"
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setShowAllOnMobile(false);
+                }}
+                aria-label="Limpar busca"
+              >
+                <CloseIcon style={{ width: 16, height: 16 }} />
+              </button>
+            )}
+          </label>
 
-        <div className="light-tabs" role="tablist" aria-label="Filtrar canais por categoria">
-          {categories.map((item) => (
-            <button
-              key={item}
-              role="tab"
-              aria-selected={category === item}
-              className={category === item ? "active" : ""}
-              onClick={() => setCategory(item)}
-            >
-              {item}
-            </button>
-          ))}
+          <div className="light-tabs" role="tablist" aria-label="Filtrar canais por categoria">
+            {categories.map((item) => (
+              <button
+                key={item}
+                role="tab"
+                aria-selected={category === item}
+                className={category === item ? "active" : ""}
+                onClick={() => {
+                  setCategory(item);
+                  setShowAllOnMobile(false);
+                  document.querySelector<HTMLElement>(".directory-content")?.scrollIntoView({ block: "start" });
+                }}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -155,32 +169,49 @@ export default function CanaisClient() {
             <span>{error}</span>
           </div>
         ) : filtered.length ? (
-          <div className="compact-channel-grid">
-            {filtered.map((channel) => {
-              const current = channel.epg?.current;
-              return (
-                <a
-                  className="channel-card-compact"
-                  href={`/canal/${encodeURIComponent(channel.id)}`}
-                  key={channel.id}
-                >
-                  <div className="card-logo-box">
-                    {channel.logo_url ? (
-                      <img src={channel.logo_url} alt={`Logo de ${channel.name}`} />
-                    ) : (
-                      <span className="logo-text">{initials(channel.name)}</span>
-                    )}
-                  </div>
-                  <div className="card-info">
-                    <span className="card-name">{decodeText(channel.name)}</span>
-                    <span className="card-show">
-                      <strong>Agora:</strong> {decodeText(current?.title ?? channel.description ?? "Programação ao vivo")}
-                    </span>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
+          <>
+            <div className="directory-result-line" aria-live="polite">
+              <strong>{filtered.length}</strong> {filtered.length === 1 ? "canal encontrado" : "canais encontrados"}
+              {category !== "Todos" && <span>{category}</span>}
+            </div>
+
+            <div className={`compact-channel-grid directory-channel-grid${showAllOnMobile ? " expanded" : ""}`}>
+              {filtered.map((channel) => {
+                const current = channel.epg?.current;
+                return (
+                  <a
+                    className="channel-card-compact"
+                    href={`/canal/${encodeURIComponent(channel.id)}`}
+                    key={channel.id}
+                  >
+                    <div className="card-logo-box">
+                      {channel.logo_url ? (
+                        <img src={channel.logo_url} alt={`Logo de ${channel.name}`} />
+                      ) : (
+                        <span className="logo-text">{initials(channel.name)}</span>
+                      )}
+                    </div>
+                    <div className="card-info">
+                      <span className="card-name">{decodeText(channel.name)}</span>
+                      <span className="card-show">
+                        <strong>Agora:</strong> {decodeText(current?.title ?? channel.description ?? "Programação ao vivo")}
+                      </span>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+
+            {filtered.length > 24 && !showAllOnMobile && (
+              <button
+                className="directory-load-more button ghost"
+                type="button"
+                onClick={() => setShowAllOnMobile(true)}
+              >
+                Mostrar mais {filtered.length - 24} canais
+              </button>
+            )}
+          </>
         ) : (
           <div className="directory-empty">
             <strong>Nenhum canal encontrado.</strong>
