@@ -16,8 +16,27 @@ export function AdsterraBanner({
   config,
 }: AdsterraBannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [bannerScale, setBannerScale] = useState(1);
   const bannerConfig = config || ADS_CONFIG.banner300x250;
+  const width = bannerConfig?.width || 300;
+  const height = bannerConfig?.height || 250;
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    const updateScale = () => {
+      setBannerScale(Math.min(1, frame.clientWidth / width));
+    };
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(frame);
+
+    return () => observer.disconnect();
+  }, [width]);
 
   useEffect(() => {
     if (!containerRef.current || !ADS_CONFIG.globalEnabled || !bannerConfig?.enabled) {
@@ -100,8 +119,6 @@ export function AdsterraBanner({
     return null;
   }
 
-  const width = bannerConfig.width || 300;
-  const height = bannerConfig.height || 250;
   const isCompact = height <= 100;
   const smartlinkUrl = ADS_CONFIG.smartlink?.url;
 
@@ -156,18 +173,21 @@ export function AdsterraBanner({
       className={`adsterra-banner-card format-${width}x${height} ${isCompact ? "compact" : ""} ${className}`}
       aria-label={label}
     >
-      <div className="adsterra-banner-header" style={{ width, maxWidth: "100%" }}>
-        <span className="adsterra-banner-badge">
-          <span className="ad-badge-dot" />
-          {label}
-        </span>
-        <span className="adsterra-banner-format">{width}×{height}</span>
-      </div>
       <div
-        className="adsterra-banner-viewport"
-        style={{ width, height, minWidth: width, minHeight: height }}
-        ref={containerRef}
-      />
+        ref={frameRef}
+        className="adsterra-banner-frame"
+        style={{ maxWidth: width, height: height * bannerScale }}
+      >
+        <div
+          className="adsterra-banner-viewport"
+          style={{
+            width,
+            height,
+            transform: `translateX(-50%) scale(${bannerScale})`,
+          }}
+          ref={containerRef}
+        />
+      </div>
     </aside>
   );
 }
