@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ADSENSE_CLIENT_ID } from "../lib/ads-config";
+import { ADS_CONFIG, ADSENSE_CLIENT_ID } from "../lib/ads-config";
 import { EMBED_FRAME_CSP } from "../lib/reidoscanais/embed-security";
 
 const siteUrl = "https://pulso-tv-ao-vivo.zgeanx.chatgpt.site";
@@ -46,7 +46,21 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           />
         )}
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {ADS_CONFIG.globalEnabled && ADS_CONFIG.popunder?.enabled && ADS_CONFIG.popunder.scriptUrl && (
+          <script
+            type="text/javascript"
+            src={ADS_CONFIG.popunder.scriptUrl}
+          />
+        )}
+        {ADS_CONFIG.globalEnabled && ADS_CONFIG.socialBar?.enabled && ADS_CONFIG.socialBar.scriptUrl && (
+          <script
+            type="text/javascript"
+            src={ADS_CONFIG.socialBar.scriptUrl}
+          />
+        )}
+      </body>
     </html>
   );
 }
