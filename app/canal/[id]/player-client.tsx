@@ -10,6 +10,7 @@ import {
   sanitizeEmbeds,
 } from "../../../lib/reidoscanais/embed-security";
 import { SiteFooter, SiteHeader } from "../../components/site-chrome";
+import { ADS_CONFIG } from "../../../lib/ads-config";
 import { AdBanner } from "../../components/ad-banner";
 import {
   ChevronRightIcon,
@@ -271,6 +272,20 @@ export default function PlayerClient({
                       <span className="player-quality-badge">{embed.quality || "HD"}</span>
                     </button>
                   ))}
+
+                  {ADS_CONFIG.globalEnabled && ADS_CONFIG.smartlink?.enabled && (
+                    <a
+                      href={ADS_CONFIG.smartlink.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="player-tool-btn player-tool-vip"
+                      title="Sinal Alternativo em Alta Definição"
+                    >
+                      <FlameIcon style={{ width: 14, height: 14, color: "#f97316" }} />
+                      <span>Sinal Alternativo</span>
+                      <span className="player-quality-badge vip">4K VIP</span>
+                    </a>
+                  )}
                 </div>
 
                 <div className="player-toolbar-right">
@@ -295,6 +310,9 @@ export default function PlayerClient({
 
               {/* Player Details & Match Header */}
               <div className="player-details-body">
+                {/* Banner Mobile Leaderboard 320x50 */}
+                <AdBanner slot="playerTop" />
+
                 {/* Badges Bar */}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 16 }}>
                   <span className="on-air" style={{ fontSize: 11 }}>
