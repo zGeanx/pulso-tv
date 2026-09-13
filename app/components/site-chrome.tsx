@@ -16,27 +16,19 @@ const navigation = [
   { href: "/disneyplus", label: "Disney+" },
 ] as const;
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
-    return localStorage.getItem("pulso_theme") === "light" ? "light" : "dark";
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("pulso_theme", theme);
-  }, [theme]);
-
-  function setMode(newTheme: "dark" | "light") {
-    setTheme(newTheme);
-  }
-
+export function ThemeToggle({
+  theme,
+  onThemeChange,
+}: {
+  theme: "dark" | "light";
+  onThemeChange: (theme: "dark" | "light") => void;
+}) {
   return (
     <div className="theme-switch-segmented" role="radiogroup" aria-label="Alternar tema de cores">
       <button
         type="button"
         className={`theme-segment${theme === "light" ? " active" : ""}`}
-        onClick={() => setMode("light")}
+        onClick={() => onThemeChange("light")}
         aria-label="Modo Claro"
         title="Modo Claro"
         role="radio"
@@ -48,7 +40,7 @@ export function ThemeToggle() {
       <button
         type="button"
         className={`theme-segment${theme === "dark" ? " active" : ""}`}
-        onClick={() => setMode("dark")}
+        onClick={() => onThemeChange("dark")}
         aria-label="Modo Escuro"
         title="Modo Escuro"
         role="radio"
@@ -73,6 +65,15 @@ export function Brand({ footer = false }: { footer?: boolean }) {
 
 export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof window === "undefined") return "dark";
+    return localStorage.getItem("pulso_theme") === "light" ? "light" : "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("pulso_theme", theme);
+  }, [theme]);
 
   return (
     <header className="site-header">
@@ -90,6 +91,10 @@ export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderPr
             {item.label}
           </a>
         ))}
+
+        <div className="mobile-nav-theme">
+          <ThemeToggle theme={theme} onThemeChange={setTheme} />
+        </div>
       </nav>
 
       <div className="header-actions">
@@ -104,12 +109,14 @@ export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderPr
           />
         </form>
 
-        <ThemeToggle />
+        <div className="desktop-theme-toggle">
+          <ThemeToggle theme={theme} onThemeChange={setTheme} />
+        </div>
 
         <button
-          className="menu-toggle"
+          className={`menu-toggle${menuOpen ? " open" : ""}`}
           onClick={() => setMenuOpen((open) => !open)}
-          aria-label="Abrir menu de navegação"
+          aria-label={menuOpen ? "Fechar menu de navegação" : "Abrir menu de navegação"}
           aria-expanded={menuOpen}
         >
           <span /><span /><span />
