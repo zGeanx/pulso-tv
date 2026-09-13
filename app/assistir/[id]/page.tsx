@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { sanitizeEmbeds } from "../../../lib/reidoscanais/embed-security";
 import PlayerClient, { type Playable } from "../../canal/[id]/player-client";
 
 const API_URL = "https://api.reidoscanais.st";
@@ -55,7 +56,7 @@ function normalizeEvent(event: ApiEvent): Playable {
       home: event.teams.home ? { name: decodeText(event.teams.home.name), logo: event.teams.home.logo } : undefined,
       away: event.teams.away ? { name: decodeText(event.teams.away.name), logo: event.teams.away.logo } : undefined,
     } : undefined,
-    embeds: event.embeds ?? [],
+    embeds: sanitizeEmbeds(event.embeds),
   };
 }
 
