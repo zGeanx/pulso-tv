@@ -65,6 +65,7 @@ export function Brand({ footer = false }: { footer?: boolean }) {
 
 export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window === "undefined") return "dark";
     return localStorage.getItem("pulso_theme") === "light" ? "light" : "dark";
@@ -75,8 +76,17 @@ export function SiteHeader({ active, searchValue, onSearchChange }: SiteHeaderPr
     localStorage.setItem("pulso_theme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 12);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <header className="site-header">
+    <header className={`site-header${scrolled ? " scrolled" : ""}`}>
       <Brand />
 
       <nav className={menuOpen ? "nav open" : "nav"} aria-label="Principal">
