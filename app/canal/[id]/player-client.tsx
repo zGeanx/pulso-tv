@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   buildEmbedMarkup,
   EMBED_ALLOW,
@@ -112,6 +112,7 @@ export default function PlayerClient({
   sectionLabel = "Canais",
 }: PlayerClientProps) {
   const [embedIndex, setEmbedIndex] = useState(0);
+  const [isEmbedMenuOpen, setIsEmbedMenuOpen] = useState(false);
   const [theaterMode, setTheaterMode] = useState(false);
   const [copiedEmbed, setCopiedEmbed] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
@@ -119,6 +120,7 @@ export default function PlayerClient({
 
   const safeEmbeds = sanitizeEmbeds(channel?.embeds);
   const selectedEmbed = safeEmbeds[embedIndex] ?? null;
+  const embedMenuId = useId();
   const isSport = channel?.category?.toLowerCase().includes("esporte") || channel?.category?.toLowerCase().includes("futebol") || sectionHref === "/agenda";
 
   useEffect(() => {
@@ -198,15 +200,21 @@ export default function PlayerClient({
     }
   }
 
+  function selectEmbed(index: number) {
+    setEmbedIndex(index);
+    setIsEmbedMenuOpen(false);
+  }
+
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "var(--bg-canvas)" }}>
       <SiteHeader active={sectionHref === "/agenda" ? "/agenda" : "/canais"} />
 
-      <section className="page-shell" style={{ padding: "28px 0 72px" }}>
+      <section className="page-shell channel-page-shell">
         {channel ? (
           <>
             {/* Breadcrumb */}
             <nav
+              className="channel-breadcrumb"
               aria-label="Navegação estrutural"
               style={{
                 display: "flex",
@@ -225,7 +233,7 @@ export default function PlayerClient({
                 {sectionLabel}
               </a>
               <ChevronRightIcon style={{ width: 12, height: 12 }} />
-              <strong style={{ color: "#ffffff" }}>{channel.name}</strong>
+              <strong>{channel.name}</strong>
             </nav>
 
             {/* Player Shell Card */}
@@ -261,17 +269,51 @@ export default function PlayerClient({
               {/* Player Action Toolbar below video */}
               <div className="player-toolbar">
                 <div className="player-toolbar-left">
-                  {safeEmbeds.map((embed, idx) => (
-                    <button
-                      key={`${embed.provider}-${idx}`}
-                      onClick={() => setEmbedIndex(idx)}
-                      className={`player-tool-btn ${embedIndex === idx ? "primary" : ""}`}
-                    >
-                      <MonitorPlayIcon style={{ width: 15, height: 15 }} />
-                      <span>{embed.provider || `Player ${idx + 1}`}</span>
-                      <span className="player-quality-badge">{embed.quality || "HD"}</span>
-                    </button>
-                  ))}
+                  {selectedEmbed && (
+                    <div className="player-signal-picker">
+                      <button
+                        type="button"
+                        className="player-signal-trigger"
+                        aria-haspopup="listbox"
+                        aria-expanded={isEmbedMenuOpen}
+                        aria-controls={embedMenuId}
+                        onClick={() => setIsEmbedMenuOpen((open) => !open)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape") setIsEmbedMenuOpen(false);
+                        }}
+                      >
+                        <MonitorPlayIcon style={{ width: 17, height: 17 }} />
+                        <span className="player-signal-current">
+                          <span>Sinal atual</span>
+                          <strong>{selectedEmbed.provider || `Player ${embedIndex + 1}`}</strong>
+                        </span>
+                        <span className="player-quality-badge">{selectedEmbed.quality || "HD"}</span>
+                        <ChevronRightIcon
+                          className={`player-signal-chevron ${isEmbedMenuOpen ? "open" : ""}`}
+                          style={{ width: 16, height: 16 }}
+                        />
+                      </button>
+
+                      {isEmbedMenuOpen && (
+                        <div id={embedMenuId} className="player-signal-menu" role="listbox" aria-label="Selecionar sinal">
+                          {safeEmbeds.map((embed, idx) => (
+                            <button
+                              key={`${embed.provider}-${idx}`}
+                              type="button"
+                              role="option"
+                              aria-selected={embedIndex === idx}
+                              className={`player-signal-option ${embedIndex === idx ? "selected" : ""}`}
+                              onClick={() => selectEmbed(idx)}
+                            >
+                              <MonitorPlayIcon style={{ width: 16, height: 16 }} />
+                              <span>{embed.provider || `Player ${idx + 1}`}</span>
+                              <span className="player-quality-badge">{embed.quality || "HD"}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {ADS_CONFIG.globalEnabled && ADS_CONFIG.smartlink?.enabled && (
                     <a
