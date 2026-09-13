@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { sanitizeEmbeds } from "../../../lib/reidoscanais/embed-security";
 import PlayerClient, { type Playable } from "./player-client";
 
 const API_URL = "https://api.reidoscanais.st";
 const SITE_URL = "https://pulso-tv-ao-vivo.zgeanx.chatgpt.site";
+const API_TIMEOUT_MS = 7000;
 
 type Embed = Playable["embeds"][number];
 
@@ -97,16 +99,25 @@ function normalizeEvent(event: ApiEvent): Playable {
 }
 
 async function requestApi<T>(path: string): Promise<T | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
   try {
-    const response = await fetch(`${API_URL}${path}`, { headers: { Accept: "application/json" }, cache: "no-store" });
+    const response = await fetch(`${API_URL}${path}`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
     const payload = (await response.json()) as ApiResponse<T>;
     return response.ok && payload.success ? payload.data : null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
-async function findPlayable(id: string): Promise<Playable | null> {
+const findPlayable = cache(async (id: string): Promise<Playable | null> => {
   const [channels, liveEvents, upcomingEvents] = await Promise.all([
     requestApi<ApiChannel[]>("/channels"),
     requestApi<ApiEvent[]>("/sports?status=live"),
@@ -118,7 +129,7 @@ async function findPlayable(id: string): Promise<Playable | null> {
 
   const event = [...(liveEvents ?? []), ...(upcomingEvents ?? [])].find((item) => String(item.id) === id);
   return event ? normalizeEvent(event) : null;
-}
+});
 
 function validImageUrl(value?: string) {
   if (!value) return undefined;
