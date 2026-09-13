@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ADS_CONFIG, ADSENSE_CLIENT_ID } from "../lib/ads-config";
+import { ADSENSE_CLIENT_ID } from "../lib/ads-config";
 import { EMBED_FRAME_CSP } from "../lib/reidoscanais/embed-security";
 import { AdblockNotice } from "./components/adblock-notice";
+import { AdNetworkScripts } from "./components/ad-network-scripts";
 
 const siteUrl = "https://pulso-tv-ao-vivo.zgeanx.chatgpt.site";
 
@@ -50,18 +51,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         {children}
         <AdblockNotice />
-        {ADS_CONFIG.globalEnabled && ADS_CONFIG.popunder?.enabled && ADS_CONFIG.popunder.scriptUrl && (
-          <script
-            type="text/javascript"
-            src={ADS_CONFIG.popunder.scriptUrl}
-          />
-        )}
-        {ADS_CONFIG.globalEnabled && ADS_CONFIG.socialBar?.enabled && ADS_CONFIG.socialBar.scriptUrl && (
-          <script
-            type="text/javascript"
-            src={ADS_CONFIG.socialBar.scriptUrl}
-          />
-        )}
+        <AdNetworkScripts />
       </body>
     </html>
   );
