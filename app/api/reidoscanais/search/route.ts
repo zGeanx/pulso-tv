@@ -1,11 +1,14 @@
-import { proxyApi } from "../../../../lib/reidoscanais/proxy";
+import {
+  jsonApiResponse,
+  proxyApi,
+} from "../../../../lib/reidoscanais/proxy";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const query = url.searchParams.get("q")?.trim() ?? "";
 
   if (query.length < 2 || query.length > 100) {
-    return Response.json(
+    return jsonApiResponse(
       {
         success: false,
         data: { channels: [], events: [] },
