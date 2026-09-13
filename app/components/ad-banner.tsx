@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ADS_CONFIG, ADSENSE_CLIENT_ID, type AdSlotConfig, type AffiliateAd } from "../../lib/ads-config";
 import { ArrowRightIcon } from "./icons";
+import { AdsterraBanner } from "./adsterra-banner";
 
 declare global {
   interface Window {
@@ -11,7 +12,7 @@ declare global {
 }
 
 interface AdBannerProps {
-  slot: "playerBottom" | "homeFeed";
+  slot: "playerBottom" | "homeFeed" | "playerTop";
   className?: string;
   variant?: "horizontal" | "compact" | "card";
 }
@@ -57,6 +58,16 @@ export function AdBanner({ slot, className = "", variant = "horizontal" }: AdBan
           data-full-width-responsive="true"
         />
       </aside>
+    );
+  }
+
+  // Renderização de Banner do Adsterra (300x250)
+  if (slotConfig.type === "adsterra_banner") {
+    return (
+      <AdsterraBanner
+        className={className}
+        config={slotConfig.adsterraBanner}
+      />
     );
   }
 
