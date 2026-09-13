@@ -1,4 +1,7 @@
-import { proxyApi } from "../../../../lib/reidoscanais/proxy";
+import {
+  jsonApiResponse,
+  proxyApi,
+} from "../../../../lib/reidoscanais/proxy";
 
 const validStatuses = new Set(["live", "upcoming", "finished"]);
 
@@ -9,14 +12,14 @@ export async function GET(request: Request) {
   const popular = url.searchParams.get("popular")?.trim() ?? "";
 
   if (status && !validStatuses.has(status)) {
-    return Response.json(
+    return jsonApiResponse(
       { success: false, data: [], message: "Status inválido." },
       { status: 400 },
     );
   }
 
   if (category.length > 80 || (popular && popular !== "true")) {
-    return Response.json(
+    return jsonApiResponse(
       { success: false, data: [], message: "Parâmetros inválidos." },
       { status: 400 },
     );
