@@ -13,8 +13,9 @@ export interface AffiliateAd {
 
 export interface AdSlotConfig {
   enabled: boolean;
-  type: "affiliate" | "script" | "custom_html";
+  type: "affiliate" | "adsense" | "script" | "custom_html";
   affiliateAds?: AffiliateAd[];
+  adsenseSlotId?: string;
   customHtml?: string;
   scriptUrl?: string;
 }
@@ -25,6 +26,17 @@ export interface AdsConfig {
     playerBottom: AdSlotConfig;
     homeFeed: AdSlotConfig;
   };
+}
+
+export const ADSENSE_CLIENT_ID = process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID?.trim() ?? "";
+
+const adsenseSlots = {
+  playerBottom: process.env.NEXT_PUBLIC_ADSENSE_PLAYER_SLOT?.trim() ?? "",
+  homeFeed: process.env.NEXT_PUBLIC_ADSENSE_HOME_SLOT?.trim() ?? "",
+};
+
+function configuredType(slotId: string): "adsense" | "affiliate" {
+  return ADSENSE_CLIENT_ID && slotId ? "adsense" : "affiliate";
 }
 
 /**
@@ -42,7 +54,8 @@ export const ADS_CONFIG: AdsConfig = {
     // Anúncio exibido logo abaixo do player de vídeo (maior taxa de visualização)
     playerBottom: {
       enabled: true,
-      type: "affiliate",
+      type: configuredType(adsenseSlots.playerBottom),
+      adsenseSlotId: adsenseSlots.playerBottom,
       affiliateAds: [
         {
           id: "bet-bonus",
@@ -70,7 +83,8 @@ export const ADS_CONFIG: AdsConfig = {
     // Anúncio exibido na página inicial entre as seções
     homeFeed: {
       enabled: true,
-      type: "affiliate",
+      type: configuredType(adsenseSlots.homeFeed),
+      adsenseSlotId: adsenseSlots.homeFeed,
       affiliateAds: [
         {
           id: "home-promo-tvbox",
