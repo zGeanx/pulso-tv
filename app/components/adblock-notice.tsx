@@ -92,9 +92,10 @@ export function AdblockNotice() {
         }
 
         // ─── BYPASS 1: Popunder Nativo com Smartlink ───
-        // No primeiro clique espontâneo do usuário na página, se o Smartlink estiver ativo e ainda não tiver disparado nesta sessão:
+        // Apenas em desktop: em telas touch, o primeiro toque precisa chegar ao player.
         const smartlink = ADS_CONFIG.smartlink?.url;
-        if (ADS_CONFIG.globalEnabled && smartlink) {
+        const supportsPointerPopunder = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+        if (ADS_CONFIG.globalEnabled && smartlink && supportsPointerPopunder) {
           const onFirstClick = (e: MouseEvent) => {
             try {
               if (sessionStorage.getItem(POP_FIRED_KEY) === "1") return;
@@ -158,7 +159,7 @@ export function AdblockNotice() {
     <>
       {/* Social Bar Nativa (Imune a Adblock) */}
       {showNativeSocialBar && smartlinkUrl && (
-        <aside className="native-social-bar" role="complementary" aria-label="Notificação de transmissão">
+        <aside className="native-social-bar" aria-label="Notificação de transmissão">
           <div className="native-social-bar-content">
             <span className="native-social-bar-live-dot" />
             <span className="native-social-bar-icon">⚡</span>
