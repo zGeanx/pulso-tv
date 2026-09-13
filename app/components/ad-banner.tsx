@@ -89,52 +89,52 @@ export function AdBanner({ slot, className = "", variant = "horizontal" }: AdBan
   const currentAd = ads[activeAdIndex % ads.length];
 
   return (
-    <div className={`ad-card-wrapper ${variant} ${className}`}>
+    <div className={`sponsor-card-wrapper ad-card-wrapper ${variant} ${className}`}>
       <a
         href={currentAd.targetUrl}
         target="_blank"
         rel="nofollow noopener noreferrer"
-        className="ad-card"
+        className="sponsor-card ad-card"
         style={{
           background: currentAd.gradient || "linear-gradient(135deg, rgba(234, 88, 12, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%)",
         }}
       >
-        <div className="ad-card-glow" />
+        <div className="sponsor-card-glow ad-card-glow" />
 
-        <div className="ad-content">
-          <div className="ad-header-row">
-            <span className="ad-badge">
-              <span className="ad-badge-dot" />
+        <div className="sponsor-content ad-content">
+          <div className="sponsor-header-row ad-header-row">
+            <span className="sponsor-badge ad-badge">
+              <span className="sponsor-badge-dot ad-badge-dot" />
               {currentAd.badge || "Patrocinado"}
             </span>
 
             {currentAd.highlightText && (
-              <span className="ad-highlight-tag">{currentAd.highlightText}</span>
+              <span className="sponsor-highlight-tag ad-highlight-tag">{currentAd.highlightText}</span>
             )}
           </div>
 
-          <div className="ad-body">
-            <h4 className="ad-title">{currentAd.title}</h4>
-            <p className="ad-description">{currentAd.description}</p>
+          <div className="sponsor-body ad-body">
+            <h4 className="sponsor-title ad-title">{currentAd.title}</h4>
+            <p className="sponsor-description ad-description">{currentAd.description}</p>
           </div>
         </div>
 
-        <div className="ad-action">
-          <span className="ad-cta-btn">
+        <div className="sponsor-action ad-action">
+          <span className="sponsor-cta-btn ad-cta-btn">
             <span>{currentAd.ctaText}</span>
             <ArrowRightIcon style={{ width: 14, height: 14 }} />
           </span>
-          <span className="ad-disclaimer">Publicidade · 18+</span>
+          <span className="sponsor-disclaimer ad-disclaimer">Patrocinado · 18+</span>
         </div>
       </a>
 
       {ads.length > 1 && (
-        <div className="ad-indicators">
+        <div className="sponsor-indicators ad-indicators">
           {ads.map((_, idx) => (
             <button
               key={idx}
               type="button"
-              className={`ad-dot ${idx === activeAdIndex ? "active" : ""}`}
+              className={`sponsor-dot ad-dot ${idx === activeAdIndex ? "active" : ""}`}
               onClick={(e) => {
                 e.preventDefault();
                 setActiveAdIndex(idx);
