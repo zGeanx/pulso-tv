@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ADS_CONFIG, type AdsterraBannerConfig } from "../../lib/ads-config";
+import { FlameIcon, ArrowRightIcon } from "./icons";
 
 interface AdsterraBannerProps {
   className?: string;
@@ -15,6 +16,7 @@ export function AdsterraBanner({
   config,
 }: AdsterraBannerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
   const bannerConfig = config || ADS_CONFIG.banner300x250;
 
   useEffect(() => {
@@ -76,13 +78,22 @@ export function AdsterraBanner({
           </body>
           </html>
         `);
-        doc.close();
       }
     } catch (err) {
       if (process.env.NODE_ENV !== "production") {
-        console.warn("Falha ao inicializar o banner Adsterra 300x250:", err);
+        console.warn("Falha ao inicializar o banner Adsterra:", err);
       }
     }
+
+    // Checagem de adblock: se o script da adsterra falhou na rede
+    const probeTimer = setTimeout(() => {
+      fetch(bannerConfig.scriptUrl, { method: "HEAD", mode: "no-cors", cache: "no-store" })
+        .catch(() => {
+          setIsBlocked(true);
+        });
+    }, 2000);
+
+    return () => clearTimeout(probeTimer);
   }, [bannerConfig, label]);
 
   if (!ADS_CONFIG.globalEnabled || !bannerConfig?.enabled) {
@@ -92,6 +103,53 @@ export function AdsterraBanner({
   const width = bannerConfig.width || 300;
   const height = bannerConfig.height || 250;
   const isCompact = height <= 100;
+  const smartlinkUrl = ADS_CONFIG.smartlink?.url;
+
+  // Fallback nativo quando o adblock/Brave bloqueia a rede de anúncios
+  if (isBlocked && ADS_CONFIG.smartlink?.enabled && smartlinkUrl) {
+    return (
+      <aside
+        className={`sponsor-fallback-card format-${width}x${height} ${isCompact ? "compact" : ""} ${className}`}
+        aria-label={label}
+      >
+        <a
+          href={smartlinkUrl}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="sponsor-fallback-link"
+        >
+          <div className="sponsor-fallback-header">
+            <span className="sponsor-fallback-badge">
+              <span className="ad-badge-dot" />
+              Patrocinado · Pulso TV
+            </span>
+            <span className="sponsor-fallback-tag">4K VIP</span>
+          </div>
+
+          <div className="sponsor-fallback-content">
+            <div className="sponsor-fallback-icon">
+              <FlameIcon style={{ width: isCompact ? 18 : 26, height: isCompact ? 18 : 26, color: "#f97316" }} />
+            </div>
+            <div className="sponsor-fallback-text">
+              <strong className="sponsor-fallback-title">
+                {isCompact ? "Sinal Rápido sem travamentos" : "Liberar Transmissão em Alta Definição"}
+              </strong>
+              {!isCompact && (
+                <p className="sponsor-fallback-desc">
+                  Assista a todos os jogos e canais com conexão otimizada e velocidade máxima.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="sponsor-fallback-cta">
+            <span>Acessar Sinal</span>
+            <ArrowRightIcon style={{ width: 14, height: 14 }} />
+          </div>
+        </a>
+      </aside>
+    );
+  }
 
   return (
     <aside
