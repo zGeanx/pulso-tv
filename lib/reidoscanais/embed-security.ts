@@ -20,7 +20,9 @@ const allowedEmbedHosts = new Set([
   ...configuredEmbedHosts,
 ]);
 
-export const EMBED_FRAME_CSP = `frame-src ${[...allowedEmbedHosts]
+const AD_FRAME_HOSTS = ["highrevenueformat.com"];
+
+export const EMBED_FRAME_CSP = `frame-src ${[...allowedEmbedHosts, ...AD_FRAME_HOSTS]
   .flatMap((hostname) => [
     `https://${hostname}`,
     `https://*.${hostname}`,
