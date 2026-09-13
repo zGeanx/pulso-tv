@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  buildEmbedMarkup,
+  EMBED_ALLOW,
+  EMBED_REFERRER_POLICY,
+  EMBED_SANDBOX,
+  requiresUnsandboxedEmbed,
+  sanitizeEmbeds,
+} from "../../../lib/reidoscanais/embed-security";
 import { SiteFooter, SiteHeader } from "../../components/site-chrome";
 import { AdBanner } from "../../components/ad-banner";
 import {
@@ -108,12 +116,13 @@ export default function PlayerClient({
   const [copiedShare, setCopiedShare] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
 
-  const selectedEmbed = channel?.embeds[embedIndex] ?? null;
+  const safeEmbeds = sanitizeEmbeds(channel?.embeds);
+  const selectedEmbed = safeEmbeds[embedIndex] ?? null;
   const isSport = channel?.category?.toLowerCase().includes("esporte") || channel?.category?.toLowerCase().includes("futebol") || sectionHref === "/agenda";
 
   useEffect(() => {
     const controller = new AbortController();
-    const apiUrl = "https://api.reidoscanais.st";
+    const apiUrl = "/api/reidoscanais";
 
     if (isSport) {
       Promise.all([
@@ -166,7 +175,11 @@ export default function PlayerClient({
 
   function handleCopyEmbed() {
     if (!selectedEmbed) return;
-    const iframeCode = `<iframe src="${selectedEmbed.embed_url}" title="${channel?.name}" width="100%" height="100%" frameborder="0" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>`;
+    const iframeCode = buildEmbedMarkup(
+      selectedEmbed.embed_url,
+      channel?.name ?? "Transmissão Pulso TV",
+    );
+    if (!iframeCode) return;
     navigator.clipboard.writeText(iframeCode);
     setCopiedEmbed(true);
     setTimeout(() => setCopiedEmbed(false), 2000);
@@ -223,9 +236,14 @@ export default function PlayerClient({
                     key={selectedEmbed.embed_url}
                     src={selectedEmbed.embed_url}
                     title={`Transmissão ao vivo de ${channel.name}`}
-                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    allow={EMBED_ALLOW}
                     allowFullScreen
-                    referrerPolicy="no-referrer"
+                    sandbox={
+                      requiresUnsandboxedEmbed(selectedEmbed.embed_url)
+                        ? undefined
+                        : EMBED_SANDBOX
+                    }
+                    referrerPolicy={EMBED_REFERRER_POLICY}
                   />
                 ) : (
                   <div style={{ display: "grid", placeContent: "center", textAlign: "center", height: "100%", padding: 30, color: "var(--text-muted)" }}>
@@ -242,7 +260,7 @@ export default function PlayerClient({
               {/* Player Action Toolbar below video */}
               <div className="player-toolbar">
                 <div className="player-toolbar-left">
-                  {channel.embeds.map((embed, idx) => (
+                  {safeEmbeds.map((embed, idx) => (
                     <button
                       key={`${embed.provider}-${idx}`}
                       onClick={() => setEmbedIndex(idx)}
