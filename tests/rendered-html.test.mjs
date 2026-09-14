@@ -69,9 +69,10 @@ test("server-renders the Pulso TV experience", async () => {
 });
 
 test("keeps navigation and content in independent routes", async () => {
-  const [page, layout, siteChrome, channelsPage, channelsClient, agendaPage, agendaClient, disneyPage, disneyClient, packageJson] = await Promise.all([
+  const [page, layout, globals, siteChrome, channelsPage, channelsClient, agendaPage, agendaClient, disneyPage, disneyClient, packageJson] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/components/site-chrome.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/canais/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/canais/canais-client.tsx", import.meta.url), "utf8"),
@@ -100,5 +101,7 @@ test("keeps navigation and content in independent routes", async () => {
   assert.match(disneyClient, /featuredChannels/);
   assert.match(disneyClient, /listChannels\("Esportes"/);
   assert.match(layout, /lang="pt-BR"/);
+  assert.doesNotMatch(globals, /\.home-page\s+\.page-shell\s*\{/);
+  assert.doesNotMatch(globals, /\.home-page\s+\.site-header\s*\{/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });
