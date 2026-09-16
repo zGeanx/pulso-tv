@@ -242,7 +242,7 @@ export default function Home() {
             Seu lugar na primeira <em>fila.</em>
           </h1>
           <p>
-            Encontre o que está ao vivo agora, acompanhe a grade esportiva e abra qualquer canal em sua página própria.
+            Assista a canais de TV e eventos esportivos ao vivo, acompanhe a programação e encontre sua próxima transmissão.
           </p>
           <div className="hero-actions">
             <button
