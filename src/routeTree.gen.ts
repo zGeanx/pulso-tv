@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as CanaisRouteImport } from './routes/canais'
 import { Route as DisneyRouteImport } from './routes/disney'
+import { Route as CanalChannelIdRouteImport } from './routes/canal.$channelId'
+import { Route as EventoEventIdRouteImport } from './routes/evento.$eventId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +36,32 @@ const DisneyRoute = DisneyRouteImport.update({
   path: '/disney',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CanalChannelIdRoute = CanalChannelIdRouteImport.update({
+  id: '/canal/$channelId',
+  path: '/canal/$channelId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventoEventIdRoute = EventoEventIdRouteImport.update({
+  id: '/evento/$eventId',
+  path: '/evento/$eventId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/canais': typeof CanaisRoute
   '/disney': typeof DisneyRoute
+  '/canal/$channelId': typeof CanalChannelIdRoute
+  '/evento/$eventId': typeof EventoEventIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
   '/canais': typeof CanaisRoute
   '/disney': typeof DisneyRoute
+  '/canal/$channelId': typeof CanalChannelIdRoute
+  '/evento/$eventId': typeof EventoEventIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +69,34 @@ export interface FileRoutesById {
   '/agenda': typeof AgendaRoute
   '/canais': typeof CanaisRoute
   '/disney': typeof DisneyRoute
+  '/canal/$channelId': typeof CanalChannelIdRoute
+  '/evento/$eventId': typeof EventoEventIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agenda' | '/canais' | '/disney'
+  fullPaths:
+    | '/'
+    | '/agenda'
+    | '/canais'
+    | '/disney'
+    | '/canal/$channelId'
+    | '/evento/$eventId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agenda' | '/canais' | '/disney'
-  id: '__root__' | '/' | '/agenda' | '/canais' | '/disney'
+  to:
+    | '/'
+    | '/agenda'
+    | '/canais'
+    | '/disney'
+    | '/canal/$channelId'
+    | '/evento/$eventId'
+  id:
+    | '__root__'
+    | '/'
+    | '/agenda'
+    | '/canais'
+    | '/disney'
+    | '/canal/$channelId'
+    | '/evento/$eventId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +104,8 @@ export interface RootRouteChildren {
   AgendaRoute: typeof AgendaRoute
   CanaisRoute: typeof CanaisRoute
   DisneyRoute: typeof DisneyRoute
+  CanalChannelIdRoute: typeof CanalChannelIdRoute
+  EventoEventIdRoute: typeof EventoEventIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +138,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DisneyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/canal/$channelId': {
+      id: '/canal/$channelId'
+      path: '/canal/$channelId'
+      fullPath: '/canal/$channelId'
+      preLoaderRoute: typeof CanalChannelIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evento/$eventId': {
+      id: '/evento/$eventId'
+      path: '/evento/$eventId'
+      fullPath: '/evento/$eventId'
+      preLoaderRoute: typeof EventoEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +160,8 @@ const rootRouteChildren: RootRouteChildren = {
   AgendaRoute: AgendaRoute,
   CanaisRoute: CanaisRoute,
   DisneyRoute: DisneyRoute,
+  CanalChannelIdRoute: CanalChannelIdRoute,
+  EventoEventIdRoute: EventoEventIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
