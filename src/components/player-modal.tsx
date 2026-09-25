@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ApiEmbed } from "@/lib/api";
 
@@ -12,8 +12,8 @@ interface PlayerModalProps {
 export function PlayerModal({ title, embeds, onClose }: PlayerModalProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
-  // Close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -22,10 +22,10 @@ export function PlayerModal({ title, embeds, onClose }: PlayerModalProps) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Trap focus / prevent body scroll
   useEffect(() => {
     const original = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
     return () => {
       document.body.style.overflow = original;
     };
@@ -45,15 +45,19 @@ export function PlayerModal({ title, embeds, onClose }: PlayerModalProps) {
       }}
     >
       <div className="flex w-full max-w-5xl flex-col gap-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-semibold">{title}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar player">
+          <Button
+            ref={closeRef}
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            aria-label="Fechar player"
+          >
             <X />
           </Button>
         </div>
 
-        {/* Player */}
         <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
           {current ? (
             <iframe
@@ -71,20 +75,16 @@ export function PlayerModal({ title, embeds, onClose }: PlayerModalProps) {
           )}
         </div>
 
-        {/* Server selector — only shown when there are multiple sources */}
         {embeds.length > 1 && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <ChevronDown className="size-3" />
-              Fonte:
-            </span>
+            <span className="text-xs text-muted-foreground">Fonte</span>
             {embeds.map((embed, i) => (
               <button
                 key={embed.embed_url}
                 onClick={() => setSelectedIndex(i)}
                 className={`rounded border px-3 py-1 text-xs transition-colors ${
                   i === selectedIndex
-                    ? "border-primary text-primary"
+                    ? "border-primary bg-primary text-primary-foreground"
                     : "border-border text-muted-foreground hover:text-foreground"
                 }`}
               >

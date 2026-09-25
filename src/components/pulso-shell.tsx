@@ -1,9 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, Home, Loader2, Menu, Radio, Search, Sparkles, Tv, X } from "lucide-react";
+import { CalendarDays, Home, Loader2, Menu, Search, Sparkles, Tv, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { MediaImage } from "@/components/media-image";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useSearch } from "@/hooks/use-api";
-import { SPORT_STATUS_LABEL } from "@/lib/api";
+import { formatEventTime, SPORT_STATUS_LABEL } from "@/lib/api";
 
 const navItems = [
   { to: "/" as const, label: "Início", icon: Home },
@@ -32,16 +34,27 @@ export function PulsoShell({ children }: { children: ReactNode }) {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Close search overlay when navigating
   useEffect(() => {
     setSearchOpen(false);
     setQuery("");
   }, [pathname]);
 
+  useEffect(() => {
+    if (!searchOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setQuery("");
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [searchOpen]);
+
   const { data: results, isFetching } = useSearch(query);
 
   const channelResults = results?.channels?.slice(0, 5) ?? [];
-  const sportResults = results?.sports?.slice(0, 5) ?? [];
+  const sportResults = results?.events?.slice(0, 5) ?? [];
   const noResults =
     query.trim().length >= 2 &&
     !isFetching &&
@@ -51,7 +64,7 @@ export function PulsoShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="mx-auto grid h-16 max-w-screen-2xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 md:px-8 lg:flex">
+        <div className="page-container flex h-16 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-8">
             <Brand />
             <nav className="hidden items-center gap-6 lg:flex" aria-label="Navegação principal">
@@ -70,10 +83,10 @@ export function PulsoShell({ children }: { children: ReactNode }) {
               })}
             </nav>
           </div>
-          <div className="flex shrink-0 items-center gap-2 md:gap-3 lg:ml-auto">
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               variant="search"
-              className="hidden w-56 justify-start md:inline-flex"
+              className="hidden w-80 justify-start md:inline-flex"
               onClick={() => setSearchOpen(true)}
               aria-label="Abrir busca global"
             >
@@ -83,20 +96,17 @@ export function PulsoShell({ children }: { children: ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="h-11 w-11 md:hidden"
               onClick={() => setSearchOpen(true)}
               aria-label="Abrir busca"
             >
               <Search />
             </Button>
-            <div className="hidden items-center gap-2 text-xs font-medium text-primary sm:flex">
-              <span className="live-dot" />
-              AO VIVO
-            </div>
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="h-11 w-11 lg:hidden"
               onClick={() => setMobileOpen((open) => !open)}
               aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
             >
@@ -127,7 +137,6 @@ export function PulsoShell({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      {/* Global search overlay */}
       {searchOpen && (
         <div
           className="fixed inset-0 z-50 bg-background/98 px-4 pt-4 backdrop-blur-xl md:pt-16"
@@ -148,12 +157,14 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Canal, programa, evento, time ou esporte"
+                  aria-label="Buscar canais, programas e eventos"
                   className="w-full bg-transparent font-display text-lg text-foreground outline-none placeholder:text-muted-foreground md:text-2xl"
                 />
               </label>
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-11 w-11"
                 onClick={() => {
                   setSearchOpen(false);
                   setQuery("");
@@ -192,16 +203,16 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                   {channelResults.map((item) => (
                     <Link
                       key={item.id}
-                      to="/canais"
+                      to="/canal/$channelId"
+                      params={{ channelId: item.id }}
                       className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-4"
                     >
-                      <div className="flex h-10 w-14 items-center justify-center rounded border border-border bg-card p-1">
-                        <img
+                      <div className="logo-box h-10 w-14">
+                        <MediaImage
                           src={item.logo_url}
                           alt={item.name}
-                          width={48}
-                          height={32}
-                          className="max-h-8 w-auto object-contain"
+                          className="h-full w-full bg-transparent"
+                          imgClassName="logo-box-img"
                         />
                       </div>
                       <span className="min-w-0">
@@ -210,10 +221,12 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                           {item.epg?.current?.title ?? ""} · {item.category}
                         </small>
                       </span>
-                      <span className="status-label status-live text-[10px]">
-                        <span className="live-dot" />
-                        LIVE
-                      </span>
+                      {item.epg?.current && (
+                        <span className="status-label status-live text-[10px]">
+                          <span className="live-dot" />
+                          AO VIVO
+                        </span>
+                      )}
                     </Link>
                   ))}
                 </div>
@@ -227,11 +240,12 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                   {sportResults.map((item) => (
                     <Link
                       key={item.id}
-                      to="/agenda"
+                      to="/evento/$eventId"
+                      params={{ eventId: item.id }}
                       className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-4"
                     >
-                      <span className="font-display text-sm text-primary w-14 shrink-0">
-                        {item.start_time.slice(11, 16)}
+                      <span className="w-14 shrink-0 font-display text-sm tabular-nums text-primary">
+                        {formatEventTime(item)}
                       </span>
                       <span className="min-w-0">
                         <strong className="block truncate">{item.title}</strong>
@@ -252,14 +266,18 @@ export function PulsoShell({ children }: { children: ReactNode }) {
       <main>{children}</main>
 
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-screen-2xl flex-col gap-5 px-4 py-8 text-xs text-muted-foreground sm:flex-row sm:items-center md:px-8">
+        <div className="page-container grid gap-x-8 gap-y-4 py-8 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
           <Brand compact />
-          <span>A emissora aberta, ao vivo.</span>
-          <nav className="flex flex-wrap gap-5 sm:ml-auto" aria-label="Navegação do rodapé">
+          <nav className="flex flex-wrap gap-5 sm:justify-end" aria-label="Navegação do rodapé">
             <Link to="/canais">Canais</Link>
             <Link to="/agenda">Agenda</Link>
             <Link to="/disney">Disney+</Link>
           </nav>
+          <p className="max-w-3xl leading-relaxed">
+            A Pulso TV não hospeda nem armazena conteúdos. Os links são encontrados publicamente na
+            internet e apenas incorporamos conteúdos hospedados por terceiros.
+          </p>
+          <p className="sm:text-right">© 2026 // Todos os direitos reservados</p>
         </div>
       </footer>
     </div>

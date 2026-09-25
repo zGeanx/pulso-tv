@@ -6,29 +6,39 @@ import {
   Clapperboard,
   Clock3,
   Compass,
-  Loader2,
   Newspaper,
   Play,
   RadioTower,
+  Sparkles,
   Trophy,
+  Tv,
+  type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChannelCard } from "@/components/channel-card";
-import { PlayerModal } from "@/components/player-modal";
-import { useChannels, useSports } from "@/hooks/use-api";
-import { SPORT_STATUS_LABEL, formatEventTime } from "@/lib/api";
+import { EventCard } from "@/components/event-card";
+import { MediaImage } from "@/components/media-image";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useChannels, useChannelCategories, useSports } from "@/hooks/use-api";
+import {
+  formatEpgRange,
+  formatEventTime,
+  epgProgress,
+  pickFeaturedChannels,
+  pickFeaturedEvents,
+  pickLiveNow,
+  pickScheduleChannels,
+} from "@/lib/api";
 import type { ApiChannel, ApiSportEvent } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Pulso TV — TV aberta e ao vivo" },
+      { title: "Pulso TV | Canais e eventos ao vivo" },
       {
         name: "description",
         content: "Assista canais, programas e eventos esportivos ao vivo no Pulso TV.",
       },
-      { property: "og:title", content: "Pulso TV — TV aberta e ao vivo" },
+      { property: "og:title", content: "Pulso TV | Canais e eventos ao vivo" },
       {
         property: "og:description",
         content: "Assista canais, programas e eventos esportivos ao vivo no Pulso TV.",
@@ -40,86 +50,83 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const categoryIcons = {
+const categoryIcons: Record<string, LucideIcon> = {
+  "Canais Abertos": Tv,
+  Entretenimento: Sparkles,
   Esportes: Trophy,
   Notícias: Newspaper,
   "Filmes e Séries": Clapperboard,
   Infantil: Baby,
   Documentários: BookOpen,
-} as const;
-
-const EXPLORE_CATEGORIES = Object.keys(categoryIcons) as (keyof typeof categoryIcons)[];
-
-// ─── Type guard ───────────────────────────────────────────────────────────────
+};
 
 function isSportEvent(hero: ApiSportEvent | ApiChannel): hero is ApiSportEvent {
   return "competition" in hero;
 }
 
-// ─── Hero selection logic ─────────────────────────────────────────────────────
-
 function pickHero(
   events: ApiSportEvent[],
   channels: ApiChannel[],
 ): ApiSportEvent | ApiChannel | undefined {
-  // 1. Live football
   const liveFutebol = events.find((e) => e.status === "live" && e.category === "Futebol");
   if (liveFutebol) return liveFutebol;
 
-  // 2. Any live sport
   const liveSport = events.find((e) => e.status === "live");
   if (liveSport) return liveSport;
 
-  // 3. Upcoming football
   const upcomingFutebol = events.find((e) => e.status === "upcoming" && e.category === "Futebol");
   if (upcomingFutebol) return upcomingFutebol;
 
-  // 4. Any upcoming sport
   const upcomingSport = events.find((e) => e.status === "upcoming");
   if (upcomingSport) return upcomingSport;
 
-  // 5. Fallback: channel with embeds
   return channels.find((ch) => ch.embeds.length > 0) ?? channels[0];
 }
 
-// ─── Kicker label ─────────────────────────────────────────────────────────────
-
 function heroKicker(hero: ApiSportEvent | ApiChannel | undefined): string {
   if (!hero || !isSportEvent(hero)) return "Transmissão em destaque";
-  if (hero.category === "Futebol") return "Futebol ao vivo";
-  return "Esportes ao vivo";
+  if (hero.status === "live") {
+    return hero.category === "Futebol" ? "Futebol ao vivo" : "Esportes ao vivo";
+  }
+  if (hero.status === "upcoming") return `Hoje às ${formatEventTime(hero)}`;
+  return "Encerrado";
 }
-
-// ─── Strip markdown asterisks ─────────────────────────────────────────────────
 
 function stripMarkdown(text: string): string {
   return text.replace(/\*/g, "");
 }
 
-// ─── HeroSection ─────────────────────────────────────────────────────────────
+function TeamMark({ name, logo, size = "sm" }: { name: string; logo: string; size?: "sm" | "lg" }) {
+  const box = size === "lg" ? "h-16 w-16" : "h-11 w-11";
+  return (
+    <div className={`logo-box ${box}`}>
+      <MediaImage
+        src={logo}
+        alt={name}
+        className="h-full w-full bg-transparent"
+        imgClassName="logo-box-img"
+        fallbackLabel={name}
+      />
+    </div>
+  );
+}
 
 interface HeroSectionProps {
   hero: ApiSportEvent | ApiChannel | undefined;
 }
 
 function HeroSection({ hero }: HeroSectionProps) {
-  const [playerOpen, setPlayerOpen] = useState(false);
-  const playerEmbedUrl = import.meta.env["VITE_PLAYER_EMBED_URL"] as string | undefined;
-
   const kicker = heroKicker(hero);
 
   if (hero && isSportEvent(hero)) {
     const event = hero;
     const isLive = event.status === "live";
     const hasEmbeds = event.embeds.length > 0;
-    const description = event.description
-      ? stripMarkdown(event.description).slice(0, 150)
-      : null;
+    const description = event.description ? stripMarkdown(event.description) : null;
 
     return (
       <section className="border-b border-border">
-        <div className="mx-auto grid max-w-screen-2xl gap-8 px-4 py-8 md:px-8 lg:grid-cols-12 lg:py-12">
-          {/* Left — info */}
+        <div className="page-container grid gap-8 py-8 lg:grid-cols-12 lg:py-12">
           <div className="flex flex-col lg:col-span-5">
             <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-widest text-primary">
               {isLive && <span className="live-dot" />}
@@ -130,95 +137,70 @@ function HeroSection({ hero }: HeroSectionProps) {
               {event.competition}
             </p>
 
-            <h1 className="mt-3 text-balance font-display text-5xl font-bold leading-none sm:text-6xl lg:text-7xl">
+            <h1 className="mt-3 text-balance font-display text-4xl font-bold leading-none sm:text-5xl lg:text-6xl">
               {event.title}
             </h1>
 
-            {/* Team crests */}
             {event.teams && (
               <div className="mt-5 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-card p-1">
-                  <img
-                    src={event.teams.home.logo}
-                    alt={event.teams.home.name}
-                    width={48}
-                    height={48}
-                    className="h-full w-full object-contain"
-                  />
-                </div>
+                <TeamMark name={event.teams.home.name} logo={event.teams.home.logo} />
                 <span className="font-display text-lg font-semibold text-muted-foreground">×</span>
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-card p-1">
-                  <img
-                    src={event.teams.away.logo}
-                    alt={event.teams.away.name}
-                    width={48}
-                    height={48}
-                    className="h-full w-full object-contain"
-                  />
-                </div>
+                <TeamMark name={event.teams.away.name} logo={event.teams.away.logo} />
               </div>
             )}
 
             {description && (
-              <p className="mt-5 max-w-md text-pretty text-muted-foreground">{description}</p>
+              <p className="mt-5 max-w-md text-pretty text-muted-foreground line-clamp-3">
+                {description}
+              </p>
             )}
 
-            <div className="mt-4 flex flex-wrap gap-x-4 text-xs uppercase text-muted-foreground">
-              <span>{formatEventTime(event.start_time)}</span>
+            <div className="mt-4 flex flex-wrap gap-x-4 text-xs uppercase tabular-nums text-muted-foreground">
+              <span>{formatEventTime(event)}</span>
               <span>/</span>
               {isLive ? (
-                <span className="text-primary">Ao vivo</span>
-              ) : (
+                <span className="text-live">Ao vivo</span>
+              ) : event.status === "upcoming" ? (
                 <span>Em breve</span>
+              ) : (
+                <span>Encerrado</span>
               )}
             </div>
 
-            <Button
-              variant="broadcast"
-              size="lg"
-              className="mt-8 w-fit"
-              onClick={() => (hasEmbeds ? setPlayerOpen(true) : undefined)}
-              disabled={!hasEmbeds}
-            >
-              <Play />
-              Assistir agora
+            <Button variant="broadcast" size="lg" className="mt-8 w-fit" asChild={hasEmbeds} disabled={!hasEmbeds}>
+              {hasEmbeds ? (
+                <Link to="/evento/$eventId" params={{ eventId: event.id }}>
+                  <Play />
+                  {isLive ? "Assistir agora" : "Abrir transmissão"}
+                </Link>
+              ) : (
+                <>
+                  <Play />
+                  {isLive ? "Assistir agora" : "Abrir transmissão"}
+                </>
+              )}
             </Button>
           </div>
 
-          {/* Right — poster */}
-          <div className="relative overflow-hidden rounded-lg lg:col-span-7">
+          <div className="relative self-start overflow-hidden rounded-lg lg:col-span-7">
             {event.poster ? (
-              <img
+              <MediaImage
                 src={event.poster}
                 alt={event.title}
-                className="aspect-[16/10] h-full w-full object-cover"
+                eager
+                className="aspect-video w-full bg-background"
+                imgClassName="object-contain"
               />
             ) : event.teams ? (
-              <div className="flex aspect-[16/10] h-full w-full items-center justify-center gap-10 rounded-lg bg-card">
-                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-background/50 p-2">
-                  <img
-                    src={event.teams.home.logo}
-                    alt={event.teams.home.name}
-                    width={96}
-                    height={96}
-                    className="h-full w-full object-contain"
-                  />
-                </div>
+              <div className="flex aspect-video w-full items-center justify-center gap-10 rounded-lg bg-card">
+                <TeamMark name={event.teams.home.name} logo={event.teams.home.logo} size="lg" />
                 <span className="font-display text-4xl font-bold text-muted-foreground">×</span>
-                <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-background/50 p-2">
-                  <img
-                    src={event.teams.away.logo}
-                    alt={event.teams.away.name}
-                    width={96}
-                    height={96}
-                    className="h-full w-full object-contain"
-                  />
-                </div>
+                <TeamMark name={event.teams.away.name} logo={event.teams.away.logo} size="lg" />
               </div>
             ) : (
-              <div className="aspect-[16/10] h-full w-full rounded-lg bg-card" />
+              <div className="aspect-video w-full rounded-lg bg-card" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
             <div className="absolute left-4 top-4">
               {isLive ? (
                 <span className="status-label status-live">
@@ -227,73 +209,58 @@ function HeroSection({ hero }: HeroSectionProps) {
                 </span>
               ) : (
                 <span className="status-label border border-border bg-background/80 text-muted-foreground">
-                  EM BREVE
+                  {event.status === "upcoming" ? "EM BREVE" : "ENCERRADO"}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {hasEmbeds && playerOpen && (
-          <PlayerModal
-            title={event.title}
-            embeds={event.embeds}
-            onClose={() => setPlayerOpen(false)}
-          />
-        )}
       </section>
     );
   }
 
-  // ─── Fallback: channel hero (original behaviour) ──────────────────────────
-
   const channel = hero as ApiChannel | undefined;
   const featuredProgram = channel?.epg?.current?.title ?? "Ao vivo";
   const featuredNext = channel?.epg?.next?.title;
+  const epgRange = channel?.epg?.current ? formatEpgRange(channel.epg.current) : "";
 
   return (
     <section className="border-b border-border">
-      <div className="mx-auto grid max-w-screen-2xl gap-8 px-4 py-8 md:px-8 lg:grid-cols-12 lg:py-12">
+      <div className="page-container grid gap-8 py-8 lg:grid-cols-12 lg:py-12">
         <div className="flex flex-col lg:col-span-5">
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-widest text-primary">
             <span className="live-dot" />
             {kicker}
           </div>
-          <h1 className="mt-6 text-balance font-display text-5xl font-bold leading-none sm:text-6xl lg:text-7xl">
+          <h1 className="mt-6 text-balance font-display text-4xl font-bold leading-none sm:text-5xl lg:text-6xl">
             {featuredProgram}
           </h1>
           {channel && (
-            <p className="mt-5 max-w-md text-pretty text-muted-foreground">
+            <p className="mt-5 max-w-md text-pretty text-muted-foreground line-clamp-3">
               {channel.epg?.current?.description ?? `Transmissão ao vivo em ${channel.name}`}
             </p>
           )}
           {channel && (
-            <div className="mt-4 flex flex-wrap gap-x-4 text-xs uppercase text-muted-foreground">
+            <div className="mt-4 flex flex-wrap gap-x-4 text-xs uppercase tabular-nums text-muted-foreground">
               <span>{channel.name}</span>
-              <span>/</span>
-              <span>{channel.epg?.current?.formatted_time?.slice(0, 5) ?? ""}</span>
-              <span className="text-primary">/ Ao vivo</span>
+              {epgRange && (
+                <>
+                  <span>/</span>
+                  <span>{epgRange}</span>
+                </>
+              )}
+              <span className="text-live">/ Ao vivo</span>
             </div>
           )}
-          <Button
-            variant="broadcast"
-            size="lg"
-            className="mt-8 w-fit"
-            onClick={() => (channel?.embeds.length ? setPlayerOpen(true) : undefined)}
-            asChild={!channel?.embeds.length}
-          >
-            {channel?.embeds.length ? (
-              <>
+          {channel ? (
+            <Button variant="broadcast" size="lg" className="mt-8 w-fit" asChild>
+              <Link to="/canal/$channelId" params={{ channelId: channel.id }}>
                 <Play />
                 Assistir agora
-              </>
-            ) : (
-              <a href="#player">
-                <Play />
-                Assistir agora
-              </a>
-            )}
-          </Button>
+              </Link>
+            </Button>
+          ) : null}
           {featuredNext && (
             <p className="mt-auto border-t border-border pt-5 text-xs text-muted-foreground lg:mt-10">
               A seguir · {featuredNext}
@@ -301,29 +268,28 @@ function HeroSection({ hero }: HeroSectionProps) {
           )}
         </div>
 
-        <div id="player" className="relative overflow-hidden rounded-lg lg:col-span-7">
-          {playerEmbedUrl ? (
-            <iframe
-              src={playerEmbedUrl}
-              title="Transmissão ao vivo Pulso TV"
-              allow="autoplay; fullscreen; picture-in-picture"
-              allowFullScreen
-              className="aspect-[16/10] h-full w-full border-0 bg-black"
+        <div id="player" className="relative self-start overflow-hidden rounded-lg lg:col-span-7">
+          {channel?.epg?.current?.image ? (
+            <MediaImage
+              src={channel.epg.current.image}
+              alt={featuredProgram}
+              eager
+              className="aspect-video w-full bg-background"
+              imgClassName="object-contain"
             />
           ) : channel?.logo_url ? (
-            <div className="flex aspect-[16/10] h-full w-full items-center justify-center rounded-lg bg-card">
-              <img
+            <div className="flex aspect-video w-full items-center justify-center rounded-lg bg-card">
+              <MediaImage
                 src={channel.logo_url}
                 alt={channel.name}
-                width={320}
-                height={180}
-                className="max-h-32 w-auto object-contain"
+                className="h-32 w-48 bg-transparent"
+                imgClassName="object-contain"
               />
             </div>
           ) : (
-            <div className="aspect-[16/10] h-full w-full rounded-lg bg-card" />
+            <div className="aspect-video w-full rounded-lg bg-card" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background/65 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/65 via-transparent to-transparent" />
           <div className="absolute left-4 top-4 status-label status-live">
             <span className="live-dot" />
             AO VIVO
@@ -331,23 +297,12 @@ function HeroSection({ hero }: HeroSectionProps) {
         </div>
       </div>
 
-      {channel?.embeds.length && playerOpen && (
-        <PlayerModal
-          title={channel.name}
-          embeds={channel.embeds}
-          onClose={() => setPlayerOpen(false)}
-        />
-      )}
     </section>
   );
 }
 
-// ─── LiveNowSection ───────────────────────────────────────────────────────────
-
 function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
-  const sportChannels = channels.filter((ch) => ch.category === "Esportes");
-  const otherChannels = channels.filter((ch) => ch.category !== "Esportes");
-  const sorted = [...sportChannels, ...otherChannels].slice(0, 3);
+  const sorted = pickLiveNow(channels, 3);
 
   return (
     <div className="lg:col-span-8">
@@ -358,6 +313,7 @@ function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
         </h2>
         <Link
           to="/canais"
+          search={{ categoria: "Esportes" }}
           className="flex items-center gap-1.5 text-xs uppercase text-muted-foreground hover:text-primary"
         >
           Ver todos <ArrowRight className="size-3" />
@@ -365,18 +321,18 @@ function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
       </div>
       <div className="divide-y divide-border">
         {sorted.map((item) => (
-          <div
+          <Link
             key={item.id}
-            className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-4"
+            to="/canal/$channelId"
+            params={{ channelId: item.id }}
+            className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-4 hover:text-primary"
           >
-            <div className="flex h-14 w-24 items-center justify-center rounded-md bg-card p-2">
-              <img
+            <div className="logo-box h-14 w-24">
+              <MediaImage
                 src={item.logo_url}
                 alt={item.name}
-                loading="lazy"
-                width={96}
-                height={54}
-                className="max-h-10 w-auto object-contain"
+                className="h-full w-full bg-transparent"
+                imgClassName="logo-box-img"
               />
             </div>
             <div className="min-w-0">
@@ -388,22 +344,33 @@ function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
               </p>
             </div>
             <div className="hidden items-center gap-3 text-sm text-muted-foreground sm:flex">
-              <span>{item.epg?.current?.formatted_time?.slice(0, 5) ?? ""}</span>
-              <span className="flex items-center gap-2 text-primary">
+              <span className="tabular-nums">
+                {item.epg?.current ? formatEpgRange(item.epg.current) : ""}
+              </span>
+              <span className="flex items-center gap-2 text-live">
                 <span className="live-dot" />
                 AO VIVO
               </span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
   );
 }
 
-// ─── ExploreSection ───────────────────────────────────────────────────────────
+function ExploreSection({
+  categories,
+  channels,
+}: {
+  categories: { name: string }[];
+  channels: ApiChannel[];
+}) {
+  const counts = channels.reduce<Record<string, number>>((acc, ch) => {
+    acc[ch.category] = (acc[ch.category] ?? 0) + 1;
+    return acc;
+  }, {});
 
-function ExploreSection() {
   return (
     <aside className="lg:col-span-4">
       <div className="border-b border-border pb-3">
@@ -413,18 +380,22 @@ function ExploreSection() {
         </h2>
       </div>
       <div className="divide-y divide-border">
-        {EXPLORE_CATEGORIES.map((cat) => {
-          const Icon = categoryIcons[cat];
+        {categories.map((cat) => {
+          const Icon = categoryIcons[cat.name] ?? Tv;
           return (
             <Link
-              key={cat}
+              key={cat.name}
               to="/canais"
-              search={{ categoria: cat }}
-              className="flex items-center justify-between py-3.5 text-sm hover:text-primary"
+              search={{ categoria: cat.name }}
+              className="group flex items-center justify-between py-3.5 text-sm hover:text-primary"
             >
               <span className="flex items-center gap-3">
                 <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
-                {cat}
+                {cat.name}
+              </span>
+              <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                {counts[cat.name] ?? 0}
+                <ArrowRight className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
               </span>
             </Link>
           );
@@ -434,110 +405,59 @@ function ExploreSection() {
   );
 }
 
-// ─── SportsSection ────────────────────────────────────────────────────────────
-
-const STATUS_ORDER: Record<string, number> = { live: 0, upcoming: 1, finished: 2 };
-
-function SportsSection({ events }: { events: ApiSportEvent[] }) {
-  const [playerEvent, setPlayerEvent] = useState<ApiSportEvent | null>(null);
-
-  const sorted = [...events].sort(
-    (a, b) => (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99),
-  );
+function FeaturedChannelsSection({ channels }: { channels: ApiChannel[] }) {
+  const featured = pickFeaturedChannels(channels, 4);
 
   return (
-    <>
-      <div className="lg:col-span-5">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-            <Trophy className="size-5 text-primary" aria-hidden="true" />
-            Agenda esportiva
-          </h2>
-          <Link
-            to="/agenda"
-            className="flex items-center gap-1.5 text-xs uppercase text-muted-foreground hover:text-primary"
-          >
-            Agenda completa <ArrowRight className="size-3" />
-          </Link>
-        </div>
-        <div className="divide-y divide-border">
-          {sorted.slice(0, 4).map((event) => (
-            <div
-              key={event.id}
-              className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] gap-3 py-4 text-sm"
-            >
-              <span className="font-display text-primary">{formatEventTime(event.start_time)}</span>
-              <span className="min-w-0">
-                {event.teams ? (
-                  <strong className="flex items-center gap-1.5 truncate font-medium">
-                    <img
-                      src={event.teams.home.logo}
-                      alt={event.teams.home.name}
-                      width={24}
-                      height={24}
-                      className="h-6 w-6 object-contain"
-                    />
-                    <span className="truncate">{event.title}</span>
-                    <img
-                      src={event.teams.away.logo}
-                      alt={event.teams.away.name}
-                      width={24}
-                      height={24}
-                      className="h-6 w-6 object-contain"
-                    />
-                  </strong>
-                ) : (
-                  <strong className="block truncate font-medium">{event.title}</strong>
-                )}
-                <small className="text-muted-foreground">{event.competition}</small>
-              </span>
-              <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                {event.status === "live" && (
-                  <span className="status-label status-live text-[10px]">
-                    <span className="live-dot" />
-                    Ao vivo
-                  </span>
-                )}
-                {event.embeds.length > 0 && (
-                  <button
-                    onClick={() => setPlayerEvent(event)}
-                    aria-label={`Assistir ${event.title}`}
-                    className="text-primary hover:underline"
-                  >
-                    <Play className="size-3.5" />
-                  </button>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
+    <div className="lg:col-span-5">
+      <div className="flex items-center justify-between border-b border-border pb-3">
+        <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+          <Tv className="size-5 text-primary" aria-hidden="true" />
+          Canais em destaque
+        </h2>
+        <Link
+          to="/canais"
+          search={{ categoria: "Esportes" }}
+          className="flex items-center gap-1.5 text-xs uppercase text-muted-foreground hover:text-primary"
+        >
+          Todos os esportes <ArrowRight className="size-3" />
+        </Link>
       </div>
-
-      {playerEvent && (
-        <PlayerModal
-          title={playerEvent.title}
-          embeds={playerEvent.embeds}
-          onClose={() => setPlayerEvent(null)}
-        />
-      )}
-    </>
+      <div className="divide-y divide-border">
+        {featured.map((channel) => (
+          <Link
+            key={channel.id}
+            to="/canal/$channelId"
+            params={{ channelId: channel.id }}
+            className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 py-4 text-sm hover:text-primary"
+          >
+            <div className="logo-box h-10 w-16">
+              <MediaImage
+                src={channel.logo_url}
+                alt={channel.name}
+                className="h-full w-full bg-transparent"
+                imgClassName="logo-box-img"
+              />
+            </div>
+            <span className="min-w-0">
+              <strong className="block truncate font-medium">{channel.name}</strong>
+              <small className="text-muted-foreground">
+                {channel.epg?.current?.title ?? channel.category}
+              </small>
+            </span>
+            <span className="status-label status-live text-[10px]">
+              <span className="live-dot" />
+              AO VIVO
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
-// ─── ScheduleSection ──────────────────────────────────────────────────────────
-
 function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
-  const scheduleItems = channels.slice(0, 4).flatMap((ch) => {
-    const items: { time: string; name: string; channel: string }[] = [];
-    if (ch.epg?.current) {
-      items.push({
-        time: ch.epg.current.formatted_time.slice(0, 5) || "—",
-        name: ch.epg.current.title,
-        channel: ch.name,
-      });
-    }
-    return items;
-  });
+  const scheduleItems = pickScheduleChannels(channels, 6);
 
   return (
     <div className="lg:col-span-7">
@@ -548,100 +468,150 @@ function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
         </h2>
       </div>
       <div className="divide-y divide-border">
-        {scheduleItems.map(({ time, name, channel }) => (
-          <div
-            key={`${channel}-${time}`}
-            className="grid grid-cols-[4rem_minmax(0,1fr)_auto] gap-4 py-3.5 text-sm"
-          >
-            <span className="font-display text-muted-foreground">{time}</span>
-            <span>{name}</span>
-            <span className="text-xs text-muted-foreground">{channel}</span>
-          </div>
-        ))}
+        {scheduleItems.map((channel) => {
+          const current = channel.epg?.current;
+          if (!current) return null;
+          const progress = epgProgress(current);
+          return (
+            <Link
+              key={channel.id}
+              to="/canal/$channelId"
+              params={{ channelId: channel.id }}
+              className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-4 py-3.5 text-sm hover:text-primary"
+            >
+              <span className="font-display tabular-nums text-muted-foreground">
+                {formatEpgRange(current)}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate">{current.title}</span>
+                <span className="mt-1.5 block h-0.5 max-w-40 bg-foreground/10">
+                  <span className="block h-full bg-live" style={{ width: `${progress * 100}%` }} />
+                </span>
+              </span>
+              <span className="text-xs text-muted-foreground">{channel.name}</span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-// ─── Index ────────────────────────────────────────────────────────────────────
+function HeroSkeleton() {
+  return (
+    <section className="border-b border-border">
+      <div className="page-container grid gap-8 py-8 lg:grid-cols-12 lg:py-12">
+        <div className="flex flex-col gap-4 lg:col-span-5">
+          <Skeleton className="h-3 w-36" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="mt-4 h-10 w-44" />
+        </div>
+        <Skeleton className="aspect-video w-full lg:col-span-7" />
+      </div>
+    </section>
+  );
+}
+
+function ChannelCardSkeleton() {
+  return (
+    <div className="border-b border-border pb-5">
+      <Skeleton className="aspect-video w-full" />
+      <Skeleton className="mt-3 h-5 w-2/3" />
+      <Skeleton className="mt-2 h-4 w-1/2" />
+    </div>
+  );
+}
 
 function Index() {
-  const { data: channels = [], isLoading: loadingChannels } = useChannels({ limit: 12 });
-  const { data: events = [], isLoading: loadingEvents } = useSports({ limit: 10 });
+  const { data: channels = [], isLoading: loadingChannels } = useChannels();
+  const { data: events = [], isLoading: loadingEvents } = useSports();
+  const { data: categories = [] } = useChannelCategories();
 
   const hero = pickHero(events, channels);
   const heroLoading = loadingChannels || loadingEvents;
+  const featuredEvents = pickFeaturedEvents(events, 4);
 
   return (
     <div>
-      {/* Hero */}
-      {heroLoading ? (
-        <section className="flex h-[60vh] items-center justify-center border-b border-border">
-          <Loader2 className="size-8 animate-spin text-primary" aria-label="Carregando" />
-        </section>
-      ) : (
-        <HeroSection hero={hero} />
-      )}
+      {heroLoading ? <HeroSkeleton /> : <HeroSection hero={hero} />}
 
-      {/* Live now + Explore */}
       <section className="border-b border-border">
-        <div className="mx-auto grid max-w-screen-2xl gap-8 px-4 py-9 md:px-8 lg:grid-cols-12">
+        <div className="page-container py-10">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+              <Trophy className="size-5 text-primary" aria-hidden="true" />
+              Agenda esportiva
+            </h2>
+            <Link
+              to="/agenda"
+              className="flex items-center gap-2 text-xs uppercase text-muted-foreground hover:text-primary"
+            >
+              Agenda completa <ArrowRight className="size-3" />
+            </Link>
+          </div>
+          {loadingEvents ? (
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <ChannelCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {featuredEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="border-b border-border">
+        <div className="page-container grid gap-8 py-9 lg:grid-cols-12">
           {loadingChannels ? (
-            <div className="col-span-12 flex justify-center py-10">
-              <Loader2 className="size-6 animate-spin text-primary" />
+            <div className="col-span-12 grid gap-4 lg:grid-cols-12">
+              <div className="space-y-4 lg:col-span-8">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+              <div className="space-y-3 lg:col-span-4">
+                <Skeleton className="h-6 w-28" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
             </div>
           ) : (
             <>
               <LiveNowSection channels={channels} />
-              <ExploreSection />
+              <ExploreSection categories={categories} channels={channels} />
             </>
           )}
         </div>
       </section>
 
-      {/* Featured channel cards */}
-      <section className="mx-auto max-w-screen-2xl px-4 py-10 md:px-8">
-        <div className="flex items-center justify-between border-b border-border pb-3">
-          <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-            <Clapperboard className="size-5 text-primary" aria-hidden="true" />
-            Canais em destaque
-          </h2>
-          <Link
-            to="/canais"
-            className="flex items-center gap-2 text-xs uppercase text-muted-foreground hover:text-primary"
-          >
-            Catálogo completo <ArrowRight className="size-3" />
-          </Link>
-        </div>
-        {loadingChannels ? (
-          <div className="mt-6 flex justify-center">
-            <Loader2 className="size-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {channels.slice(0, 4).map((channel) => (
-              <ChannelCard key={channel.id} channel={channel} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Schedule + Sports */}
       <section className="border-t border-border">
-        <div className="mx-auto grid max-w-screen-2xl gap-8 px-4 py-10 md:px-8 lg:grid-cols-12">
+        <div className="page-container grid gap-8 py-10 lg:grid-cols-12">
           {loadingChannels ? (
-            <div className="col-span-7 flex justify-center py-10">
-              <Loader2 className="size-6 animate-spin text-primary" />
+            <div className="col-span-7 space-y-3">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
             </div>
           ) : (
             <ScheduleSection channels={channels} />
           )}
-          {loadingEvents ? (
-            <div className="col-span-5 flex justify-center py-10">
-              <Loader2 className="size-6 animate-spin text-primary" />
+          {loadingChannels ? (
+            <div className="col-span-5 space-y-3">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
             </div>
           ) : (
-            <SportsSection events={events} />
+            <FeaturedChannelsSection channels={channels} />
           )}
         </div>
       </section>
