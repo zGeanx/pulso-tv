@@ -4,19 +4,17 @@ import {
   fetchChannel,
   fetchChannelCategories,
   fetchSports,
-  fetchSportCategories,
+  fetchSport,
   fetchSearch,
-  type ChannelsParams,
   type SportsParams,
 } from "@/lib/api";
 
-// ─── Channels ─────────────────────────────────────────────────────────────────
-
-export function useChannels(params: ChannelsParams = {}) {
+export function useChannels() {
   return useQuery({
-    queryKey: ["channels", params],
-    queryFn: () => fetchChannels(params),
-    staleTime: 60_000, // 1 min — EPG can change
+    queryKey: ["channels"],
+    queryFn: () => fetchChannels(),
+    staleTime: 60_000,
+    refetchInterval: 5 * 60_000,
   });
 }
 
@@ -24,8 +22,9 @@ export function useChannel(id: string) {
   return useQuery({
     queryKey: ["channels", id],
     queryFn: () => fetchChannel(id),
+    enabled: id.length > 0,
     staleTime: 60_000,
-    enabled: Boolean(id),
+    refetchInterval: 5 * 60_000,
   });
 }
 
@@ -33,19 +32,16 @@ export function useChannelCategories() {
   return useQuery({
     queryKey: ["channels", "categories"],
     queryFn: fetchChannelCategories,
-    staleTime: 10 * 60_000, // 10 min — categories rarely change
+    staleTime: 10 * 60_000,
   });
 }
-
-// ─── Sports ───────────────────────────────────────────────────────────────────
 
 export function useSports(params: SportsParams = {}) {
   return useQuery({
     queryKey: ["sports", params],
     queryFn: () => fetchSports(params),
-    staleTime: 30_000, // 30 s — live scores / status change often
+    staleTime: 30_000,
     refetchInterval: (query) => {
-      // Auto-refresh every 30 s when there are live events
       const data = query.state.data;
       const hasLive = data?.some((e) => e.status === "live");
       return hasLive ? 30_000 : false;
@@ -53,15 +49,14 @@ export function useSports(params: SportsParams = {}) {
   });
 }
 
-export function useSportCategories() {
+export function useSport(id: string) {
   return useQuery({
-    queryKey: ["sports", "categories"],
-    queryFn: fetchSportCategories,
-    staleTime: 10 * 60_000,
+    queryKey: ["sports", id],
+    queryFn: () => fetchSport(id),
+    enabled: id.length > 0,
+    staleTime: 30_000,
   });
 }
-
-// ─── Search ───────────────────────────────────────────────────────────────────
 
 export function useSearch(query: string) {
   return useQuery({
