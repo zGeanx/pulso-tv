@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/sync-worker-name.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
-    "deploy": "wrangler versions upload --config dist/server/wrangler.json",
+    "deploy": "node scripts/sync-worker-name.mjs && wrangler versions upload --config .output/server/wrangler.json",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
