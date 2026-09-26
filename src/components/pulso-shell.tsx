@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, Home, Loader2, Menu, Search, Sparkles, Tv, X } from "lucide-react";
+import { CalendarDays, Clapperboard, Home, Loader2, Menu, Search, Tv, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaImage } from "@/components/media-image";
@@ -11,7 +11,7 @@ const navItems = [
   { to: "/" as const, label: "Início", icon: Home },
   { to: "/canais" as const, label: "Canais", icon: Tv },
   { to: "/agenda" as const, label: "Agenda", icon: CalendarDays },
-  { to: "/disney" as const, label: "Disney+", icon: Sparkles },
+  { to: "/disney" as const, label: "Disney+", icon: Clapperboard },
 ];
 
 function Brand({ compact = false }: { compact?: boolean }) {

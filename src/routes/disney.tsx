@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles } from "lucide-react";
+import { Clapperboard } from "lucide-react";
 import { useMemo } from "react";
 import { ChannelCard } from "@/components/channel-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +29,7 @@ function DisneyPage() {
       <header className="grid gap-6 border-b border-border pb-8 lg:grid-cols-12">
         <div className="min-w-0 lg:col-span-7">
           <p className="section-kicker flex items-center gap-2 text-primary">
-            <Sparkles className="size-3.5" aria-hidden="true" />
+            <Clapperboard className="size-3.5" aria-hidden="true" />
             Disney+
           </p>
           <h1 className="mt-3 font-display text-4xl font-bold sm:text-5xl">
@@ -43,7 +43,7 @@ function DisneyPage() {
 
       <div className="flex items-center justify-between border-b border-border py-6">
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-          <Sparkles className="size-5 text-primary" aria-hidden="true" />
+          <Clapperboard className="size-5 text-primary" aria-hidden="true" />
           Canais
         </h2>
         {!isLoading && (
