@@ -1,23 +1,32 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-const configPath = ".output/server/wrangler.json";
+const generatedPath = ".output/server/wrangler.json";
+const committedPath = "wrangler.jsonc";
 
-if (!existsSync(configPath)) {
-  console.error(`missing ${configPath}`);
+if (!existsSync(generatedPath)) {
+  console.error(`missing ${generatedPath}`);
   process.exit(1);
 }
 
-const config = JSON.parse(readFileSync(configPath, "utf8"));
+function committedName() {
+  if (!existsSync(committedPath)) return undefined;
+  const match = readFileSync(committedPath, "utf8").match(/"name"\s*:\s*"([^"]+)"/);
+  return match?.[1];
+}
+
 const name =
   process.env.WRANGLER_CI_OVERRIDE_NAME ||
   process.env.CLOUDFLARE_WORKER_NAME ||
-  process.env.CF_WORKER_NAME;
+  process.env.CF_WORKER_NAME ||
+  committedName();
 
-if (!name || config.name === name) {
-  console.log(`worker name: ${config.name}`);
-  process.exit(0);
+const config = JSON.parse(readFileSync(generatedPath, "utf8"));
+
+if (!name) {
+  console.error("worker name missing: set wrangler.jsonc name");
+  process.exit(1);
 }
 
 config.name = name;
-writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
-console.log(`set worker name to ${name}`);
+writeFileSync(generatedPath, `${JSON.stringify(config, null, 2)}\n`);
+console.log(`worker name: ${name}`);
