@@ -182,7 +182,7 @@ function HeroSection({ hero }: HeroSectionProps) {
             </Button>
           </div>
 
-          <div className="relative self-start overflow-hidden rounded-lg lg:col-span-7">
+          <div className="relative order-first self-start overflow-hidden rounded-lg lg:order-none lg:col-span-7">
             {event.poster ? (
               <MediaImage
                 src={event.poster}
@@ -268,7 +268,7 @@ function HeroSection({ hero }: HeroSectionProps) {
           )}
         </div>
 
-        <div id="player" className="relative self-start overflow-hidden rounded-lg lg:col-span-7">
+        <div id="player" className="relative order-first self-start overflow-hidden rounded-lg lg:order-none lg:col-span-7">
           {channel?.epg?.current?.image ? (
             <MediaImage
               src={channel.epg.current.image}
