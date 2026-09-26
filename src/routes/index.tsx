@@ -262,7 +262,7 @@ function HeroSection({ hero }: HeroSectionProps) {
             </Button>
           ) : null}
           {featuredNext && (
-            <p className="mt-auto border-t border-border pt-5 text-xs text-muted-foreground lg:mt-10">
+            <p className="mt-8 border-t border-border pt-5 text-xs text-muted-foreground lg:mt-10">
               A seguir · {featuredNext}
             </p>
           )}
