@@ -8,7 +8,7 @@
     "build": "vite build && node scripts/sync-worker-name.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
-    "deploy": "node scripts/sync-worker-name.mjs && wrangler versions upload --config .output/server/wrangler.json",
+    "deploy": "node scripts/sync-worker-name.mjs && wrangler deploy --config .output/server/wrangler.json",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
