@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "deploy": "node scripts/sync-worker-name.mjs && node scripts/cf-upload.mjs",
+    "deploy:prod": "node scripts/sync-worker-name.mjs && node scripts/cf-deploy.mjs",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
