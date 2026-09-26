@@ -243,6 +243,10 @@ export function epgProgress(entry: Pick<ApiEpgEntry, "start_time" | "end_time">)
   return Math.min(1, Math.max(0, (now - entry.start_time) / span));
 }
 
+export function isDisneyChannel(channel: ApiChannel): boolean {
+  return /disney/i.test(`${channel.id} ${channel.name} ${channel.category}`);
+}
+
 export function filterChannels(channels: ApiChannel[], query: string): ApiChannel[] {
   const q = query.trim().toLocaleLowerCase("pt-BR");
   if (!q) return channels;
