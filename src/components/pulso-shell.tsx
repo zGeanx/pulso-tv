@@ -11,7 +11,7 @@ const navItems = [
   { to: "/" as const, label: "Início", icon: Home },
   { to: "/canais" as const, label: "Canais", icon: Tv },
   { to: "/agenda" as const, label: "Agenda", icon: CalendarDays },
-  { to: "/disney" as const, label: "Disney+", icon: Clapperboard, badge: "Em breve" },
+  { to: "/disney" as const, label: "Disney+", icon: Clapperboard },
 ];
 
 function Brand({ compact = false }: { compact?: boolean }) {
@@ -78,11 +78,6 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                   >
                     <Icon className="size-3.5" aria-hidden="true" />
                     {item.label}
-                    {"badge" in item && item.badge ? (
-                      <span className="rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                        {item.badge}
-                      </span>
-                    ) : null}
                   </Link>
                 );
               })}
@@ -135,9 +130,6 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                 >
                   <Icon />
                   <span>{item.label}</span>
-                  {"badge" in item && item.badge ? (
-                    <span className="text-[9px] uppercase text-muted-foreground">{item.badge}</span>
-                  ) : null}
                 </Link>
               );
             })}
@@ -279,7 +271,7 @@ export function PulsoShell({ children }: { children: ReactNode }) {
           <nav className="flex flex-wrap gap-5 sm:justify-end" aria-label="Navegação do rodapé">
             <Link to="/canais">Canais</Link>
             <Link to="/agenda">Agenda</Link>
-            <Link to="/disney">Disney+ · Em breve</Link>
+            <Link to="/disney">Disney+</Link>
           </nav>
           <p className="max-w-3xl leading-relaxed">
             A Pulso TV não hospeda nem armazena conteúdos. Os links são encontrados publicamente na
