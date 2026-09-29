@@ -151,9 +151,23 @@ export interface SportsParams {
   offset?: number;
 }
 
+/**
+ * Hide events whose only signals are Disney+: the channels API has no Disney
+ * grade, so these agenda items have no matching channel to watch on Pulso TV.
+ */
+function isDisneyProvider(provider: string): boolean {
+  return /disney/i.test(provider);
+}
+
+function isDisneyOnlyEvent(event: ApiSportEvent): boolean {
+  return event.embeds.length > 0 && event.embeds.every((embed) => isDisneyProvider(embed.provider));
+}
+
 export async function fetchSport(id: string): Promise<ApiSportEvent> {
   const res = await apiFetch<ApiItemResponse<ApiSportEvent>>(`/sports/${encodeURIComponent(id)}`);
-  if (!res.data) throw new Error(`Evento não encontrado: ${id}`);
+  if (!res.data || isDisneyOnlyEvent(res.data)) {
+    throw new Error(`Evento não encontrado: ${id}`);
+  }
   return res.data;
 }
 
@@ -166,7 +180,7 @@ export async function fetchSports(params: SportsParams = {}): Promise<ApiSportEv
   if (params.offset != null) query.set("offset", String(params.offset));
   const qs = query.toString() ? `?${query.toString()}` : "";
   const res = await apiFetch<ApiListResponse<ApiSportEvent>>(`/sports${qs}`);
-  return res.data;
+  return res.data.filter((event) => !isDisneyOnlyEvent(event));
 }
 
 // ─── Search ───────────────────────────────────────────────────────────────────
@@ -175,7 +189,7 @@ export async function fetchSearch(q: string): Promise<ApiSearchResult> {
   const res = await apiFetch<ApiSearchResponse>(`/search?q=${encodeURIComponent(q)}`);
   return {
     channels: res.data.channels ?? [],
-    events: res.data.events ?? [],
+    events: (res.data.events ?? []).filter((event) => !isDisneyOnlyEvent(event)),
     meta: res.meta,
   };
 }
