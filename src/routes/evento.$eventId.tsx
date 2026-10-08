@@ -187,7 +187,7 @@ function EventWatchPage() {
                 <dd>
                   {event.embeds.map((embed) => (
                     <p key={embed.embed_url}>
-                      {embed.provider} · {embed.quality}
+                      {embed.quality ? `${embed.provider} · ${embed.quality}` : embed.provider}
                     </p>
                   ))}
                 </dd>
