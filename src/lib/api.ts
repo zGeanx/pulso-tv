@@ -10,6 +10,8 @@ export interface ApiEmbed {
   provider: string;
   quality: string;
   embed_url: string;
+  /** Iframe allow policy from the Pulso catalog, when the embed comes from that source. */
+  allow?: string;
 }
 
 export interface ApiEpgEntry {
