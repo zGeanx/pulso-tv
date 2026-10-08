@@ -44,6 +44,7 @@ export function MediaImage({
         <img
           src={src}
           alt={alt}
+          referrerPolicy="no-referrer"
           loading={eager ? "eager" : "lazy"}
           decoding="async"
           onLoad={() => setStatus("ready")}
