@@ -1,6 +1,6 @@
-// Typed API client for https://api.reidoscanais.st
+// Typed API client for https://api.reidoscanais.si
 
-const BASE_URL = "https://api.reidoscanais.st";
+const BASE_URL = "https://api.reidoscanais.si";
 
 // ─── Raw API Types ────────────────────────────────────────────────────────────
 
@@ -73,16 +73,9 @@ export interface ApiCategory {
   name: string;
 }
 
-export interface ApiSearchMeta {
-  query: string;
-  total_channels: number;
-  total_events: number;
-}
-
 export interface ApiSearchResult {
   channels: ApiChannel[];
   events: ApiSportEvent[];
-  meta?: ApiSearchMeta;
 }
 
 // ─── Response wrappers ────────────────────────────────────────────────────────
@@ -99,7 +92,6 @@ interface ApiSearchResponse {
     channels: ApiChannel[];
     events: ApiSportEvent[];
   };
-  meta?: ApiSearchMeta;
 }
 
 interface ApiItemResponse<T> {
@@ -190,7 +182,6 @@ export async function fetchSearch(q: string): Promise<ApiSearchResult> {
   return {
     channels: res.data.channels ?? [],
     events: (res.data.events ?? []).filter((event) => !isDisneyOnlyEvent(event)),
-    meta: res.meta,
   };
 }
 
@@ -255,10 +246,6 @@ export function epgProgress(entry: Pick<ApiEpgEntry, "start_time" | "end_time">)
   if (!Number.isFinite(span) || span <= 0) return 0;
   const now = Date.now() / 1000;
   return Math.min(1, Math.max(0, (now - entry.start_time) / span));
-}
-
-export function isDisneyChannel(channel: ApiChannel): boolean {
-  return /disney/i.test(`${channel.id} ${channel.name} ${channel.category}`);
 }
 
 export function filterChannels(channels: ApiChannel[], query: string): ApiChannel[] {
