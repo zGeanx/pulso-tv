@@ -7,9 +7,27 @@ interface WatchPlayerProps {
   embeds: ApiEmbed[];
 }
 
+const DEFAULT_IFRAME_ALLOW = "autoplay; fullscreen; picture-in-picture";
+
 function optionLabel(embed: ApiEmbed) {
   const parts = [embed.provider, embed.quality].filter((part) => part.trim().length > 0);
   return parts.join(" · ");
+}
+
+function iframeAllow(embed: ApiEmbed): string {
+  const extra = embed.allow?.trim();
+  if (!extra) return DEFAULT_IFRAME_ALLOW;
+  const seen = new Set<string>();
+  const parts: string[] = [];
+  for (const token of `${DEFAULT_IFRAME_ALLOW}; ${extra}`.split(";")) {
+    const value = token.trim();
+    if (!value) continue;
+    const key = value.toLocaleLowerCase("en-US");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    parts.push(value);
+  }
+  return parts.join("; ");
 }
 
 async function copyText(value: string) {
@@ -87,8 +105,8 @@ export function WatchPlayer({ title, embeds }: WatchPlayerProps) {
           <iframe
             key={current.embed_url}
             src={current.embed_url}
-            title={`${title} — ${current.provider}`}
-            allow="autoplay; fullscreen; picture-in-picture"
+            title={`${title} — ${optionLabel(current)}`}
+            allow={iframeAllow(current)}
             allowFullScreen
             className="absolute inset-0 h-full w-full border-0"
           />
@@ -109,7 +127,7 @@ export function WatchPlayer({ title, embeds }: WatchPlayerProps) {
               aria-controls={listId}
               aria-label="Escolher servidor de transmissão"
               onClick={() => setOpen((value) => !value)}
-              className="inline-flex min-h-11 max-w-56 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm transition-colors hover:border-primary"
+              className="inline-flex min-h-11 max-w-72 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm transition-colors hover:border-primary"
             >
               <span className="truncate">{optionLabel(current)}</span>
               <ChevronDown
@@ -123,7 +141,7 @@ export function WatchPlayer({ title, embeds }: WatchPlayerProps) {
                 id={listId}
                 role="listbox"
                 aria-label="Servidores de transmissão"
-                className="absolute left-0 top-[calc(100%+0.35rem)] z-20 min-w-56 overflow-hidden rounded-md border border-border bg-popover py-1 shadow-lg"
+                className="absolute left-0 top-[calc(100%+0.35rem)] z-20 min-w-64 overflow-hidden rounded-md border border-border bg-popover py-1 shadow-lg"
               >
                 {embeds.map((embed, index) => {
                   const selected = index === selectedIndex;
