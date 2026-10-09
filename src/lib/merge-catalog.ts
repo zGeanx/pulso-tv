@@ -299,7 +299,10 @@ function presentChannelEmbeds(
   const extras = replacements.map((embed) =>
     rawEmbed(embed.title || channelName, embed.url, embed.allow),
   );
-  return numberOptions(channelName, spliceReplacement(embeds, () => true, extras));
+  const ordered = spliceReplacement(embeds, () => true, extras).map((embed) =>
+    rawEmbed(channelName, embed.embed_url, embed.allow ?? ""),
+  );
+  return numberOptions(ordered);
 }
 
 function presentEventEmbeds(
@@ -342,7 +345,10 @@ function presentEventEmbeds(
     }
   }
 
-  return groups.flatMap((slot) => (slot.embeds.length === 0 ? [] : numberOptions(slot.name, slot.embeds)));
+  const ordered = groups.flatMap((slot) =>
+    slot.embeds.map((embed) => rawEmbed(slot.name, embed.embed_url, embed.allow ?? "")),
+  );
+  return numberOptions(ordered);
 }
 
 function pickReplacementGroup(
@@ -388,10 +394,10 @@ function spliceReplacement(
   return kept;
 }
 
-function numberOptions(name: string, embeds: ApiEmbed[]): ApiEmbed[] {
+function numberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
   return embeds.map((embed, index) => {
     const next: ApiEmbed = {
-      provider: name,
+      provider: embed.provider,
       quality: `Opção ${index + 1}`,
       embed_url: embed.embed_url,
     };
