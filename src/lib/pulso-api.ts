@@ -1,5 +1,3 @@
-// Public catalog from https://api.pulso-tv.online — read-only, alongside Rei dos Canais.
-
 import {
   fetchChannel,
   fetchChannels,
@@ -34,6 +32,8 @@ export interface PulsoMatch {
   thumbnail: string;
   title: string;
   channelTitle: string;
+  home_logo?: string;
+  away_logo?: string;
 }
 
 export interface PulsoEmbedSource {
@@ -83,6 +83,18 @@ function readMatch(value: unknown): PulsoMatch | null {
   const channelActive =
     channel == null || (flagEnabled(channel["active"]) && flagEnabled(channel["enabled"]));
 
+  const home_logo =
+    readString(value["home_team_logo"]) ||
+    readString(value["home_logo"]) ||
+    readString(value["home_team_image"]) ||
+    (isRecord(value["home"]) ? readString(value["home"]["logo"]) : "");
+
+  const away_logo =
+    readString(value["away_team_logo"]) ||
+    readString(value["away_logo"]) ||
+    readString(value["away_team_image"]) ||
+    (isRecord(value["away"]) ? readString(value["away"]["logo"]) : "");
+
   return {
     id,
     slug,
@@ -93,10 +105,14 @@ function readMatch(value: unknown): PulsoMatch | null {
     status: readString(value["status"]) || "scheduled",
     active: flagEnabled(value["active"]) && flagEnabled(value["enabled"]) && channelActive,
     url: readString(value["url"]) || (channel ? readString(channel["url"]) : ""),
-    allow: readString(value["allow_policy"]) || (channel ? readString(channel["allow_policy"]) : ""),
+    allow:
+      readString(value["allow_policy"]) || (channel ? readString(channel["allow_policy"]) : ""),
     thumbnail: readString(value["thumbnail"]) || (channel ? readString(channel["thumbnail"]) : ""),
     title: readString(value["title"]),
-    channelTitle: (channel ? readString(channel["title"]) : "") || readString(value["channel_name"]),
+    channelTitle:
+      (channel ? readString(channel["title"]) : "") || readString(value["channel_name"]),
+    home_logo,
+    away_logo,
   };
 }
 
@@ -236,7 +252,9 @@ export async function fetchMergedSearch(query: string): Promise<ApiSearchResult>
   }
 
   const base =
-    remote.status === "fulfilled" ? remote.value : { channels: [] as ApiChannel[], events: [] as ApiSportEvent[] };
+    remote.status === "fulfilled"
+      ? remote.value
+      : { channels: [] as ApiChannel[], events: [] as ApiSportEvent[] };
   const matches = matchesResult.status === "fulfilled" ? matchesResult.value : [];
   const embeds = embedsResult.status === "fulfilled" ? embedsResult.value : [];
 
