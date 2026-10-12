@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { PULSO_LOGO_ROUTE, PULSO_ORIGIN, pulsoLogoFile } from "./lib/pulso-assets";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -43,9 +44,35 @@ function isH3SwallowedErrorBody(body: string): boolean {
 }
 
 const PULSO_PUBLIC_PROXY: Record<string, string> = {
-  "/api/pulso/matches": "https://api.pulso-tv.online/api/public/matches",
-  "/api/pulso/embeds": "https://api.pulso-tv.online/api/public/embeds",
+  "/api/pulso/matches": `${PULSO_ORIGIN}/api/public/matches`,
+  "/api/pulso/embeds": `${PULSO_ORIGIN}/api/public/embeds`,
 };
+
+/** Same-origin read of `/logos/*`. The API marks those files as same-origin only. */
+async function proxyPulsoLogo(request: Request): Promise<Response | null> {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const url = new URL(request.url);
+  if (url.pathname !== PULSO_LOGO_ROUTE) return null;
+  const file = pulsoLogoFile(`/logos/${url.searchParams.get("path") ?? ""}`);
+  if (!file) return new Response(null, { status: 400 });
+
+  try {
+    const upstream = await fetch(`${PULSO_ORIGIN}/logos/${file}`, {
+      headers: { Accept: "image/*,*/*" },
+    });
+    const headers = new Headers();
+    const contentType = upstream.headers.get("content-type");
+    if (contentType) headers.set("content-type", contentType);
+    if (upstream.ok) headers.set("cache-control", "public, max-age=86400");
+    return new Response(request.method === "HEAD" ? null : await upstream.arrayBuffer(), {
+      status: upstream.status,
+      headers,
+    });
+  } catch (error) {
+    console.error(error);
+    return new Response(null, { status: 502 });
+  }
+}
 
 /** Same-origin read of the public Pulso catalog. Localhost is not on that API's CORS list. */
 async function proxyPulsoCatalog(request: Request): Promise<Response | null> {
@@ -74,6 +101,9 @@ async function proxyPulsoCatalog(request: Request): Promise<Response | null> {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const logo = await proxyPulsoLogo(request);
+      if (logo) return logo;
+
       const proxied = await proxyPulsoCatalog(request);
       if (proxied) return proxied;
 
