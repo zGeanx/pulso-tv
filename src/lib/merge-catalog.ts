@@ -1,5 +1,6 @@
 import type { ApiChannel, ApiEmbed, ApiSportEvent, ApiSportStatus } from "@/lib/api";
-import type { PulsoEmbedSource, PulsoMatch } from "@/lib/pulso-api";
+import { resolvePulsoAsset } from "@/lib/pulso-assets";
+import { isPlaceholderLogo, type PulsoEmbedSource, type PulsoMatch } from "@/lib/pulso-api";
 import { registerTeamLogosFromEvents, resolveTeamLogo } from "@/lib/team-logos";
 
 export const PULSO_ID_PREFIX = "pulso-";
@@ -247,13 +248,13 @@ function toPulsoEvent(match: PreparedMatch, nowMs: number): ApiSportEvent {
   const away = match.source.away_team.trim();
   const slug = safeSlug(match.source.slug) ?? match.source.slug;
   const title = match.source.title.trim() || `${home} x ${away}`;
-  const homeLogo = match.source.home_logo || resolveTeamLogo(home);
-  const awayLogo = match.source.away_logo || resolveTeamLogo(away);
+  const homeLogo = teamCrest(home, match.source.home_logo);
+  const awayLogo = teamCrest(away, match.source.away_logo);
   return {
     id: pulsoId(slug),
     title,
     description: null,
-    poster: match.source.thumbnail || null,
+    poster: match.source.match_image || match.source.thumbnail || null,
     category: "Futebol",
     competition: match.source.competition || "Futebol",
     teams: {
@@ -270,6 +271,12 @@ function toPulsoEvent(match: PreparedMatch, nowMs: number): ApiSportEvent {
       allow: match.source.allow,
     }),
   };
+}
+
+function teamCrest(name: string, catalogLogo: string | undefined): string {
+  const catalog = catalogLogo?.trim() ?? "";
+  if (catalog && !isPlaceholderLogo(catalog)) return catalog;
+  return resolvePulsoAsset(resolveTeamLogo(name)) || catalog;
 }
 
 function toPulsoChannel(embed: PulsoEmbedSource): ApiChannel | null {
