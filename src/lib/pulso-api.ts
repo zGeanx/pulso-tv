@@ -15,8 +15,7 @@ import {
   mergeSportEvents,
   pulsoSlug,
 } from "@/lib/merge-catalog";
-
-const PULSO_ORIGIN = "https://api.pulso-tv.online";
+import { isFlagLogo, PULSO_ORIGIN, resolvePulsoAsset } from "@/lib/pulso-assets";
 
 export interface PulsoMatch {
   id: number;
@@ -30,6 +29,7 @@ export interface PulsoMatch {
   url: string;
   allow: string;
   thumbnail: string;
+  match_image: string;
   title: string;
   channelTitle: string;
   home_logo?: string;
@@ -54,6 +54,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+/** Initials avatars and country flags are not club crests. */
+export function isPlaceholderLogo(url: string): boolean {
+  if (!url || url.startsWith("data:")) return true;
+  return isFlagLogo(url);
+}
+
+function readAsset(values: unknown[]): string {
+  const urls = values.map((value) => resolvePulsoAsset(readString(value))).filter(Boolean);
+  return urls.find((url) => !isPlaceholderLogo(url)) ?? urls[0] ?? "";
+}
+
+function nestedTeamLogo(value: Record<string, unknown>, side: "home" | "away"): string {
+  const direct = value[side];
+  const teams = value["teams"];
+  const team = isRecord(teams) ? teams[side] : null;
+  const source = isRecord(team) ? team : isRecord(direct) ? direct : null;
+  if (!source) return "";
+  return readString(source["logo"]) || readString(source["badge"]) || readString(source["image"]);
 }
 
 function flagEnabled(value: unknown): boolean {
@@ -83,17 +103,21 @@ function readMatch(value: unknown): PulsoMatch | null {
   const channelActive =
     channel == null || (flagEnabled(channel["active"]) && flagEnabled(channel["enabled"]));
 
-  const home_logo =
-    readString(value["home_team_logo"]) ||
-    readString(value["home_logo"]) ||
-    readString(value["home_team_image"]) ||
-    (isRecord(value["home"]) ? readString(value["home"]["logo"]) : "");
+  const home_logo = readAsset([
+    value["home_team_logo"],
+    value["home_logo"],
+    value["home_team_badge"],
+    value["home_team_image"],
+    nestedTeamLogo(value, "home"),
+  ]);
 
-  const away_logo =
-    readString(value["away_team_logo"]) ||
-    readString(value["away_logo"]) ||
-    readString(value["away_team_image"]) ||
-    (isRecord(value["away"]) ? readString(value["away"]["logo"]) : "");
+  const away_logo = readAsset([
+    value["away_team_logo"],
+    value["away_logo"],
+    value["away_team_badge"],
+    value["away_team_image"],
+    nestedTeamLogo(value, "away"),
+  ]);
 
   return {
     id,
@@ -107,7 +131,13 @@ function readMatch(value: unknown): PulsoMatch | null {
     url: readString(value["url"]) || (channel ? readString(channel["url"]) : ""),
     allow:
       readString(value["allow_policy"]) || (channel ? readString(channel["allow_policy"]) : ""),
-    thumbnail: readString(value["thumbnail"]) || (channel ? readString(channel["thumbnail"]) : ""),
+    thumbnail: readAsset([
+      value["thumbnail"],
+      channel ? channel["thumbnail"] : "",
+      value["channel_logo"],
+      value["stream_logo"],
+    ]),
+    match_image: readAsset([value["match_image"], value["cover"], value["banner"]]),
     title: readString(value["title"]),
     channelTitle:
       (channel ? readString(channel["title"]) : "") || readString(value["channel_name"]),
@@ -130,7 +160,12 @@ function readEmbed(value: unknown): PulsoEmbedSource | null {
     url: readString(value["url"]),
     type: readString(value["type"]),
     allow: readString(value["allow_policy"]),
-    thumbnail: readString(value["thumbnail"]),
+    thumbnail: readAsset([
+      value["thumbnail"],
+      value["logo"],
+      value["channel_logo"],
+      value["stream_logo"],
+    ]),
     active: flagEnabled(value["active"]) && flagEnabled(value["enabled"]),
   };
 }
