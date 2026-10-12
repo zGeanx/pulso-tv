@@ -89,20 +89,26 @@ export function mergeSportEvents(
 
   const events = reidosEvents.map((event) => {
     const prepared = prepareEvent(event);
-    const exact = available.find(
-      (match) =>
-        !consumed.has(match.source.id) &&
-        match.pair.length > 0 &&
-        match.pair === prepared.pair &&
-        match.day === prepared.day,
+    const candidates = available.filter(
+      (match) => !consumed.has(match.source.id) && sameFixture(prepared, match),
     );
-    const chosen = exact ?? findIncomplete(prepared, available, consumed);
-    const playable =
+    const playable = candidates.filter((match) =>
+      isPlayable(match.source.channelTitle || "Player", match.source.url, "embed"),
+    );
+    const exact = playable.find((match) => match.pair === prepared.pair) ?? null;
+    const incomplete =
+      exact || playable.length > 0 ? null : findIncomplete(prepared, available, consumed);
+    const chosen = exact ?? playable[0] ?? incomplete;
+    const canPlay =
       chosen != null &&
       isPlayable(chosen.source.channelTitle || "Player", chosen.source.url, "embed");
-    if (!chosen || !playable) return presentEvent(event, null);
+    if (!chosen || !canPlay) return presentEvent(event, null);
+    for (const match of candidates) consumed.add(match.source.id);
     consumed.add(chosen.source.id);
-    return applyPulso(event, chosen, now, absorbed);
+    const merged = applyPulso(event, chosen, now, absorbed);
+    for (const match of candidates) absorbed.set(match.source.id, merged.id);
+    absorbed.set(chosen.source.id, merged.id);
+    return merged;
   });
 
   if (!includeUnmatched) {
@@ -110,12 +116,18 @@ export function mergeSportEvents(
   }
 
   const extras: ApiSportEvent[] = [];
-  for (const match of available) {
-    if (consumed.has(match.source.id) || !match.away || !match.pair) continue;
-    const label = match.source.channelTitle || "Player";
-    if (!isPlayable(label, match.source.url, "embed")) continue;
+  const pending = available.filter((match) => {
+    if (consumed.has(match.source.id) || !match.away || !match.pair) return false;
+    if (!isPlayable(match.source.channelTitle || "Player", match.source.url, "embed")) return false;
+    return !events.some((event) => sameFixture(prepareEvent(event), match));
+  });
+  for (const group of groupFixtures(pending)) {
+    const match = richestMatch(group);
     const event = toPulsoEvent(match, now);
-    absorbed.set(match.source.id, event.id);
+    for (const item of group) {
+      consumed.add(item.source.id);
+      absorbed.set(item.source.id, event.id);
+    }
     extras.push(event);
   }
   extras.sort((a, b) => a.start_timestamp - b.start_timestamp);
@@ -468,6 +480,55 @@ function eventTeamNames(event: ApiSportEvent): { home: string; away: string } | 
 
 function pairKey(home: string, away: string): string {
   return home < away ? `${home}|${away}` : `${away}|${home}`;
+}
+
+function sameFixture(
+  left: { day: string; home: string; away: string },
+  right: { day: string; home: string; away: string },
+): boolean {
+  if (!left.day || left.day !== right.day) return false;
+  if (!left.home || !left.away || !right.home || !right.away) return false;
+  const direct =
+    teamsLooselyEqual(left.home, right.home) && teamsLooselyEqual(left.away, right.away);
+  const swapped =
+    teamsLooselyEqual(left.home, right.away) && teamsLooselyEqual(left.away, right.home);
+  return direct || swapped;
+}
+
+/** "América" and "América-MG" are the same club; "Botafogo" and "Botafogo-SP" only match when the opponent does too. */
+function teamsLooselyEqual(left: string, right: string): boolean {
+  if (left === right) return true;
+  const a = left.split(" ").filter(Boolean);
+  const b = right.split(" ").filter(Boolean);
+  if (a.length === 0 || b.length === 0 || a.length === b.length) return false;
+  const [shorter, longer] = a.length < b.length ? [a, b] : [b, a];
+  return shorter.every((token, index) => longer[index] === token);
+}
+
+function groupFixtures(matches: PreparedMatch[]): PreparedMatch[][] {
+  const groups: PreparedMatch[][] = [];
+  for (const match of matches) {
+    const group = groups.find((items) => sameFixture(items[0], match));
+    if (group) group.push(match);
+    else groups.push([match]);
+  }
+  return groups;
+}
+
+function richestMatch(matches: PreparedMatch[]): PreparedMatch {
+  return matches.reduce((best, match) =>
+    matchRichness(match) > matchRichness(best) ? match : best,
+  );
+}
+
+function matchRichness(match: PreparedMatch): number {
+  const names = match.home.length + match.away.length;
+  const art = match.source.match_image && !isStockPhoto(match.source.match_image) ? 1000 : 0;
+  return art + names;
+}
+
+function isStockPhoto(url: string): boolean {
+  return /images\.unsplash\.com/i.test(url);
 }
 
 function tokensOverlap(team: string, blob: string): boolean {
