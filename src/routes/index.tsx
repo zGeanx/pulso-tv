@@ -201,6 +201,12 @@ function HeroSection({ hero }: HeroSectionProps) {
               <div className="aspect-video w-full rounded-lg bg-card" />
             )}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+            {event.teams && (
+              <div className="absolute bottom-4 left-4 flex items-center gap-2">
+                <TeamMark name={event.teams.home.name} logo={event.teams.home.logo} />
+                <TeamMark name={event.teams.away.name} logo={event.teams.away.logo} />
+              </div>
+            )}
             <div className="absolute left-4 top-4">
               {isLive ? (
                 <span className="status-label status-live">
