@@ -28,6 +28,26 @@ export function EventCard({ event }: { event: ApiSportEvent }) {
                 imgClassName="object-contain"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
+              {event.teams && (
+                <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
+                  <div className="logo-box h-8 w-8">
+                    <MediaImage
+                      src={event.teams.home.logo}
+                      alt={event.teams.home.name}
+                      className="h-full w-full bg-transparent"
+                      imgClassName="logo-box-img"
+                    />
+                  </div>
+                  <div className="logo-box h-8 w-8">
+                    <MediaImage
+                      src={event.teams.away.logo}
+                      alt={event.teams.away.name}
+                      className="h-full w-full bg-transparent"
+                      imgClassName="logo-box-img"
+                    />
+                  </div>
+                </div>
+              )}
             </>
           ) : event.teams ? (
             <div className="flex h-full w-full items-center justify-center gap-6 bg-card">
