@@ -18,7 +18,6 @@ import {
   type SportStatusLabel,
   type ApiSportStatus,
 } from "@/lib/api";
-import { MediaImage } from "@/components/media-image";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ALL_TAB = "Todos os jogos" as const;
@@ -184,27 +183,7 @@ function AgendaPage() {
                 </div>
 
                 <div className="min-w-0">
-                  <p className="flex min-w-0 items-center gap-2 font-display text-lg font-medium">
-                    {event.teams ? (
-                      <>
-                        <MediaImage
-                          src={event.teams.home.logo}
-                          alt={event.teams.home.name}
-                          className="h-6 w-6 shrink-0 bg-transparent"
-                          imgClassName="object-contain"
-                        />
-                        <span className="min-w-0 truncate">{event.title}</span>
-                        <MediaImage
-                          src={event.teams.away.logo}
-                          alt={event.teams.away.name}
-                          className="h-6 w-6 shrink-0 bg-transparent"
-                          imgClassName="object-contain"
-                        />
-                      </>
-                    ) : (
-                      <span className="min-w-0 truncate">{event.title}</span>
-                    )}
-                  </p>
+                  <p className="min-w-0 truncate font-display text-lg font-medium">{event.title}</p>
                   <p className="text-sm text-muted-foreground">
                     {event.competition}
                     {event.embeds[0]?.provider ? ` · ${event.embeds[0].provider}` : ""}
