@@ -394,16 +394,33 @@ export function pickRelatedEvents(
     .slice(0, count);
 }
 
-function providerKey(provider: string): string {
-  return provider.replace(/\s*\(alternativo\)\s*/gi, "").trim().toLocaleLowerCase("pt-BR");
+function looseChannelName(value: string): string {
+  return value
+    .replace(/\s*\[[^\]]+\]\s*$/g, "")
+    .replace(/\s*\(alternativo\)\s*/gi, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+    .replace(/\s+/g, " ");
+}
+
+function channelTag(value: string): string {
+  return /\[([^\]]+)\]\s*$/.exec(value.trim())?.[1]?.toLocaleLowerCase("pt-BR") ?? "";
+}
+
+/** "HBO Max 1" is the unnumbered HBO Max feed. A tagged name only matches that tag. */
+function sameBroadcastChannel(provider: string, channelName: string): boolean {
+  if (channelTag(provider) !== channelTag(channelName)) return false;
+  const providerKey = looseChannelName(provider);
+  const channelKey = looseChannelName(channelName);
+  if (providerKey === channelKey) return true;
+  return providerKey.endsWith(" 1") && channelKey === providerKey.slice(0, -2);
 }
 
 /** Channels that match the event embed providers (Sportv 2, ESPN 4…). */
 export function channelsForEvent(event: ApiSportEvent, channels: ApiChannel[]): ApiChannel[] {
-  const keys = [...new Set(event.embeds.map((embed) => providerKey(embed.provider)))];
   const matched: ApiChannel[] = [];
-  for (const key of keys) {
-    const channel = channels.find((item) => item.name.toLocaleLowerCase("pt-BR") === key);
+  for (const embed of event.embeds) {
+    const channel = channels.find((item) => sameBroadcastChannel(embed.provider, item.name));
     if (channel && !matched.some((item) => item.id === channel.id)) matched.push(channel);
   }
   return matched;
