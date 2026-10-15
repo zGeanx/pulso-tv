@@ -28,8 +28,8 @@ const TEAM_ALIASES = new Map<string, string>([
   ["danubio fc", "danubio"],
   ["montevideo city torque", "montevideo city torque"],
   ["torque", "montevideo city torque"],
-  ["liverpool montevideo", "liverpool"],
   ["liverpool fc", "liverpool"],
+  ["liverpool montevideo", "liverpool montevideo"],
   ["fastav zlin", "zlin"],
   ["fc zlin", "zlin"],
   ["sk slavia praga", "slavia praga"],
@@ -59,6 +59,8 @@ const TEAM_ALIASES = new Map<string, string>([
   ["sport recife", "sport"],
   ["gremio novorizontino", "novorizontino"],
   ["operario ferroviario", "operario"],
+  ["inter miami cf", "inter miami"],
+  ["club internacional de futbol miami", "inter miami"],
 ]);
 
 const KNOWN_LOGOS: Record<string, string> = {
@@ -117,7 +119,9 @@ const KNOWN_LOGOS: Record<string, string> = {
   "montevideo city torque":
     "https://r2.thesportsdb.com/images/media/team/badge/cbro131677794355.png",
   "deportivo maldonado": "https://r2.thesportsdb.com/images/media/team/badge/0fmxza1580234592.png",
-  liverpool: "https://r2.thesportsdb.com/images/media/team/badge/0xat6f1678717839.png",
+  liverpool: "https://r2.thesportsdb.com/images/media/team/badge/kfaher1737969724.png",
+  "liverpool montevideo": "https://r2.thesportsdb.com/images/media/team/badge/0xat6f1678717839.png",
+  "inter miami": "https://r2.thesportsdb.com/images/media/team/badge/m4it3e1602103647.png",
   penarol: "https://cdn.sportmonks.com/images/soccer/teams/21/1013.png",
   nacional: "https://cdn.sportmonks.com/images/soccer/teams/14/1006.png",
   "cerro porteno": "https://cdn.sportmonks.com/images/soccer/teams/20/1012.png",
@@ -203,24 +207,5 @@ export function registerTeamLogosFromEvents(events: ApiSportEvent[]): void {
 export function resolveTeamLogo(name: string): string {
   const key = normalizeTeamKey(name);
   if (!key) return "";
-
-  const cached = runtimeLogoCache.get(key);
-  if (cached) return cached;
-
-  const staticHit = KNOWN_LOGOS[key];
-  if (staticHit) return staticHit;
-
-  for (const [knownKey, url] of Object.entries(KNOWN_LOGOS)) {
-    if (key.includes(knownKey) || knownKey.includes(key)) {
-      return url;
-    }
-  }
-
-  for (const [cachedKey, url] of runtimeLogoCache.entries()) {
-    if (key.includes(cachedKey) || cachedKey.includes(key)) {
-      return url;
-    }
-  }
-
-  return "";
+  return KNOWN_LOGOS[key] ?? runtimeLogoCache.get(key) ?? "";
 }
