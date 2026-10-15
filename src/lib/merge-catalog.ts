@@ -37,6 +37,8 @@ export interface MergeChannelResult {
 interface MergeOptions {
   includeUnmatched?: boolean;
   now?: number;
+  /** Catalog feeds used to expand repeated channels such as HBO Max / HBO Max 1. */
+  channels?: PulsoEmbedSource[];
 }
 
 interface PreparedMatch {
@@ -80,6 +82,7 @@ export function mergeSportEvents(
   registerTeamLogosFromEvents(reidosEvents);
   const includeUnmatched = options.includeUnmatched !== false;
   const now = options.now ?? Date.now();
+  const channels = options.channels ?? [];
   const available = pulsoMatches.flatMap((match) => {
     const prepared = prepareMatch(match);
     return prepared ? [prepared] : [];
@@ -102,10 +105,10 @@ export function mergeSportEvents(
     const canPlay =
       chosen != null &&
       isPlayable(chosen.source.channelTitle || "Player", chosen.source.url, "embed");
-    if (!chosen || !canPlay) return presentEvent(event, null);
+    if (!chosen || !canPlay) return presentEvent(event, null, channels);
     for (const match of candidates) consumed.add(match.source.id);
     consumed.add(chosen.source.id);
-    const merged = applyPulso(event, chosen, now, absorbed);
+    const merged = applyPulso(event, chosen, now, absorbed, channels);
     for (const match of candidates) absorbed.set(match.source.id, merged.id);
     absorbed.set(chosen.source.id, merged.id);
     return merged;
@@ -123,7 +126,7 @@ export function mergeSportEvents(
   });
   for (const group of groupFixtures(pending)) {
     const match = richestMatch(group);
-    const event = toPulsoEvent(match, now);
+    const event = toPulsoEvent(match, now, channels);
     for (const item of group) {
       consumed.add(item.source.id);
       absorbed.set(item.source.id, event.id);
@@ -168,7 +171,7 @@ export function mergeChannelLists(
     };
   });
 
-  if (!includeUnmatched) return { channels, absorbed };
+  if (!includeUnmatched) return { channels: labelRepeatedChannels(channels, pulsoEmbeds), absorbed };
 
   const unmatched: ApiChannel[] = [];
   for (const embed of pulsoEmbeds) {
@@ -180,7 +183,39 @@ export function mergeChannelLists(
   }
   unmatched.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
-  return { channels: [...channels, ...unmatched], absorbed };
+  return { channels: labelRepeatedChannels([...channels, ...unmatched], pulsoEmbeds), absorbed };
+}
+
+/** Plain "HBO Max" is feed 1 when "HBO Max 1 …" also exists. Put that id in the name. */
+function labelRepeatedChannels(list: ApiChannel[], catalog: PulsoEmbedSource[]): ApiChannel[] {
+  return list.map((channel) => {
+    const name = nameWithChannelId(channel.name, catalog);
+    const embeds = channel.embeds.map((embed) => {
+      const provider = nameWithChannelId(embed.provider, catalog);
+      if (provider === embed.provider) return embed;
+      const next: ApiEmbed = { ...embed, provider };
+      if (/^Opção \d+$/.test(embed.quality)) next.quality = "";
+      return next;
+    });
+    if (name === channel.name && embeds.every((embed, index) => embed === channel.embeds[index])) {
+      return channel;
+    }
+    return { ...channel, name, embeds };
+  });
+}
+
+function nameWithChannelId(title: string, catalog: PulsoEmbedSource[]): string {
+  const bases = plainChannelBases(catalog);
+  if (splitChannelTag(title).tag || isNumberedDuplicate(title, bases)) return title;
+  const base = channelBase(title, bases);
+  if (!base || !bases.has(base)) return title;
+  const hasTwin = catalog.some(
+    (channel) =>
+      channel.active &&
+      isNumberedDuplicate(channel.title, bases) &&
+      channelBase(channel.title, bases) === base,
+  );
+  return hasTwin ? identifiedChannelTitle(title) : title;
 }
 
 function prepareMatch(match: PulsoMatch): PreparedMatch | null {
@@ -236,26 +271,59 @@ function applyPulso(
   match: PreparedMatch,
   nowMs: number,
   absorbed: Map<number, string>,
+  channels: PulsoEmbedSource[],
 ): ApiSportEvent {
   const pulsoStatus = mapPulsoStatus(match.source.status, match.unix, nowMs);
   const status: ApiSportStatus =
     event.status === "upcoming" && pulsoStatus === "live" ? "live" : event.status;
   absorbed.set(match.source.id, event.id);
-  return presentEvent(status === event.status ? event : { ...event, status }, {
-    title: match.source.channelTitle || "Player",
-    url: match.source.url,
-    allow: match.source.allow,
-  });
+  return presentEvent(
+    status === event.status ? event : { ...event, status },
+    {
+      title: match.source.channelTitle || "Player",
+      url: match.source.url,
+      allow: match.source.allow,
+    },
+    channels,
+  );
 }
 
 function presentEvent(
   event: ApiSportEvent,
   replacement: { title: string; url: string; allow: string } | null,
+  channels: PulsoEmbedSource[],
 ): ApiSportEvent {
-  return { ...event, embeds: presentEventEmbeds(event.embeds, replacement) };
+  return withTeamCrests({
+    ...event,
+    embeds: presentEventEmbeds(event.embeds, replacement, channels),
+  });
 }
 
-function toPulsoEvent(match: PreparedMatch, nowMs: number): ApiSportEvent {
+function withTeamCrests(event: ApiSportEvent): ApiSportEvent {
+  const names = eventTeamNames(event);
+  if (!names) return event;
+  const homeLogo = crestFor(names.home, event.teams?.home.logo);
+  const awayLogo = crestFor(names.away, event.teams?.away.logo);
+  return {
+    ...event,
+    teams: {
+      home: { name: names.home, logo: homeLogo },
+      away: { name: names.away, logo: awayLogo },
+    },
+  };
+}
+
+function crestFor(name: string, current: string | undefined): string {
+  const existing = current?.trim() ?? "";
+  if (existing && !isPlaceholderLogo(existing)) return existing;
+  return resolvePulsoAsset(resolveTeamLogo(name)) || existing;
+}
+
+function toPulsoEvent(
+  match: PreparedMatch,
+  nowMs: number,
+  channels: PulsoEmbedSource[],
+): ApiSportEvent {
   const home = match.source.home_team.trim();
   const away = match.source.away_team.trim();
   const slug = safeSlug(match.source.slug) ?? match.source.slug;
@@ -277,11 +345,15 @@ function toPulsoEvent(match: PreparedMatch, nowMs: number): ApiSportEvent {
     start_timestamp: match.unix,
     status: mapPulsoStatus(match.source.status, match.unix, nowMs),
     popular: false,
-    embeds: presentEventEmbeds([], {
-      title: match.source.channelTitle || "Player",
-      url: match.source.url,
-      allow: match.source.allow,
-    }),
+    embeds: presentEventEmbeds(
+      [],
+      {
+        title: match.source.channelTitle || "Player",
+        url: match.source.url,
+        allow: match.source.allow,
+      },
+      channels,
+    ),
   };
 }
 
@@ -324,6 +396,7 @@ function presentChannelEmbeds(
 function presentEventEmbeds(
   embeds: ApiEmbed[],
   replacement: { title: string; url: string; allow: string } | null,
+  channels: PulsoEmbedSource[] = [],
 ): ApiEmbed[] {
   const groups: { name: string; embeds: ApiEmbed[] }[] = [];
   const indexByKey = new Map<string, number>();
@@ -362,10 +435,98 @@ function presentEventEmbeds(
     }
   }
 
-  const ordered = groups.flatMap((slot) =>
-    slot.embeds.map((embed) => rawEmbed(slot.name, embed.embed_url, embed.allow ?? "")),
-  );
+  const ordered = groups.flatMap((slot) => {
+    const repeated = repeatedChannelOptions(slot.name, channels);
+    if (repeated.length > 0) return repeated;
+    return slot.embeds.map((embed) => rawEmbed(slot.name, embed.embed_url, embed.allow ?? ""));
+  });
   return numberOptions(ordered);
+}
+
+/**
+ * "HBO Max" and "HBO Max 1 [MPHD2]" are the same channel: the first feed was
+ * registered without a number. When that pair exists, show both and label the
+ * unnumbered feed as 1.
+ */
+function repeatedChannelOptions(provider: string, channels: PulsoEmbedSource[]): ApiEmbed[] {
+  const plainBases = plainChannelBases(channels);
+  const wanted = channelBase(provider, plainBases);
+  if (!wanted) return [];
+
+  const family = channels.filter((channel) => {
+    if (!channel.active || !isPlayable(channel.title, channel.url, channel.type)) return false;
+    return channelBase(channel.title, plainBases) === wanted;
+  });
+  const numbered = family.filter((channel) => isNumberedDuplicate(channel.title, plainBases));
+  const primary = family.filter((channel) => {
+    if (isNumberedDuplicate(channel.title, plainBases)) return false;
+    return !splitChannelTag(channel.title).tag;
+  });
+  if (numbered.length === 0 || primary.length === 0) return [];
+
+  const primaryHost = embedHost(primary[0]?.url ?? "");
+  const sameHost = numbered.filter((channel) => embedHost(channel.url) === primaryHost);
+  const duplicates = (sameHost.length > 0 ? sameHost : numbered).sort((a, b) =>
+    a.title.localeCompare(b.title, "pt-BR"),
+  );
+
+  const ordered = [...primary, ...duplicates];
+  const seen = new Set<string>();
+  const options: ApiEmbed[] = [];
+  for (const channel of ordered) {
+    if (seen.has(channel.url)) continue;
+    seen.add(channel.url);
+    const title = isNumberedDuplicate(channel.title, plainBases)
+      ? channel.title
+      : identifiedChannelTitle(channel.title);
+    options.push(rawEmbed(title, channel.url, channel.allow));
+  }
+  return options;
+}
+
+function plainChannelBases(channels: PulsoEmbedSource[]): Set<string> {
+  const bases = new Set<string>();
+  for (const channel of channels) {
+    const { stem } = splitChannelTag(channel.title);
+    const normalized = normalizeLabel(stem);
+    if (!/\s1$/.test(normalized)) bases.add(normalized);
+  }
+  return bases;
+}
+
+function channelBase(title: string, plainBases: Set<string>): string {
+  const { stem } = splitChannelTag(baseProvider(title));
+  const normalized = normalizeLabel(stem);
+  const duplicate = /^(.*)\s1$/.exec(normalized);
+  if (duplicate?.[1] && plainBases.has(duplicate[1])) return duplicate[1];
+  return normalized;
+}
+
+function isNumberedDuplicate(title: string, plainBases: Set<string>): boolean {
+  const { stem } = splitChannelTag(baseProvider(title));
+  const normalized = normalizeLabel(stem);
+  const duplicate = /^(.*)\s1$/.exec(normalized);
+  return Boolean(duplicate?.[1] && plainBases.has(duplicate[1]));
+}
+
+function identifiedChannelTitle(title: string): string {
+  const { stem, tag } = splitChannelTag(title);
+  const named = `${stem} 1`;
+  return tag ? `${named} [${tag}]` : named;
+}
+
+function splitChannelTag(title: string): { stem: string; tag: string | null } {
+  const match = /^(.*?)(?:\s*\[([^\]]+)\])\s*$/.exec(title.trim());
+  if (!match?.[1]) return { stem: title.trim(), tag: null };
+  return { stem: match[1].trim(), tag: match[2]?.trim() || null };
+}
+
+function embedHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").toLocaleLowerCase("en-US");
+  } catch {
+    return "";
+  }
 }
 
 function pickReplacementGroup(
@@ -414,13 +575,19 @@ function numberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
   return embeds.map((embed, index) => {
     const next: ApiEmbed = {
       provider: embed.provider,
-      quality: `Opção ${index + 1}`,
+      quality: nameCarriesChannelId(embed.provider) ? embed.quality.trim() : `Opção ${index + 1}`,
       embed_url: embed.embed_url,
     };
     const policy = embed.allow?.trim();
     if (policy) next.allow = policy;
     return next;
   });
+}
+
+function nameCarriesChannelId(provider: string): boolean {
+  const { stem, tag } = splitChannelTag(provider);
+  if (tag) return true;
+  return /\s\d+$/.test(normalizeLabel(stem));
 }
 
 function rawEmbed(title: string, url: string, allow: string): ApiEmbed {
