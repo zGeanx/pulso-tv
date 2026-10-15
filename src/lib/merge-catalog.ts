@@ -314,9 +314,11 @@ function withTeamCrests(event: ApiSportEvent): ApiSportEvent {
 }
 
 function crestFor(name: string, current: string | undefined): string {
+  const known = resolvePulsoAsset(resolveTeamLogo(name));
+  if (known) return known;
   const existing = current?.trim() ?? "";
   if (existing && !isPlaceholderLogo(existing)) return existing;
-  return resolvePulsoAsset(resolveTeamLogo(name)) || existing;
+  return existing;
 }
 
 function toPulsoEvent(
@@ -358,9 +360,11 @@ function toPulsoEvent(
 }
 
 function teamCrest(name: string, catalogLogo: string | undefined): string {
+  const known = resolvePulsoAsset(resolveTeamLogo(name));
+  if (known) return known;
   const catalog = catalogLogo?.trim() ?? "";
   if (catalog && !isPlaceholderLogo(catalog)) return catalog;
-  return resolvePulsoAsset(resolveTeamLogo(name)) || catalog;
+  return catalog;
 }
 
 function toPulsoChannel(embed: PulsoEmbedSource): ApiChannel | null {
