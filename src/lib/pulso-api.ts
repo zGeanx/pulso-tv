@@ -200,13 +200,18 @@ function sliceSports(events: ApiSportEvent[], params: SportsParams): ApiSportEve
 }
 
 export async function fetchMergedSports(params: SportsParams = {}): Promise<ApiSportEvent[]> {
-  const [reidos, pulso] = await Promise.allSettled([fetchSports({}), fetchPulsoMatches()]);
+  const [reidos, pulso, catalog] = await Promise.allSettled([
+    fetchSports({}),
+    fetchPulsoMatches(),
+    fetchPulsoEmbeds(),
+  ]);
   if (reidos.status === "rejected" && pulso.status === "rejected") {
     throw reidos.reason;
   }
   const { events } = mergeSportEvents(
     reidos.status === "fulfilled" ? reidos.value : [],
     pulso.status === "fulfilled" ? pulso.value : [],
+    { channels: catalog.status === "fulfilled" ? catalog.value : [] },
   );
   return sliceSports(events, params);
 }
@@ -214,13 +219,18 @@ export async function fetchMergedSports(params: SportsParams = {}): Promise<ApiS
 export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
   const slug = pulsoSlug(id);
   if (slug) {
-    const [reidos, pulso] = await Promise.allSettled([fetchSports({}), fetchPulsoMatches()]);
+    const [reidos, pulso, catalog] = await Promise.allSettled([
+      fetchSports({}),
+      fetchPulsoMatches(),
+      fetchPulsoEmbeds(),
+    ]);
     const matches = pulso.status === "fulfilled" ? pulso.value : [];
     const match = matches.find((item) => item.slug === slug);
     if (!match) throw new Error(`Evento não encontrado: ${id}`);
     const { events, absorbed } = mergeSportEvents(
       reidos.status === "fulfilled" ? reidos.value : [],
       [match],
+      { channels: catalog.status === "fulfilled" ? catalog.value : [] },
     );
     const hostId = absorbed.get(match.id);
     const host = hostId ? events.find((event) => event.id === hostId) : undefined;
@@ -228,10 +238,17 @@ export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
     return host;
   }
 
-  const [reidos, pulso] = await Promise.allSettled([fetchSport(id), fetchPulsoMatches()]);
+  const [reidos, pulso, catalog] = await Promise.allSettled([
+    fetchSport(id),
+    fetchPulsoMatches(),
+    fetchPulsoEmbeds(),
+  ]);
   if (reidos.status === "rejected") throw reidos.reason;
   const matches = pulso.status === "fulfilled" ? pulso.value : [];
-  const { events } = mergeSportEvents([reidos.value], matches, { includeUnmatched: false });
+  const { events } = mergeSportEvents([reidos.value], matches, {
+    includeUnmatched: false,
+    channels: catalog.status === "fulfilled" ? catalog.value : [],
+  });
   return events[0] ?? reidos.value;
 }
 
@@ -293,8 +310,11 @@ export async function fetchMergedSearch(query: string): Promise<ApiSearchResult>
   const matches = matchesResult.status === "fulfilled" ? matchesResult.value : [];
   const embeds = embedsResult.status === "fulfilled" ? embedsResult.value : [];
 
-  const eventsMerged = mergeSportEvents(base.events, matches, { includeUnmatched: false });
-  const eventsSolo = mergeSportEvents([], matches);
+  const eventsMerged = mergeSportEvents(base.events, matches, {
+    includeUnmatched: false,
+    channels: embeds,
+  });
+  const eventsSolo = mergeSportEvents([], matches, { channels: embeds });
   const events = [
     ...eventsMerged.events,
     ...eventsSolo.events.filter((event) => {
