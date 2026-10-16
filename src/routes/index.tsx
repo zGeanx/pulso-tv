@@ -16,11 +16,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EventCard } from "@/components/event-card";
+import { MatchCover } from "@/components/match-cover";
 import { MediaImage } from "@/components/media-image";
+import { TeamCrest } from "@/components/team-crest";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChannels, useChannelCategories, useSports } from "@/hooks/use-api";
 import {
   formatEpgRange,
+  formatEventDay,
   formatEventTime,
   epgProgress,
   pickFeaturedChannels,
@@ -68,19 +71,21 @@ function pickHero(
   events: ApiSportEvent[],
   channels: ApiChannel[],
 ): ApiSportEvent | ApiChannel | undefined {
-  const liveFutebol = events.find((e) => e.status === "live" && e.category === "Futebol");
-  if (liveFutebol) return liveFutebol;
+  const withPlayer = events.filter((event) => event.embeds.length > 0);
+  const pool = withPlayer.length > 0 ? withPlayer : events;
+  const now = Date.now() / 1000;
+  const nearest = (items: ApiSportEvent[]) =>
+    [...items].sort(
+      (a, b) => Math.abs(a.start_timestamp - now) - Math.abs(b.start_timestamp - now),
+    );
 
-  const liveSport = events.find((e) => e.status === "live");
-  if (liveSport) return liveSport;
+  const live = nearest(pool.filter((event) => event.status === "live"));
+  if (live[0]) return live[0];
 
-  const upcomingFutebol = events.find((e) => e.status === "upcoming" && e.category === "Futebol");
-  if (upcomingFutebol) return upcomingFutebol;
+  const upcoming = nearest(pool.filter((event) => event.status === "upcoming"));
+  if (upcoming[0]) return upcoming[0];
 
-  const upcomingSport = events.find((e) => e.status === "upcoming");
-  if (upcomingSport) return upcomingSport;
-
-  return channels.find((ch) => ch.embeds.length > 0) ?? channels[0];
+  return channels.find((channel) => channel.embeds.length > 0) ?? channels[0];
 }
 
 function heroKicker(hero: ApiSportEvent | ApiChannel | undefined): string {
@@ -88,27 +93,16 @@ function heroKicker(hero: ApiSportEvent | ApiChannel | undefined): string {
   if (hero.status === "live") {
     return hero.category === "Futebol" ? "Futebol ao vivo" : "Esportes ao vivo";
   }
-  if (hero.status === "upcoming") return `Hoje às ${formatEventTime(hero)}`;
+  if (hero.status === "upcoming") {
+    const day = formatEventDay(hero);
+    const when = !day || day === "Hoje" ? "Hoje" : day === "Amanhã" ? "Amanhã" : day;
+    return `${when} às ${formatEventTime(hero)}`;
+  }
   return "Encerrado";
 }
 
 function stripMarkdown(text: string): string {
   return text.replace(/\*/g, "");
-}
-
-function TeamMark({ name, logo, size = "sm" }: { name: string; logo: string; size?: "sm" | "lg" }) {
-  const box = size === "lg" ? "h-16 w-16" : "h-11 w-11";
-  return (
-    <div className={`logo-box ${box}`}>
-      <MediaImage
-        src={logo}
-        alt={name}
-        className="h-full w-full bg-transparent"
-        imgClassName="logo-box-img"
-        fallbackLabel={name}
-      />
-    </div>
-  );
 }
 
 interface HeroSectionProps {
@@ -143,9 +137,17 @@ function HeroSection({ hero }: HeroSectionProps) {
 
             {event.teams && (
               <div className="mt-5 flex items-center gap-4">
-                <TeamMark name={event.teams.home.name} logo={event.teams.home.logo} />
+                <TeamCrest
+                  name={event.teams.home.name}
+                  logo={event.teams.home.logo}
+                  logos={event.teams.home.logos}
+                />
                 <span className="font-display text-lg font-semibold text-muted-foreground">×</span>
-                <TeamMark name={event.teams.away.name} logo={event.teams.away.logo} />
+                <TeamCrest
+                  name={event.teams.away.name}
+                  logo={event.teams.away.logo}
+                  logos={event.teams.away.logos}
+                />
               </div>
             )}
 
@@ -167,7 +169,13 @@ function HeroSection({ hero }: HeroSectionProps) {
               )}
             </div>
 
-            <Button variant="broadcast" size="lg" className="mt-8 w-fit" asChild={hasEmbeds} disabled={!hasEmbeds}>
+            <Button
+              variant="broadcast"
+              size="lg"
+              className="mt-8 w-fit"
+              asChild={hasEmbeds}
+              disabled={!hasEmbeds}
+            >
               {hasEmbeds ? (
                 <Link to="/evento/$eventId" params={{ eventId: event.id }}>
                   <Play />
@@ -182,30 +190,30 @@ function HeroSection({ hero }: HeroSectionProps) {
             </Button>
           </div>
 
-          <div className="relative order-first self-start overflow-hidden rounded-lg lg:order-none lg:col-span-7">
+          <div className="relative order-first self-start overflow-hidden rounded-lg bg-card lg:order-none lg:col-span-7">
             {event.poster ? (
-              <MediaImage
-                src={event.poster}
-                alt={event.title}
-                eager
-                className="aspect-video w-full bg-background"
-                imgClassName="object-contain"
-              />
-            ) : event.teams ? (
-              <div className="flex aspect-video w-full items-center justify-center gap-10 rounded-lg bg-card">
-                <TeamMark name={event.teams.home.name} logo={event.teams.home.logo} size="lg" />
-                <span className="font-display text-4xl font-bold text-muted-foreground">×</span>
-                <TeamMark name={event.teams.away.name} logo={event.teams.away.logo} size="lg" />
-              </div>
+              <>
+                <img
+                  src={event.poster}
+                  alt=""
+                  aria-hidden="true"
+                  referrerPolicy="no-referrer"
+                  loading="eager"
+                  decoding="async"
+                  className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-xl"
+                />
+                <MediaImage
+                  src={event.poster}
+                  alt={event.title}
+                  eager
+                  className="aspect-video w-full bg-transparent"
+                  imgClassName="object-contain"
+                  fallback={<MatchCover event={event} size="hero" />}
+                />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+              </>
             ) : (
-              <div className="aspect-video w-full rounded-lg bg-card" />
-            )}
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-            {event.teams && (
-              <div className="absolute bottom-4 left-4 flex items-center gap-2">
-                <TeamMark name={event.teams.home.name} logo={event.teams.home.logo} />
-                <TeamMark name={event.teams.away.name} logo={event.teams.away.logo} />
-              </div>
+              <MatchCover event={event} size="hero" />
             )}
             <div className="absolute left-4 top-4">
               {isLive ? (
@@ -221,7 +229,6 @@ function HeroSection({ hero }: HeroSectionProps) {
             </div>
           </div>
         </div>
-
       </section>
     );
   }
@@ -274,7 +281,10 @@ function HeroSection({ hero }: HeroSectionProps) {
           )}
         </div>
 
-        <div id="player" className="relative order-first self-start overflow-hidden rounded-lg lg:order-none lg:col-span-7">
+        <div
+          id="player"
+          className="relative order-first self-start overflow-hidden rounded-lg lg:order-none lg:col-span-7"
+        >
           {channel?.epg?.current?.image ? (
             <MediaImage
               src={channel.epg.current.image}
@@ -302,7 +312,6 @@ function HeroSection({ hero }: HeroSectionProps) {
           </div>
         </div>
       </div>
-
     </section>
   );
 }
