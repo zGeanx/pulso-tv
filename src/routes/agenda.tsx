@@ -1,23 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  CheckCircle2,
-  Clock3,
-  List,
-  Play,
-  RadioTower,
-  Search,
-  Trophy,
-} from "lucide-react";
+import { CheckCircle2, Clock3, List, Play, RadioTower, Search, Trophy } from "lucide-react";
 import { useMemo, useState, type ElementType } from "react";
 import { useSports } from "@/hooks/use-api";
 import {
   SPORT_STATUS_LABEL,
   ALL_SPORT_STATUS_LABELS,
+  eventChannelNames,
+  formatAgendaDay,
   formatEventDay,
   formatEventTime,
+  sortEvents,
   type SportStatusLabel,
   type ApiSportStatus,
 } from "@/lib/api";
+import { eventSearchBlob } from "@/lib/merge-catalog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ALL_TAB = "Todos os jogos" as const;
@@ -68,19 +64,24 @@ export const Route = createFileRoute("/agenda")({
 function AgendaPage() {
   const [tab, setTab] = useState<TabLabel>(ALL_TAB);
   const [query, setQuery] = useState("");
+  const { data: events = [], isLoading, isError, refetch } = useSports();
 
-  const statusParam = tab !== ALL_TAB ? labelToApiStatus[tab as SportStatusLabel] : undefined;
-
-  const sportsParams: import("@/lib/api").SportsParams = statusParam ? { status: statusParam } : {};
-  const { data: events = [], isLoading, isError, refetch } = useSports(sportsParams);
+  const counts: Record<TabLabel, number> = {
+    "Todos os jogos": events.length,
+    "Ao vivo agora": events.filter((event) => event.status === "live").length,
+    "Hoje & Próximos": events.filter((event) => event.status === "upcoming").length,
+    Encerrados: events.filter((event) => event.status === "finished").length,
+  };
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase("pt-BR");
-    if (!q) return events;
-    return events.filter((e) =>
-      `${e.title} ${e.competition} ${e.category}`.toLocaleLowerCase("pt-BR").includes(q),
-    );
-  }, [events, query]);
+    const status = tab === ALL_TAB ? null : labelToApiStatus[tab];
+    const inTab = status ? events.filter((event) => event.status === status) : events;
+    const q = query.trim();
+    const matched = q
+      ? inTab.filter((event) => fold(eventSearchBlob(event)).includes(fold(q)))
+      : inTab;
+    return sortEvents(matched);
+  }, [events, query, tab]);
 
   return (
     <div className="page-container py-8 lg:py-12">
@@ -123,7 +124,7 @@ function AgendaPage() {
               }`}
             >
               <Icon className="size-4" aria-hidden="true" />
-              {item}
+              {item} · {counts[item]}
             </button>
           );
         })}
@@ -132,7 +133,10 @@ function AgendaPage() {
       {isLoading && (
         <div className="divide-y divide-border">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-4 py-5">
+            <div
+              key={i}
+              className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-4 py-5"
+            >
               <Skeleton className="h-10 w-16" />
               <div className="space-y-2">
                 <Skeleton className="h-5 w-2/3" />
@@ -160,54 +164,66 @@ function AgendaPage() {
       )}
 
       {!isLoading && !isError && filtered.length > 0 && (
-        <div className="divide-y divide-border">
-          {filtered.map((event) => {
+        <div>
+          {filtered.map((event, index) => {
             const statusLabel = SPORT_STATUS_LABEL[event.status];
             const isLive = event.status === "live";
             const time = formatEventTime(event);
             const day = formatEventDay(event);
             const hasEmbeds = event.embeds.length > 0;
             const showDay = day && day !== "Hoje";
+            const divider = formatAgendaDay(event);
+            const previous = filtered[index - 1];
+            const showDivider = !previous || formatAgendaDay(previous) !== divider;
+            const channels = eventChannelNames(event);
 
             return (
-              <article
-                key={event.id}
-                className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-4 py-5 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center"
-              >
-                <div>
-                  <p className="font-display text-lg tabular-nums text-primary">{time}</p>
-                  {showDay && (
-                    <p className="text-[11px] capitalize text-muted-foreground">{day}</p>
-                  )}
-                  <p className="text-[11px] uppercase text-muted-foreground">{event.category}</p>
-                </div>
-
-                <div className="min-w-0">
-                  <p className="min-w-0 truncate font-display text-lg font-medium">{event.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {event.competition}
-                    {event.embeds[0]?.provider ? ` · ${event.embeds[0].provider}` : ""}
+              <div key={event.id}>
+                {showDivider && (
+                  <p
+                    className={`pt-5 text-xs tracking-wide text-muted-foreground ${index > 0 ? "mt-2 border-t border-border" : ""}`}
+                  >
+                    {divider}
                   </p>
-                </div>
+                )}
+                <article className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-4 border-b border-border py-5 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center">
+                  <div>
+                    <p className="font-display text-lg tabular-nums text-primary">{time}</p>
+                    {showDay && (
+                      <p className="text-[11px] capitalize text-muted-foreground">{day}</p>
+                    )}
+                    <p className="text-[11px] uppercase text-muted-foreground">{event.category}</p>
+                  </div>
 
-                <div className="col-start-2 flex items-center gap-3 sm:col-start-auto">
-                  <span className={isLive ? "status-label status-live" : "status-label"}>
-                    {isLive && <span className="live-dot" />}
-                    {statusLabel}
-                  </span>
-                  {hasEmbeds && (
-                    <Link
-                      to="/evento/$eventId"
-                      params={{ eventId: event.id }}
-                      aria-label={`Assistir ${event.title}`}
-                      className="flex min-h-11 items-center gap-1.5 rounded border border-border px-3 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                    >
-                      <Play className="size-3" />
-                      Assistir
-                    </Link>
-                  )}
-                </div>
-              </article>
+                  <div className="min-w-0">
+                    <p className="min-w-0 truncate font-display text-lg font-medium">
+                      {event.title}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {event.competition}
+                      {channels.length > 0 ? ` · ${channels.join(" · ")}` : ""}
+                    </p>
+                  </div>
+
+                  <div className="col-start-2 flex items-center gap-3 sm:col-start-auto">
+                    <span className={isLive ? "status-label status-live" : "status-label"}>
+                      {isLive && <span className="live-dot" />}
+                      {statusLabel}
+                    </span>
+                    {hasEmbeds && (
+                      <Link
+                        to="/evento/$eventId"
+                        params={{ eventId: event.id }}
+                        aria-label={`Assistir ${event.title}`}
+                        className="flex min-h-11 items-center gap-1.5 rounded border border-border px-3 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                      >
+                        <Play className="size-3" />
+                        Assistir
+                      </Link>
+                    )}
+                  </div>
+                </article>
+              </div>
             );
           })}
         </div>
@@ -221,7 +237,13 @@ function AgendaPage() {
           </p>
         </div>
       )}
-
     </div>
   );
+}
+
+function fold(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR");
 }
