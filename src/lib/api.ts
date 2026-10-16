@@ -49,7 +49,10 @@ export interface ApiChannel {
 
 export interface ApiTeam {
   name: string;
+  /** First crest that should be painted. Empty when every candidate failed upstream. */
   logo: string;
+  /** Crests in paint order. A verified crest is the only candidate for that team. */
+  logos?: string[];
 }
 
 export interface ApiSportEvent {
@@ -238,6 +241,55 @@ export function formatEventDay(event: Pick<ApiSportEvent, "start_timestamp">): s
   });
 }
 
+/** Relative kickoff phrase ("em 25 min", "começou há 10 min") for today's window. */
+export function formatEventRelative(
+  event: Pick<ApiSportEvent, "start_timestamp" | "status">,
+  nowMs = Date.now(),
+): string | null {
+  if (!Number.isFinite(event.start_timestamp) || event.status === "finished") return null;
+  const diffMin = Math.round((event.start_timestamp * 1000 - nowMs) / 60_000);
+
+  if (event.status === "live") {
+    if (diffMin > 0) return "agora";
+    const elapsed = Math.max(1, -diffMin);
+    if (elapsed < 60) return `começou há ${elapsed} min`;
+    if (elapsed <= 180) {
+      const hours = Math.floor(elapsed / 60);
+      const mins = elapsed % 60;
+      return mins > 0 ? `começou há ${hours}h ${mins}min` : `começou há ${hours}h`;
+    }
+    return null;
+  }
+
+  if (diffMin <= 0 && diffMin >= -15) return "começando agora";
+  if (diffMin > 0 && diffMin < 60) return `em ${diffMin} min`;
+  if (diffMin >= 60 && diffMin <= 12 * 60) {
+    const hours = Math.floor(diffMin / 60);
+    const mins = diffMin % 60;
+    return mins > 0 ? `em ${hours}h ${mins}min` : `em ${hours}h`;
+  }
+  return null;
+}
+
+/** Deduplicated broadcast channel names for an event ("Sportv", "Premiere"). */
+export function eventChannelNames(event: Pick<ApiSportEvent, "embeds">): string[] {
+  const names: string[] = [];
+  const seen = new Set<string>();
+  for (const embed of event.embeds) {
+    const clean = embed.provider
+      .replace(/\s*\[[^\]]+\]\s*$/g, "")
+      .replace(/\s*\(alternativo\)\s*/gi, " ")
+      .trim()
+      .replace(/\s+/g, " ");
+    if (!clean || /^player$/i.test(clean)) continue;
+    const key = clean.toLocaleLowerCase("pt-BR");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(clean);
+  }
+  return names;
+}
+
 export function formatEpgRange(entry: Pick<ApiEpgEntry, "start_time" | "end_time">): string {
   if (!entry.start_time || !entry.end_time) return "";
   return `${formatClock(entry.start_time)} – ${formatClock(entry.end_time)}`;
@@ -346,11 +398,18 @@ const EVENT_STATUS_ORDER: Record<ApiSportStatus, number> = {
   finished: 2,
 };
 
-/** Home agenda cards: live and upcoming first. */
+/** Live first, then upcoming, then finished. Inside each group, by kickoff. */
+export function sortEvents(events: ApiSportEvent[]): ApiSportEvent[] {
+  return [...events].sort((a, b) => {
+    const status = EVENT_STATUS_ORDER[a.status] - EVENT_STATUS_ORDER[b.status];
+    if (status !== 0) return status;
+    return a.start_timestamp - b.start_timestamp;
+  });
+}
+
+/** Home agenda cards: live and upcoming first, then by kickoff. */
 export function pickFeaturedEvents(events: ApiSportEvent[], count = 4): ApiSportEvent[] {
-  const sorted = [...events].sort(
-    (a, b) => EVENT_STATUS_ORDER[a.status] - EVENT_STATUS_ORDER[b.status],
-  );
+  const sorted = sortEvents(events);
   const active = sorted.filter((event) => event.status !== "finished");
   return (active.length >= count ? active : sorted).slice(0, count);
 }
@@ -363,20 +422,16 @@ export function pickScheduleChannels(channels: ApiChannel[], count = 6): ApiChan
   return [...first, ...pickUnique(samplePool(channels), count - first.length, true)];
 }
 
-/** Games whose embed provider mentions this channel (ESPN, Sportv 2, Premiere…). */
+/** Games on this channel. "ESPN" does not include ESPN 2 or ESPN 4. */
 export function eventsForChannel(channel: ApiChannel, events: ApiSportEvent[]): ApiSportEvent[] {
-  const key = channel.name.trim().toLocaleLowerCase("pt-BR");
-  if (!key) return [];
-  return events
-    .filter((event) => event.status !== "finished")
-    .filter((event) =>
-      event.embeds.some((embed) => embed.provider.toLocaleLowerCase("pt-BR").includes(key)),
-    )
-    .sort((a, b) => {
-      const status = EVENT_STATUS_ORDER[a.status] - EVENT_STATUS_ORDER[b.status];
-      if (status !== 0) return status;
-      return a.start_timestamp - b.start_timestamp;
-    });
+  if (!channel.name.trim()) return [];
+  return sortEvents(
+    events
+      .filter((event) => event.status !== "finished")
+      .filter((event) =>
+        event.embeds.some((embed) => sameBroadcastChannel(embed.provider, channel.name)),
+      ),
+  );
 }
 
 export function pickRelatedEvents(
@@ -384,14 +439,44 @@ export function pickRelatedEvents(
   current: ApiSportEvent,
   count = 6,
 ): ApiSportEvent[] {
-  return events
-    .filter((event) => event.id !== current.id && event.status !== "finished")
-    .sort((a, b) => {
-      const status = EVENT_STATUS_ORDER[a.status] - EVENT_STATUS_ORDER[b.status];
-      if (status !== 0) return status;
-      return a.start_timestamp - b.start_timestamp;
+  return sortEvents(
+    events.filter((event) => event.id !== current.id && event.status !== "finished"),
+  ).slice(0, count);
+}
+
+const SLUG_ACRONYMS = new Set(["espn", "ufc", "nba", "hbo", "nfl", "mlb", "nhl", "f1"]);
+const SLUG_MINOR = new Set(["de", "da", "do", "das", "dos", "e", "em", "no", "na"]);
+
+/** "mirassol-x-internacional" → "Mirassol x Internacional". */
+export function labelFromSlug(slug: string): string {
+  let decoded = slug;
+  try {
+    decoded = decodeURIComponent(slug);
+  } catch {
+    decoded = slug;
+  }
+  const body = decoded.replace(/^pulso-/, "").replace(/-\d{2}-\d{2}$/, "");
+  return body
+    .split("-")
+    .filter(Boolean)
+    .map((token, index) => {
+      const lower = token.toLocaleLowerCase("pt-BR");
+      if (lower === "x") return "x";
+      if (index > 0 && SLUG_MINOR.has(lower)) return lower;
+      if (SLUG_ACRONYMS.has(lower)) return lower.toUpperCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
-    .slice(0, count);
+    .join(" ");
+}
+
+/** Day chip inside the agenda list. */
+export function formatAgendaDay(event: Pick<ApiSportEvent, "start_timestamp">): string {
+  const label = formatEventDay(event);
+  if (label === "Hoje" || label === "Amanhã" || label === "Ontem") return label;
+  const date = new Date(event.start_timestamp * 1000);
+  const weekday = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(/\.$/, "");
+  const datePart = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  return `${weekday}., ${datePart}`;
 }
 
 function looseChannelName(value: string): string {
@@ -434,9 +519,7 @@ export function pickRelatedChannels(
   return channels
     .filter(
       (channel) =>
-        channel.id !== current.id &&
-        channel.category === current.category &&
-        !isCazeTv(channel),
+        channel.id !== current.id && channel.category === current.category && !isCazeTv(channel),
     )
     .slice(0, count);
 }
