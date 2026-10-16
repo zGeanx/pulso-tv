@@ -85,7 +85,7 @@ html.light {
 }
 
 html.light .logo-box {
-  background: oklch(0.96 0.008 150);
+  background: color-mix(in oklab, white 70%, var(--color-muted));
 }
 
 @layer base {
@@ -222,8 +222,9 @@ html.light .logo-box {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 0.25rem;
-  background: color-mix(in oklab, white 88%, var(--color-card));
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in oklab, var(--color-foreground) 14%, transparent);
+  background: color-mix(in oklab, white 64%, var(--color-card));
   padding: 0.3rem;
 }
 @utility logo-box-img {
@@ -232,6 +233,21 @@ html.light .logo-box {
   width: auto;
   height: auto;
   object-fit: contain;
+}
+@utility crest-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  background: transparent;
+}
+@utility crest-img {
+  max-height: 100%;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.45));
 }
 
 @media (prefers-reduced-motion: reduce) {
