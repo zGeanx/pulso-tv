@@ -4,6 +4,7 @@ import {
   fetchSearch,
   fetchSport,
   fetchSports,
+  sortEvents,
   type ApiChannel,
   type ApiSearchResult,
   type ApiSportEvent,
@@ -194,8 +195,9 @@ function sliceSports(events: ApiSportEvent[], params: SportsParams): ApiSportEve
     const query = params.search.toLocaleLowerCase("pt-BR");
     list = list.filter((event) => eventSearchBlob(event).includes(query));
   }
+  const ordered = sortEvents(list);
   const offset = params.offset ?? 0;
-  const skipped = offset > 0 ? list.slice(offset) : list;
+  const skipped = offset > 0 ? ordered.slice(offset) : ordered;
   return params.limit != null ? skipped.slice(0, params.limit) : skipped;
 }
 
