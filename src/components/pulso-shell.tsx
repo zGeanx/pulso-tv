@@ -3,9 +3,10 @@ import { CalendarDays, Clapperboard, Home, Loader2, Menu, Search, Tv, X } from "
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaImage } from "@/components/media-image";
+import { TeamCrest } from "@/components/team-crest";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSearch } from "@/hooks/use-api";
-import { formatEventTime, SPORT_STATUS_LABEL } from "@/lib/api";
+import { formatEventDay, formatEventTime, SPORT_STATUS_LABEL } from "@/lib/api";
 
 const navItems = [
   { to: "/" as const, label: "Início", icon: Home },
@@ -244,16 +245,46 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                       params={{ eventId: item.id }}
                       className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-4"
                     >
-                      <span className="w-14 shrink-0 font-display text-sm tabular-nums text-primary">
-                        {formatEventTime(item)}
+                      <span className="w-16 shrink-0">
+                        <span className="block font-display text-sm tabular-nums text-primary">
+                          {formatEventTime(item)}
+                        </span>
+                        <span className="block text-[11px] capitalize text-muted-foreground">
+                          {formatEventDay(item)}
+                        </span>
                       </span>
-                      <span className="min-w-0">
-                        <strong className="block truncate">{item.title}</strong>
-                        <small className="text-muted-foreground">{item.competition}</small>
+                      <span className="flex min-w-0 items-center gap-3">
+                        {item.teams ? (
+                          <span className="flex shrink-0 items-center gap-1">
+                            <TeamCrest
+                              name={item.teams.home.name}
+                              logo={item.teams.home.logo}
+                              logos={item.teams.home.logos}
+                              className="h-7 w-7"
+                            />
+                            <TeamCrest
+                              name={item.teams.away.name}
+                              logo={item.teams.away.logo}
+                              logos={item.teams.away.logos}
+                              className="h-7 w-7"
+                            />
+                          </span>
+                        ) : null}
+                        <span className="min-w-0">
+                          <strong className="block truncate">{item.title}</strong>
+                          <small className="text-muted-foreground">{item.competition}</small>
+                        </span>
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {SPORT_STATUS_LABEL[item.status]}
-                      </span>
+                      {item.status === "live" ? (
+                        <span className="status-label status-live text-[10px]">
+                          <span className="live-dot" />
+                          AO VIVO
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {SPORT_STATUS_LABEL[item.status]}
+                        </span>
+                      )}
                     </Link>
                   ))}
                 </div>
