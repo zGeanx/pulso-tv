@@ -1,19 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 function initials(label: string): string {
   const parts = label.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "·";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+  const first = parts[0];
+  const second = parts[1];
+  if (!first) return "·";
+  if (!second) return first.slice(0, 2).toUpperCase();
+  return `${first[0] ?? ""}${second[0] ?? ""}`.toUpperCase();
+}
+
+function listedSources(src: string | readonly string[] | null | undefined): string[] {
+  const values = typeof src === "string" ? [src] : (src ?? []);
+  return values.map((item) => item.trim()).filter((item) => item.length > 0);
 }
 
 interface MediaImageProps {
-  src?: string | null;
+  src?: string | readonly string[] | null;
   alt: string;
   className?: string;
   imgClassName?: string;
   fallbackLabel?: string;
+  fallback?: ReactNode;
   eager?: boolean;
 }
 
@@ -23,32 +31,66 @@ export function MediaImage({
   className,
   imgClassName,
   fallbackLabel,
+  fallback,
   eager = false,
 }: MediaImageProps) {
-  const [status, setStatus] = useState<"loading" | "ready" | "error">(src ? "loading" : "error");
+  const sources = listedSources(src);
+  const sourceKey = sources.join("\0");
+  const [index, setIndex] = useState(0);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">(
+    sources.length > 0 ? "loading" : "error",
+  );
 
   useEffect(() => {
-    setStatus(src ? "loading" : "error");
-  }, [src]);
+    setIndex(0);
+    setStatus(sources.length > 0 ? "loading" : "error");
+  }, [sourceKey, sources.length]);
 
+  const current = sources[index] ?? "";
   const label = fallbackLabel ?? alt;
+
+  function showReady() {
+    setStatus("ready");
+  }
+
+  function showNext() {
+    setIndex((value) => {
+      const next = value + 1;
+      if (next < sources.length) {
+        setStatus("loading");
+        return next;
+      }
+      setStatus("error");
+      return value;
+    });
+  }
 
   return (
     <div className={cn("relative overflow-hidden bg-card", className)}>
       {status === "loading" && <div className="absolute inset-0 animate-pulse bg-muted" />}
-      {status === "error" || !src ? (
-        <div className="absolute inset-0 flex items-center justify-center font-display text-xs font-semibold text-muted-foreground">
-          {initials(label)}
-        </div>
+      {status === "error" || !current ? (
+        (fallback ?? (
+          <div className="absolute inset-0 flex items-center justify-center font-display text-xs font-semibold text-muted-foreground">
+            {initials(label)}
+          </div>
+        ))
       ) : (
         <img
-          src={src}
+          key={current}
+          ref={(node) => {
+            if (!node?.complete) return;
+            if (node.naturalWidth > 0) showReady();
+            else showNext();
+          }}
+          src={current}
           alt={alt}
           referrerPolicy="no-referrer"
           loading={eager ? "eager" : "lazy"}
           decoding="async"
-          onLoad={() => setStatus("ready")}
-          onError={() => setStatus("error")}
+          onLoad={(event) => {
+            if (event.currentTarget.naturalWidth > 0) showReady();
+          }}
+          onError={showNext}
           className={cn(
             "h-full w-full object-contain",
             status !== "ready" && "opacity-0",
