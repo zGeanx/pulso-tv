@@ -11,6 +11,7 @@
     "deploy": "node scripts/sync-worker-name.mjs && node scripts/cf-upload.mjs",
     "deploy:prod": "node scripts/sync-worker-name.mjs && node scripts/cf-deploy.mjs",
     "lint": "eslint .",
+    "check:logos": "node scripts/check-logos.mjs",
     "format": "prettier --write ."
   },
   "overrides": {
