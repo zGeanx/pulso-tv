@@ -1,28 +1,18 @@
-import type { ApiChannel, ApiEmbed, ApiSportEvent, ApiSportStatus } from "@/lib/api";
-import { resolvePulsoAsset } from "@/lib/pulso-assets";
+import type { ApiChannel, ApiEmbed, ApiSportEvent, ApiSportStatus, ApiTeam } from "@/lib/api";
+import { isFlagLogo, pulsoLogoFile, resolvePulsoAsset } from "@/lib/pulso-assets";
 import { isPlaceholderLogo, type PulsoEmbedSource, type PulsoMatch } from "@/lib/pulso-api";
-import { registerTeamLogosFromEvents, resolveTeamLogo } from "@/lib/team-logos";
+import {
+  catalogCrestFitsTeam,
+  curatedTeamCrest,
+  isNationalTeam,
+  normalizeTeamKey,
+  registerTeamLogosFromEvents,
+  resolveTeamCrests,
+} from "@/lib/team-logos";
 
 export const PULSO_ID_PREFIX = "pulso-";
 
 const SAO_PAULO_OFFSET = "-03:00";
-
-const TEAM_ALIASES = new Map<string, string>([
-  ["vasco", "vasco da gama"],
-  ["athletico", "athletico pr"],
-  ["athletico paranaense", "athletico pr"],
-  ["atletico paranaense", "athletico pr"],
-  ["atletico pr", "athletico pr"],
-  ["atletico mineiro", "atletico mg"],
-  ["america mineiro", "america mg"],
-  ["atletico goianiense", "atletico go"],
-  ["bragantino", "red bull bragantino"],
-  ["rb bragantino", "red bull bragantino"],
-  ["gremio novorizontino", "novorizontino"],
-  ["sport recife", "sport"],
-  ["botafogo fr", "botafogo"],
-  ["botafogo rj", "botafogo"],
-]);
 
 export interface MergeSportResult {
   events: ApiSportEvent[];
@@ -171,7 +161,8 @@ export function mergeChannelLists(
     };
   });
 
-  if (!includeUnmatched) return { channels: labelRepeatedChannels(channels, pulsoEmbeds), absorbed };
+  if (!includeUnmatched)
+    return { channels: labelRepeatedChannels(channels, pulsoEmbeds), absorbed };
 
   const unmatched: ApiChannel[] = [];
   for (const embed of pulsoEmbeds) {
@@ -276,9 +267,12 @@ function applyPulso(
   const pulsoStatus = mapPulsoStatus(match.source.status, match.unix, nowMs);
   const status: ApiSportStatus =
     event.status === "upcoming" && pulsoStatus === "live" ? "live" : event.status;
+  const poster =
+    realPoster(event.poster, channels, match.source.thumbnail) ??
+    realPoster(match.source.match_image, channels, match.source.thumbnail);
   absorbed.set(match.source.id, event.id);
   return presentEvent(
-    status === event.status ? event : { ...event, status },
+    status === event.status && poster === event.poster ? event : { ...event, status, poster },
     {
       title: match.source.channelTitle || "Player",
       url: match.source.url,
@@ -294,7 +288,8 @@ function presentEvent(
   channels: PulsoEmbedSource[],
 ): ApiSportEvent {
   return withTeamCrests({
-    ...event,
+    ...withInferredCategory(event),
+    poster: realPoster(event.poster, channels),
     embeds: presentEventEmbeds(event.embeds, replacement, channels),
   });
 }
@@ -302,23 +297,38 @@ function presentEvent(
 function withTeamCrests(event: ApiSportEvent): ApiSportEvent {
   const names = eventTeamNames(event);
   if (!names) return event;
-  const homeLogo = crestFor(names.home, event.teams?.home.logo);
-  const awayLogo = crestFor(names.away, event.teams?.away.logo);
   return {
     ...event,
     teams: {
-      home: { name: names.home, logo: homeLogo },
-      away: { name: names.away, logo: awayLogo },
+      home: teamSide(names.home, event.teams?.home.logo),
+      away: teamSide(names.away, event.teams?.away.logo),
     },
   };
 }
 
-function crestFor(name: string, current: string | undefined): string {
-  const known = resolvePulsoAsset(resolveTeamLogo(name));
-  if (known) return known;
-  const existing = current?.trim() ?? "";
-  if (existing && !isPlaceholderLogo(existing)) return existing;
-  return existing;
+function teamSide(name: string, catalogLogo: string | undefined): ApiTeam {
+  const logos = crestCandidates(name, catalogLogo);
+  return { name, logo: logos[0] ?? "", logos };
+}
+
+function crestCandidates(name: string, catalogLogo: string | undefined): string[] {
+  const curated = curatedTeamCrest(name);
+  if (curated) return [resolvePulsoAsset(curated)];
+
+  const raw = catalogLogo?.trim() ?? "";
+  const resolved = raw && !raw.startsWith("data:") ? resolvePulsoAsset(raw) : "";
+  const logos: string[] = [];
+  const push = (url: string) => {
+    if (url && !logos.includes(url)) logos.push(url);
+  };
+  if (resolved && !isPlaceholderLogo(resolved) && catalogCrestFitsTeam(raw, name)) {
+    push(resolved);
+  }
+  for (const url of resolveTeamCrests(name)) {
+    if (catalogCrestFitsTeam(url, name)) push(url);
+  }
+  if (isNationalTeam(name) && resolved && isFlagLogo(resolved)) push(resolved);
+  return logos;
 }
 
 function toPulsoEvent(
@@ -330,18 +340,16 @@ function toPulsoEvent(
   const away = match.source.away_team.trim();
   const slug = safeSlug(match.source.slug) ?? match.source.slug;
   const title = match.source.title.trim() || `${home} x ${away}`;
-  const homeLogo = teamCrest(home, match.source.home_logo);
-  const awayLogo = teamCrest(away, match.source.away_logo);
   return {
     id: pulsoId(slug),
     title,
     description: null,
-    poster: match.source.match_image || match.source.thumbnail || null,
-    category: "Futebol",
+    poster: realPoster(match.source.match_image, channels, match.source.thumbnail),
+    category: inferCategory(`${match.source.competition} ${title}`),
     competition: match.source.competition || "Futebol",
     teams: {
-      home: { name: home, logo: homeLogo },
-      away: { name: away, logo: awayLogo },
+      home: teamSide(home, match.source.home_logo),
+      away: teamSide(away, match.source.away_logo),
     },
     start_time: match.source.kickoff_at,
     start_timestamp: match.unix,
@@ -357,14 +365,6 @@ function toPulsoEvent(
       channels,
     ),
   };
-}
-
-function teamCrest(name: string, catalogLogo: string | undefined): string {
-  const known = resolvePulsoAsset(resolveTeamLogo(name));
-  if (known) return known;
-  const catalog = catalogLogo?.trim() ?? "";
-  if (catalog && !isPlaceholderLogo(catalog)) return catalog;
-  return catalog;
 }
 
 function toPulsoChannel(embed: PulsoEmbedSource): ApiChannel | null {
@@ -623,10 +623,35 @@ function baseProvider(provider: string): string {
     .trim();
 }
 
+const PULSO_LIVE_WINDOW_MS = (2 * 60 + 15) * 60 * 1000;
+
 function mapPulsoStatus(status: string, kickoffUnix: number, nowMs: number): ApiSportStatus {
   if (status === "finished") return "finished";
-  if (status === "live" && nowMs >= kickoffUnix * 1000) return "live";
+  if (status === "live") return "live";
+  const startMs = kickoffUnix * 1000;
+  if (nowMs >= startMs && nowMs < startMs + PULSO_LIVE_WINDOW_MS) return "live";
+  if (nowMs >= startMs + PULSO_LIVE_WINDOW_MS) return "finished";
   return "upcoming";
+}
+
+function inferCategory(text: string): string {
+  const value = text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR");
+  if (/\bfutsal\b/.test(value)) return "Futsal";
+  if (/\b(basquete|basketball|nba|nbb)\b/.test(value)) return "Basquete";
+  if (/\b(volei|volleyball)\b/.test(value)) return "Vôlei";
+  if (/\b(tenis|atp|wta)\b/.test(value)) return "Tênis";
+  if (/\b(mma|ufc|bellator)\b/.test(value)) return "MMA";
+  if (/\b(formula\s*1|f1)\b/.test(value)) return "F1";
+  return "Futebol";
+}
+
+function withInferredCategory(event: ApiSportEvent): ApiSportEvent {
+  const inferred = inferCategory(`${event.competition} ${event.title}`);
+  if (inferred === "Futebol" || (event.category && event.category !== "Futebol")) return event;
+  return { ...event, category: inferred };
 }
 
 function withoutDisneyOnly(events: ApiSportEvent[]): ApiSportEvent[] {
@@ -694,8 +719,32 @@ function richestMatch(matches: PreparedMatch[]): PreparedMatch {
 
 function matchRichness(match: PreparedMatch): number {
   const names = match.home.length + match.away.length;
-  const art = match.source.match_image && !isStockPhoto(match.source.match_image) ? 1000 : 0;
+  const art = realPoster(match.source.match_image, [], match.source.thumbnail) ? 1000 : 0;
   return art + names;
+}
+
+function realPoster(
+  value: string | null | undefined,
+  channels: PulsoEmbedSource[],
+  channelThumbnail = "",
+): string | null {
+  const raw = value?.trim() ?? "";
+  if (!raw || raw.startsWith("data:")) return null;
+  if (isStockPhoto(raw) || pulsoLogoFile(raw)) return null;
+  const resolved = resolvePulsoAsset(raw);
+  const thumb = channelThumbnail.trim();
+  if (thumb && (raw === thumb || resolved === resolvePulsoAsset(thumb))) return null;
+  if (
+    channels.some((channel) => {
+      const channelArt = channel.thumbnail.trim();
+      return (
+        channelArt.length > 0 && (raw === channelArt || resolved === resolvePulsoAsset(channelArt))
+      );
+    })
+  ) {
+    return null;
+  }
+  return resolved;
 }
 
 function isStockPhoto(url: string): boolean {
@@ -709,9 +758,7 @@ function tokensOverlap(team: string, blob: string): boolean {
 }
 
 function canonicalTeam(name: string): string {
-  const normalized = normalizeLabel(name);
-  if (!normalized) return "";
-  return TEAM_ALIASES.get(normalized) ?? normalized;
+  return normalizeTeamKey(name);
 }
 
 function canonicalChannel(name: string): string {
