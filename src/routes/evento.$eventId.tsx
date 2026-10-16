@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CalendarDays, ChevronRight, Tv } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChannelCard } from "@/components/channel-card";
 import { EventCard } from "@/components/event-card";
-import { MediaImage } from "@/components/media-image";
+import { TeamCrest } from "@/components/team-crest";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WatchPlayer } from "@/components/watch-player";
 import { useChannels, useSport, useSports } from "@/hooks/use-api";
@@ -12,19 +12,26 @@ import {
   channelsForEvent,
   formatEventDay,
   formatEventTime,
+  labelFromSlug,
   pickRelatedEvents,
 } from "@/lib/api";
 
 export const Route = createFileRoute("/evento/$eventId")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.eventId} | Pulso TV` },
-      { name: "description", content: "Assista ao evento no Pulso TV." },
-      { property: "og:title", content: `${params.eventId} | Pulso TV` },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ params }) => {
+    const label = labelFromSlug(params.eventId);
+    const title = `${label} | Pulso TV`;
+    const description = `Assista ${label} no Pulso TV.`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
   component: EventWatchPage,
 });
 
@@ -37,6 +44,7 @@ function EventWatchPage() {
   const { data: event, isLoading, isError, refetch } = useSport(eventId);
   const { data: events = [] } = useSports();
   const { data: channels = [] } = useChannels();
+  const countdown = useKickoffCountdown(event?.start_timestamp ?? 0, event?.status === "upcoming");
 
   useEffect(() => {
     if (event) document.title = `${event.title} | Pulso TV`;
@@ -95,7 +103,10 @@ function EventWatchPage() {
 
   return (
     <div className="page-container py-8 lg:py-12">
-      <nav className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground" aria-label="Trilha">
+      <nav
+        className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
+        aria-label="Trilha"
+      >
         <Link to="/" className="hover:text-foreground">
           Início
         </Link>
@@ -111,8 +122,8 @@ function EventWatchPage() {
         <div className="lg:col-span-8">
           <WatchPlayer title={event.title} embeds={event.embeds} />
           <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-            Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam
-            conexões de streaming. Instale o app gratuito{" "}
+            Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam conexões
+            de streaming. Instale o app gratuito{" "}
             <a
               href="https://one.one.one.one/"
               target="_blank"
@@ -138,27 +149,31 @@ function EventWatchPage() {
           {event.teams ? (
             <div className="mt-5 flex items-center gap-3">
               <div className="min-w-0 flex-1 text-center">
-                <div className="logo-box mx-auto h-12 w-12">
-                  <MediaImage
-                    src={event.teams.home.logo}
-                    alt={event.teams.home.name}
-                    className="h-full w-full bg-transparent"
-                    imgClassName="logo-box-img"
-                  />
-                </div>
-                <p className="mt-2 truncate font-display text-sm font-semibold">{event.teams.home.name}</p>
+                <TeamCrest
+                  name={event.teams.home.name}
+                  logo={event.teams.home.logo}
+                  logos={event.teams.home.logos}
+                  size="md"
+                  className="mx-auto"
+                />
+                <p className="mt-2 truncate font-display text-sm font-semibold">
+                  {event.teams.home.name}
+                </p>
               </div>
-              <span className="shrink-0 font-display text-lg font-semibold text-muted-foreground">×</span>
+              <span className="shrink-0 font-display text-lg font-semibold text-muted-foreground">
+                ×
+              </span>
               <div className="min-w-0 flex-1 text-center">
-                <div className="logo-box mx-auto h-12 w-12">
-                  <MediaImage
-                    src={event.teams.away.logo}
-                    alt={event.teams.away.name}
-                    className="h-full w-full bg-transparent"
-                    imgClassName="logo-box-img"
-                  />
-                </div>
-                <p className="mt-2 truncate font-display text-sm font-semibold">{event.teams.away.name}</p>
+                <TeamCrest
+                  name={event.teams.away.name}
+                  logo={event.teams.away.logo}
+                  logos={event.teams.away.logos}
+                  size="md"
+                  className="mx-auto"
+                />
+                <p className="mt-2 truncate font-display text-sm font-semibold">
+                  {event.teams.away.name}
+                </p>
               </div>
             </div>
           ) : null}
@@ -179,6 +194,9 @@ function EventWatchPage() {
               <dd className="tabular-nums">
                 {formatEventTime(event)}
                 {day ? ` · ${day}` : ""}
+                {countdown ? (
+                  <span className="mt-1 block text-primary">Começa em {countdown}</span>
+                ) : null}
               </dd>
             </div>
             {event.embeds.length > 0 && (
@@ -224,7 +242,10 @@ function EventWatchPage() {
               <CalendarDays className="size-5 text-primary" aria-hidden="true" />
               Outros jogos
             </h2>
-            <Link to="/agenda" className="text-xs uppercase text-muted-foreground hover:text-primary">
+            <Link
+              to="/agenda"
+              className="text-xs uppercase text-muted-foreground hover:text-primary"
+            >
               Agenda completa
             </Link>
           </div>
@@ -237,4 +258,25 @@ function EventWatchPage() {
       )}
     </div>
   );
+}
+
+function useKickoffCountdown(startTimestamp: number, enabled: boolean): string | null {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!enabled) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [enabled]);
+
+  if (!enabled) return null;
+  const remaining = startTimestamp * 1000 - now;
+  if (remaining <= 0) return null;
+  const totalSeconds = Math.floor(remaining / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  if (hours > 0) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  return `${pad(minutes)}:${pad(seconds)}`;
 }
