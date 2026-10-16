@@ -7,22 +7,24 @@ import { MediaImage } from "@/components/media-image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WatchPlayer } from "@/components/watch-player";
 import { useChannel, useChannels, useSports } from "@/hooks/use-api";
-import {
-  eventsForChannel,
-  formatEpgRange,
-  pickRelatedChannels,
-} from "@/lib/api";
+import { eventsForChannel, formatEpgRange, labelFromSlug, pickRelatedChannels } from "@/lib/api";
 
 export const Route = createFileRoute("/canal/$channelId")({
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.channelId} | Pulso TV` },
-      { name: "description", content: "Assista ao vivo no Pulso TV." },
-      { property: "og:title", content: `${params.channelId} | Pulso TV` },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ params }) => {
+    const label = labelFromSlug(params.channelId);
+    const title = `${label} | Pulso TV`;
+    const description = `Assista ${label} ao vivo no Pulso TV.`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
   component: ChannelWatchPage,
 });
 
@@ -90,12 +92,19 @@ function ChannelWatchPage() {
 
   return (
     <div className="page-container py-8 lg:py-12">
-      <nav className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground" aria-label="Trilha">
+      <nav
+        className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
+        aria-label="Trilha"
+      >
         <Link to="/canais" className="hover:text-foreground">
           Canais
         </Link>
         <ChevronRight className="size-3" aria-hidden="true" />
-        <Link to="/canais" search={{ categoria: channel.category }} className="hover:text-foreground">
+        <Link
+          to="/canais"
+          search={{ categoria: channel.category }}
+          className="hover:text-foreground"
+        >
           {channel.category}
         </Link>
         <ChevronRight className="size-3" aria-hidden="true" />
@@ -130,7 +139,9 @@ function ChannelWatchPage() {
           </div>
 
           {channel.description && (
-            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{channel.description}</p>
+            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+              {channel.description}
+            </p>
           )}
 
           {current && (
@@ -146,7 +157,9 @@ function ChannelWatchPage() {
                 </p>
               )}
               {current.description && current.description !== "Sinopse não disponível." && (
-                <p className="mt-3 line-clamp-5 text-sm text-muted-foreground">{current.description}</p>
+                <p className="mt-3 line-clamp-5 text-sm text-muted-foreground">
+                  {current.description}
+                </p>
               )}
             </div>
           )}
@@ -156,7 +169,9 @@ function ChannelWatchPage() {
               <p className="section-kicker">A seguir</p>
               <p className="mt-2 font-display font-medium">{next.title}</p>
               {nextRange && (
-                <p className="mt-1 font-display text-xs tabular-nums text-muted-foreground">{nextRange}</p>
+                <p className="mt-1 font-display text-xs tabular-nums text-muted-foreground">
+                  {nextRange}
+                </p>
               )}
             </div>
           )}
