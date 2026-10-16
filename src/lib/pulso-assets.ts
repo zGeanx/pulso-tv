@@ -1,6 +1,7 @@
 export const PULSO_ORIGIN = "https://api.pulso-tv.online";
 export const PULSO_LOGO_ROUTE = "/api/pulso/logo";
 
+/** Underscores stay: the catalog uses names like `sao_paulo.png`. */
 const LOGO_FILE = /^(teams|channels|flags)\/[a-z0-9][a-z0-9._+-]*\.(png|jpe?g|svg|webp)$/i;
 
 /** `teams/alverca.png` when the value points at a Pulso catalog file. */
