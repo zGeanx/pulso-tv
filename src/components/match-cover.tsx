@@ -21,7 +21,7 @@ export function MatchCover({
     <div
       className={cn(
         "relative flex aspect-video w-full flex-col justify-between overflow-hidden select-none",
-        hero ? "p-5 sm:p-7 @container" : "p-3.5",
+        hero ? "p-5 sm:p-7" : "p-3.5",
         className,
       )}
     >
@@ -40,24 +40,24 @@ export function MatchCover({
         <div
           className={cn(
             "relative z-10 my-auto flex items-center justify-center",
-            hero ? "gap-8 sm:gap-12 lg:gap-16" : "gap-5 sm:gap-8",
+            hero ? "gap-6 sm:gap-10 lg:gap-14" : "gap-4 sm:gap-6",
           )}
         >
           <TeamCrest
             name={event.teams.home.name}
             logo={event.teams.home.logo}
             logos={event.teams.home.logos}
-            size="lg"
+            size={hero ? "lg" : "md"}
             className={
               hero
-                ? "size-[clamp(6.5rem,58cqmin,16rem)]"
-                : "h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem]"
+                ? "sm:h-20 sm:w-20 lg:h-36 lg:w-36"
+                : "sm:h-14 sm:w-14 lg:h-16 lg:w-16"
             }
           />
           <span
             className={cn(
               "font-display font-bold text-white/70 drop-shadow-md",
-              hero ? "text-[clamp(2rem,8cqmin,3.5rem)]" : "text-2xl sm:text-3xl",
+              hero ? "text-3xl sm:text-4xl lg:text-5xl" : "text-xl sm:text-2xl",
             )}
           >
             ×
@@ -66,11 +66,11 @@ export function MatchCover({
             name={event.teams.away.name}
             logo={event.teams.away.logo}
             logos={event.teams.away.logos}
-            size="lg"
+            size={hero ? "lg" : "md"}
             className={
               hero
-                ? "size-[clamp(6.5rem,58cqmin,16rem)]"
-                : "h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem]"
+                ? "sm:h-20 sm:w-20 lg:h-36 lg:w-36"
+                : "sm:h-14 sm:w-14 lg:h-16 lg:w-16"
             }
           />
         </div>
