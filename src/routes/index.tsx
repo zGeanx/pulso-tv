@@ -136,21 +136,21 @@ function HeroSection({ hero }: HeroSectionProps) {
             </h1>
 
             {event.teams && (
-              <div className="mt-5 flex items-center gap-5 sm:gap-6">
+              <div className="mt-5 flex items-center gap-4 lg:gap-6">
                 <TeamCrest
                   name={event.teams.home.name}
                   logo={event.teams.home.logo}
                   logos={event.teams.home.logos}
-                  size="lg"
-                  className="h-20 w-20 sm:h-24 sm:w-24"
+                  className="lg:h-20 lg:w-20"
                 />
-                <span className="font-display text-3xl font-semibold text-muted-foreground">×</span>
+                <span className="font-display text-lg font-semibold text-muted-foreground lg:text-3xl">
+                  ×
+                </span>
                 <TeamCrest
                   name={event.teams.away.name}
                   logo={event.teams.away.logo}
                   logos={event.teams.away.logos}
-                  size="lg"
-                  className="h-20 w-20 sm:h-24 sm:w-24"
+                  className="lg:h-20 lg:w-20"
                 />
               </div>
             )}
