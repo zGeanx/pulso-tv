@@ -24,31 +24,36 @@ export function MatchCover({
         hero ? "p-5 sm:p-7" : "p-3.5",
         className,
       )}
-      style={{
-        background:
-          "radial-gradient(circle at 18% 22%, oklch(0.32 0.055 154 / 0.55), transparent 55%), radial-gradient(circle at 82% 78%, oklch(0.28 0.04 154 / 0.45), transparent 55%), linear-gradient(145deg, oklch(0.18 0.012 150), oklch(0.235 0.016 152) 52%, oklch(0.165 0.01 150))",
-      }}
     >
-      <div className="min-h-5" />
+      <img
+        src="/match-pitch.webp"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-black/35" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
+
+      <div className="relative z-10 min-h-5" />
 
       {event.teams ? (
         <div
           className={cn(
-            "my-auto flex items-center justify-center",
-            hero ? "gap-6 sm:gap-10" : "gap-4 sm:gap-6",
+            "relative z-10 my-auto flex items-center justify-center",
+            hero ? "gap-6 sm:gap-10" : "gap-5 sm:gap-8",
           )}
         >
           <TeamCrest
             name={event.teams.home.name}
             logo={event.teams.home.logo}
             logos={event.teams.home.logos}
-            size={hero ? "lg" : "md"}
-            className={hero ? "sm:h-20 sm:w-20" : "sm:h-14 sm:w-14"}
+            size="lg"
+            className={hero ? "h-20 w-20 sm:h-24 sm:w-24" : "h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem]"}
           />
           <span
             className={cn(
-              "font-display font-bold text-white/45",
-              hero ? "text-3xl sm:text-4xl" : "text-xl sm:text-2xl",
+              "font-display font-bold text-white/70 drop-shadow-md",
+              hero ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl",
             )}
           >
             ×
@@ -57,14 +62,14 @@ export function MatchCover({
             name={event.teams.away.name}
             logo={event.teams.away.logo}
             logos={event.teams.away.logos}
-            size={hero ? "lg" : "md"}
-            className={hero ? "sm:h-20 sm:w-20" : "sm:h-14 sm:w-14"}
+            size="lg"
+            className={hero ? "h-20 w-20 sm:h-24 sm:w-24" : "h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem]"}
           />
         </div>
       ) : (
         <p
           className={cn(
-            "my-auto line-clamp-2 text-center font-display font-bold text-white/90",
+            "relative z-10 my-auto line-clamp-2 text-center font-display font-bold text-white drop-shadow-md",
             hero ? "px-6 text-2xl sm:text-3xl" : "px-3 text-base",
           )}
         >
@@ -72,9 +77,9 @@ export function MatchCover({
         </p>
       )}
 
-      <div className="relative z-10 flex items-center justify-between gap-3 pr-11 text-[11px] font-medium tracking-wide text-white/75">
+      <div className="relative z-10 flex items-center justify-between gap-3 pr-11 text-[11px] font-medium tracking-wide text-white/90 drop-shadow-sm">
         <span className="truncate uppercase">{event.competition}</span>
-        <span className="shrink-0 font-display tabular-nums text-white/85">{when}</span>
+        <span className="shrink-0 font-display tabular-nums">{when}</span>
       </div>
     </div>
   );
