@@ -9,12 +9,13 @@ import {
   formatAgendaDay,
   formatEventDay,
   formatEventTime,
-  sortEvents,
   type SportStatusLabel,
   type ApiSportStatus,
 } from "@/lib/api";
+import { headlineEvents } from "@/lib/agenda-rank";
 import { eventSearchBlob } from "@/lib/merge-catalog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TeamCrest } from "@/components/team-crest";
 
 const ALL_TAB = "Todos os jogos" as const;
 type TabLabel = typeof ALL_TAB | SportStatusLabel;
@@ -65,66 +66,77 @@ function AgendaPage() {
   const [tab, setTab] = useState<TabLabel>(ALL_TAB);
   const [query, setQuery] = useState("");
   const { data: events = [], isLoading, isError, refetch } = useSports();
+  const headlines = useMemo(() => headlineEvents(events), [events]);
 
   const counts: Record<TabLabel, number> = {
-    "Todos os jogos": events.length,
-    "Ao vivo agora": events.filter((event) => event.status === "live").length,
-    "Hoje & Próximos": events.filter((event) => event.status === "upcoming").length,
-    Encerrados: events.filter((event) => event.status === "finished").length,
+    "Todos os jogos": headlines.length,
+    "Ao vivo agora": headlines.filter((event) => event.status === "live").length,
+    "Hoje & Próximos": headlines.filter((event) => event.status === "upcoming").length,
+    Encerrados: headlines.filter((event) => event.status === "finished").length,
   };
 
   const filtered = useMemo(() => {
     const status = tab === ALL_TAB ? null : labelToApiStatus[tab];
-    const inTab = status ? events.filter((event) => event.status === status) : events;
+    const inTab = status ? headlines.filter((event) => event.status === status) : headlines;
     const q = query.trim();
-    const matched = q
-      ? inTab.filter((event) => fold(eventSearchBlob(event)).includes(fold(q)))
-      : inTab;
-    return sortEvents(matched);
-  }, [events, query, tab]);
+    return q ? inTab.filter((event) => fold(eventSearchBlob(event)).includes(fold(q))) : inTab;
+  }, [headlines, query, tab]);
 
   return (
     <div className="page-container py-8 lg:py-12">
-      <header className="grid gap-6 border-b border-border pb-8 lg:grid-cols-12">
+      <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-12 lg:gap-6 lg:pb-8">
         <div className="lg:col-span-7">
           <p className="section-kicker flex items-center gap-2 text-primary">
             <Trophy className="size-3.5" aria-hidden="true" />
             Esportes
           </p>
-          <h1 className="mt-3 font-display text-4xl font-bold sm:text-5xl">Agenda em campo.</h1>
-          <p className="mt-4 max-w-xl text-muted-foreground">
+          <h1 className="mt-2 font-display text-3xl font-bold sm:mt-3 sm:text-5xl">
+            Agenda em campo.
+          </h1>
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:mt-4 sm:text-base">
             Acompanhe o que está ao vivo, o que começa em seguida e os placares do dia.
           </p>
         </div>
-        <label className="flex h-12 items-center gap-3 self-end border-b border-border lg:col-span-5">
-          <Search className="text-primary" />
+        <label className="flex h-11 items-center gap-3 self-end rounded-md border border-border bg-card/60 px-3.5 sm:h-12 lg:col-span-5 lg:rounded-none lg:border-0 lg:border-b lg:bg-transparent lg:px-0">
+          <Search className="size-4 shrink-0 text-primary sm:size-5" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent outline-none placeholder:text-muted-foreground"
+            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:text-base"
             placeholder="Time, campeonato ou esporte"
             aria-label="Buscar time, campeonato ou esporte"
           />
         </label>
       </header>
 
-      <div className="flex gap-6 overflow-x-auto border-b border-border pt-6" role="tablist">
+      <div
+        className="flex items-center gap-2 overflow-x-auto border-b border-border pb-3 pt-4 touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:pt-6"
+        role="tablist"
+      >
         {tabs.map((item) => {
           const Icon = tabIcons[item];
+          const isSelected = tab === item;
           return (
             <button
               key={item}
               role="tab"
-              aria-selected={tab === item}
+              aria-selected={isSelected}
               onClick={() => setTab(item)}
-              className={`flex min-h-11 shrink-0 items-center gap-2 border-b-2 pb-3 text-sm transition-colors ${
-                tab === item
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+              className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium transition-all ${
+                isSelected
+                  ? "bg-primary font-semibold text-primary-foreground shadow-sm"
+                  : "border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
               }`}
             >
-              <Icon className="size-4" aria-hidden="true" />
-              {item} · {counts[item]}
+              <Icon className="size-3.5" aria-hidden="true" />
+              <span>{item}</span>
+              <span
+                className={`text-[10px] tabular-nums ${
+                  isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                }`}
+              >
+                {counts[item]}
+              </span>
             </button>
           );
         })}
@@ -180,49 +192,79 @@ function AgendaPage() {
             return (
               <div key={event.id}>
                 {showDivider && (
-                  <p
-                    className={`pt-5 text-xs tracking-wide text-muted-foreground ${index > 0 ? "mt-2 border-t border-border" : ""}`}
-                  >
-                    {divider}
-                  </p>
-                )}
-                <article className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-4 border-b border-border py-5 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center">
-                  <div>
-                    <p className="font-display text-lg tabular-nums text-primary">{time}</p>
-                    {showDay && (
-                      <p className="text-[11px] capitalize text-muted-foreground">{day}</p>
-                    )}
-                    <p className="text-[11px] uppercase text-muted-foreground">{event.category}</p>
-                  </div>
-
-                  <div className="min-w-0">
-                    <p className="min-w-0 truncate font-display text-lg font-medium">
-                      {event.title}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {event.competition}
-                      {channels.length > 0 ? ` · ${channels.join(" · ")}` : ""}
-                    </p>
-                  </div>
-
-                  <div className="col-start-2 flex items-center gap-3 sm:col-start-auto">
-                    <span className={isLive ? "status-label status-live" : "status-label"}>
-                      {isLive && <span className="live-dot" />}
-                      {statusLabel}
+                  <div className={`pb-2 pt-6 ${index > 0 ? "mt-2 border-t border-border" : ""}`}>
+                    <span className="inline-block rounded-md bg-secondary/80 px-2.5 py-1 text-xs font-semibold tracking-wide text-foreground">
+                      {divider}
                     </span>
-                    {hasEmbeds && (
-                      <Link
-                        to="/evento/$eventId"
-                        params={{ eventId: event.id }}
-                        aria-label={`Assistir ${event.title}`}
-                        className="flex min-h-11 items-center gap-1.5 rounded border border-border px-3 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                      >
-                        <Play className="size-3" />
-                        Assistir
-                      </Link>
-                    )}
                   </div>
-                </article>
+                )}
+                <Link
+                  to="/evento/$eventId"
+                  params={{ eventId: event.id }}
+                  className="group block border-b border-border py-4 transition-colors hover:bg-card/40 active:scale-[0.99]"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+                      <div className="w-14 shrink-0 text-left sm:w-16">
+                        <p className="font-display text-base font-semibold tabular-nums text-primary sm:text-lg">
+                          {time}
+                        </p>
+                        {showDay && (
+                          <p className="text-[10px] capitalize text-muted-foreground sm:text-[11px]">
+                            {day}
+                          </p>
+                        )}
+                        <p className="text-[10px] uppercase text-muted-foreground sm:text-[11px]">
+                          {event.category}
+                        </p>
+                      </div>
+
+                      {event.teams ? (
+                        <div className="flex shrink-0 items-center gap-1.5 pt-0.5 sm:pt-0">
+                          <TeamCrest
+                            name={event.teams.home.name}
+                            logo={event.teams.home.logo}
+                            logos={event.teams.home.logos}
+                            className="h-7 w-7"
+                          />
+                          <TeamCrest
+                            name={event.teams.away.name}
+                            logo={event.teams.away.logo}
+                            logos={event.teams.away.logos}
+                            className="h-7 w-7"
+                          />
+                        </div>
+                      ) : null}
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate font-display text-base font-medium text-foreground transition-colors group-hover:text-primary sm:text-lg">
+                          {event.title}
+                        </h3>
+                        <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                          {event.competition}
+                          {channels.length > 0 ? ` · ${channels.join(" · ")}` : ""}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 pl-[4.25rem] sm:justify-end sm:pl-0">
+                      <span
+                        className={
+                          isLive ? "status-label status-live text-[10px]" : "status-label text-[10px]"
+                        }
+                      >
+                        {isLive && <span className="live-dot" />}
+                        {statusLabel}
+                      </span>
+                      {hasEmbeds && (
+                        <span className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border bg-card/60 px-3 text-xs text-muted-foreground transition-colors group-hover:border-primary group-hover:text-primary">
+                          <Play className="size-3" />
+                          Assistir
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
               </div>
             );
           })}
