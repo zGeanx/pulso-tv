@@ -95,6 +95,18 @@ function pngInfo(buf) {
   return { png: true, transparent: trns };
 }
 
+function imageInfo(buf) {
+  const png = pngInfo(buf);
+  if (png.png) return { ok: true, transparent: png.transparent };
+  if (buf.toString("ascii", 0, 4) !== "RIFF" || buf.toString("ascii", 8, 12) !== "WEBP") {
+    return { ok: false, transparent: false };
+  }
+  const format = buf.toString("ascii", 12, 16);
+  if (format === "VP8L") return { ok: true, transparent: true };
+  if (format === "VP8X") return { ok: true, transparent: (buf[20] & 0x10) !== 0 };
+  return { ok: true, transparent: false };
+}
+
 const problems = [];
 if (rejectedUnderscore.length > 0) {
   problems.push(`LOGO_FILE rejeita underscore: ${rejectedUnderscore.join(", ")}`);
@@ -142,14 +154,15 @@ const workers = Array.from({ length: 4 }, async () => {
     const next = queue.shift();
     if (!next) return;
     const [name, raw] = next;
-    const url = raw.startsWith("/logos/") ? `${PULSO_ORIGIN}${raw}` : raw;
+    const hosted = raw.startsWith("/logos/teams/") ? raw.replace(/\.png$/i, ".webp") : raw;
+    const url = hosted.startsWith("/logos/") ? `${PULSO_ORIGIN}${hosted}` : hosted;
     try {
       const response = await withWikiSlot(url, () => fetchCrest(url));
       const buf = Buffer.from(await response.arrayBuffer());
-      const info = response.ok ? pngInfo(buf) : { png: false, transparent: false };
-      if (!response.ok || !info.png || !info.transparent) {
+      const info = response.ok ? imageInfo(buf) : { ok: false, transparent: false };
+      if (!response.ok || !info.ok || !info.transparent) {
         problems.push(
-          `${name}: HTTP ${response.status}, png=${info.png}, transparência=${info.transparent}`,
+          `${name}: HTTP ${response.status}, imagem=${info.ok}, transparência=${info.transparent}`,
         );
         continue;
       }
