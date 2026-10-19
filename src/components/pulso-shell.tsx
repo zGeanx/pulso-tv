@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, Clapperboard, Home, Loader2, Menu, Search, Tv, X } from "lucide-react";
+import { CalendarDays, Clapperboard, Home, Loader2, Search, Tv, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { MediaImage } from "@/components/media-image";
@@ -28,12 +28,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
 export function PulsoShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     setSearchOpen(false);
@@ -104,43 +99,13 @@ export function PulsoShell({ children }: { children: ReactNode }) {
               <Search />
             </Button>
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-11 w-11 lg:hidden"
-              onClick={() => setMobileOpen((open) => !open)}
-              aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
-            >
-              {mobileOpen ? <X /> : <Menu />}
-            </Button>
           </div>
         </div>
-
-        {mobileOpen && (
-          <nav
-            className="grid grid-cols-4 border-t border-border bg-background px-2 py-2 lg:hidden"
-            aria-label="Navegação mobile"
-          >
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`mobile-nav ${pathname === item.to ? "mobile-nav-active" : ""}`}
-                >
-                  <Icon />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        )}
       </header>
 
       {searchOpen && (
         <div
-          className="fixed inset-0 z-50 bg-background/98 px-4 pt-4 backdrop-blur-xl md:pt-16"
+          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-background/98 px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] backdrop-blur-xl md:pt-16"
           role="dialog"
           aria-modal="true"
           aria-label="Busca global"
@@ -294,9 +259,9 @@ export function PulsoShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <main>{children}</main>
+      <main className="pb-16 lg:pb-0">{children}</main>
 
-      <footer className="border-t border-border">
+      <footer className="border-t border-border pb-20 lg:pb-8">
         <div className="page-container grid gap-x-8 gap-y-4 py-8 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
           <Brand compact />
           <nav className="flex flex-wrap gap-5 sm:justify-end" aria-label="Navegação do rodapé">
@@ -311,6 +276,26 @@ export function PulsoShell({ children }: { children: ReactNode }) {
           <p className="sm:text-right">© 2026 // Todos os direitos reservados</p>
         </div>
       </footer>
+
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-border bg-background/95 px-2 backdrop-blur-lg pb-[env(safe-area-inset-bottom,0px)] lg:hidden"
+        aria-label="Navegação mobile"
+      >
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.to;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`mobile-nav ${isActive ? "mobile-nav-active" : ""}`}
+            >
+              <Icon />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
