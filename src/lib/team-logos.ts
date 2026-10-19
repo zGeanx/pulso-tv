@@ -365,16 +365,18 @@ const KNOWN_LOGOS: Record<string, string> = {
 rememberStateSuffixes(Object.keys(KNOWN_LOGOS));
 
 /** Catalog files that depict a different club, even when the name matches. */
-const MISLABELED_CREST_FILES = new Set([
-  "teams/boca_juniors.png",
-  "teams/libertad.png",
-  "teams/nacional.png",
-  "teams/cerro_porteno.png",
+const MISLABELED_CREST_STEMS = new Set([
+  "teams/boca_juniors",
+  "teams/libertad",
+  "teams/nacional",
+  "teams/cerro_porteno",
 ]);
 
 export function isMislabeledCrest(url: string): boolean {
   const file = pulsoLogoFile(url);
-  return file != null && MISLABELED_CREST_FILES.has(file);
+  if (!file) return false;
+  const stem = file.replace(/\.(png|jpe?g|webp|svg)$/i, "");
+  return MISLABELED_CREST_STEMS.has(stem);
 }
 
 export function curatedTeamCrest(name: string): string {
@@ -386,18 +388,17 @@ export function curatedTeamCrest(name: string): string {
 }
 
 /**
- * A verified crest is the only crest for that team.
- * Pulso `teams/` files are ignored unless that exact file is the verified one:
- * the host has served another club under the right filename.
+ * Hosted `teams/` crests are the catalog, except the files known to show another club.
+ * A remote URL still has to match the curated crest when one exists.
  */
 export function catalogCrestFitsTeam(url: string, teamName: string): boolean {
   if (!url || isMislabeledCrest(url)) return false;
+  const file = pulsoLogoFile(url);
+  if (file?.startsWith("teams/")) return true;
   const curated = curatedTeamCrest(teamName);
   if (curated) {
     return resolvePulsoAsset(url) === resolvePulsoAsset(curated);
   }
-  const file = pulsoLogoFile(url);
-  if (file?.startsWith("teams/")) return false;
   return true;
 }
 
