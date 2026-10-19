@@ -1,5 +1,7 @@
 // Typed API client for https://api.reidoscanais.si
 
+import { headlineEvents } from "@/lib/agenda-rank";
+
 const BASE_URL = "https://api.reidoscanais.si";
 
 // ─── Raw API Types ────────────────────────────────────────────────────────────
@@ -407,11 +409,11 @@ export function sortEvents(events: ApiSportEvent[]): ApiSportEvent[] {
   });
 }
 
-/** Home agenda cards: live and upcoming first, then by kickoff. */
+/** Home agenda cards: the most watched headline matches still to be played. */
 export function pickFeaturedEvents(events: ApiSportEvent[], count = 4): ApiSportEvent[] {
-  const sorted = sortEvents(events);
-  const active = sorted.filter((event) => event.status !== "finished");
-  return (active.length >= count ? active : sorted).slice(0, count);
+  const ranked = headlineEvents(events);
+  const active = ranked.filter((event) => event.status !== "finished");
+  return (active.length >= count ? active : ranked).slice(0, count);
 }
 
 /** Schedule list: sports first, never Caze TV. */
