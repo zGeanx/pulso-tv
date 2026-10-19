@@ -12,7 +12,7 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
   const range = program ? formatEpgRange(program) : "";
 
   return (
-    <article className="min-w-0 border-b border-border pb-5">
+    <article className="min-w-0 border-b border-border pb-5 transition-transform active:scale-[0.98]">
       <Link
         to="/canal/$channelId"
         params={{ channelId: channel.id }}
@@ -38,18 +38,29 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
               </div>
             </>
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-card p-6">
+            <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-gradient-to-br from-card via-card/90 to-muted/40 p-6">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="h-24 w-24 rounded-full bg-primary/10 blur-xl" />
+              </div>
               <MediaImage
                 src={channel.logo_url}
                 alt={channel.name}
-                className="h-20 w-full max-w-[11rem] bg-transparent"
-                imgClassName="object-contain"
+                className="relative z-10 h-16 w-full max-w-[10rem] bg-transparent"
+                imgClassName="object-contain drop-shadow-md"
+                fallback={
+                  <div className="flex flex-col items-center justify-center gap-1 text-center">
+                    <span className="font-display text-base font-bold text-foreground/90">
+                      {channel.name}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">{channel.category}</span>
+                  </div>
+                }
               />
             </div>
           )}
 
           {program && (
-            <div className="absolute left-3 top-3">
+            <div className="absolute left-3 top-3 z-20">
               <span className="status-label status-live">
                 <span className="live-dot" />
                 AO VIVO
@@ -58,13 +69,13 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
           )}
 
           {channel.embeds.length > 0 && (
-            <span className="absolute bottom-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+            <span className="absolute bottom-3 right-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
               <Play className="size-4" aria-hidden="true" />
             </span>
           )}
 
           {program && (
-            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-foreground/15">
+            <div className="absolute inset-x-0 bottom-0 z-20 h-0.5 bg-foreground/15">
               <div className="h-full bg-live" style={{ width: `${progress * 100}%` }} />
             </div>
           )}
