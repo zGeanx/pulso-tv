@@ -83,34 +83,34 @@ function ChannelsPage() {
 
   return (
     <div className="page-container py-8 lg:py-12">
-      <header className="grid gap-6 border-b border-border pb-8 lg:grid-cols-12">
+      <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-12 lg:gap-6 lg:pb-8">
         <div className="lg:col-span-7">
           <p className="section-kicker flex items-center gap-2 text-primary">
             <Layers3 className="size-3.5" aria-hidden="true" />
             Catálogo
           </p>
-          <h1 className="mt-3 font-display text-4xl font-bold sm:text-5xl">
+          <h1 className="mt-2 font-display text-3xl font-bold sm:mt-3 sm:text-5xl">
             Todos os sinais,
             <br />
             em um só lugar.
           </h1>
-          <p className="mt-4 max-w-xl text-muted-foreground">
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:mt-4 sm:text-base">
             Canais abertos, filmes, notícias, esportes e programação infantil em uma grade viva.
           </p>
         </div>
-        <label className="flex h-12 items-center gap-3 self-end border-b border-border lg:col-span-5">
-          <Search className="shrink-0 text-primary" />
+        <label className="flex h-11 items-center gap-3 self-end rounded-md border border-border bg-card/60 px-3.5 sm:h-12 lg:col-span-5 lg:rounded-none lg:border-0 lg:border-b lg:bg-transparent lg:px-0">
+          <Search className="size-4 shrink-0 text-primary sm:size-5" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:text-base"
             placeholder="Buscar canal ou programa"
             aria-label="Buscar canal ou programa"
           />
         </label>
       </header>
 
-      <div className="py-6">
+      <div className="py-4 md:py-6">
         <div className="hidden items-center gap-x-6 overflow-x-auto md:flex" role="tablist">
           <SlidersHorizontal className="size-4 shrink-0 text-primary" aria-hidden="true" />
           {categoryNames.map((item) => (
@@ -130,18 +130,38 @@ function ChannelsPage() {
             </button>
           ))}
         </div>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="h-11 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground md:hidden"
-          aria-label="Filtrar categoria"
+
+        <div
+          className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:hidden"
+          role="tablist"
+          aria-label="Categorias de canais"
         >
-          {categoryNames.map((item) => (
-            <option key={item} value={item}>
-              {item} ({counts[item] ?? 0})
-            </option>
-          ))}
-        </select>
+          {categoryNames.map((item) => {
+            const isSelected = category === item;
+            return (
+              <button
+                key={item}
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setCategory(item)}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all ${
+                  isSelected
+                    ? "bg-primary font-semibold text-primary-foreground shadow-sm"
+                    : "border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                }`}
+              >
+                <span>{item}</span>
+                <span
+                  className={`text-[10px] tabular-nums ${
+                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                  }`}
+                >
+                  {counts[item] ?? 0}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="flex items-center justify-between border-b border-border pb-3">
