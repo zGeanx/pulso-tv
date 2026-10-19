@@ -22,7 +22,7 @@ export function pulsoLogoFile(value: string): string | null {
 export function resolvePulsoAsset(value: string): string {
   const raw = value.trim();
   if (!raw || raw.startsWith("data:")) return raw;
-  const file = pulsoLogoFile(raw);
+  const file = hostedLogoFile(pulsoLogoFile(raw));
   if (file) return `${PULSO_LOGO_ROUTE}?path=${encodeURIComponent(file)}`;
   if (raw.startsWith("//")) return `https:${raw}`;
   return raw;
@@ -30,6 +30,12 @@ export function resolvePulsoAsset(value: string): string {
 
 export function isFlagLogo(url: string): boolean {
   return pulsoLogoFile(url)?.startsWith("flags/") ?? false;
+}
+
+function hostedLogoFile(file: string | null): string | null {
+  if (!file) return null;
+  if (file.startsWith("teams/") && /\.png$/i.test(file)) return file.replace(/\.png$/i, ".webp");
+  return file;
 }
 
 function logoPathname(raw: string): string | null {
