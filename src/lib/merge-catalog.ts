@@ -312,18 +312,20 @@ function teamSide(name: string, catalogLogo: string | undefined): ApiTeam {
 }
 
 function crestCandidates(name: string, catalogLogo: string | undefined): string[] {
-  const curated = curatedTeamCrest(name);
-  if (curated) return [resolvePulsoAsset(curated)];
-
-  const raw = catalogLogo?.trim() ?? "";
-  const resolved = raw && !raw.startsWith("data:") ? resolvePulsoAsset(raw) : "";
   const logos: string[] = [];
   const push = (url: string) => {
     if (url && !logos.includes(url)) logos.push(url);
   };
+
+  const raw = catalogLogo?.trim() ?? "";
+  const resolved = raw && !raw.startsWith("data:") ? resolvePulsoAsset(raw) : "";
   if (resolved && !isPlaceholderLogo(resolved) && catalogCrestFitsTeam(raw, name)) {
     push(resolved);
   }
+
+  const curated = curatedTeamCrest(name);
+  if (curated) push(resolvePulsoAsset(curated));
+
   for (const url of resolveTeamCrests(name)) {
     if (catalogCrestFitsTeam(url, name)) push(url);
   }
