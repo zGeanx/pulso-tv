@@ -20,6 +20,7 @@ import { MatchCover } from "@/components/match-cover";
 import { MediaImage } from "@/components/media-image";
 import { TeamCrest } from "@/components/team-crest";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isWomensBroadcast } from "@/lib/agenda-rank";
 import { useChannels, useChannelCategories, useSports } from "@/hooks/use-api";
 import {
   formatEpgRange,
@@ -321,7 +322,10 @@ function HeroSection({ hero }: HeroSectionProps) {
 }
 
 function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
-  const sorted = pickLiveNow(channels, 3);
+  const sorted = pickLiveNow(
+    channels.filter((channel) => !isWomensBroadcast(channel.epg?.current?.title ?? "")),
+    3,
+  );
 
   return (
     <div className="lg:col-span-8">
@@ -461,7 +465,9 @@ function FeaturedChannelsSection({ channels }: { channels: ApiChannel[] }) {
             <span className="min-w-0">
               <strong className="block truncate font-medium">{channel.name}</strong>
               <small className="text-muted-foreground">
-                {channel.epg?.current?.title ?? channel.category}
+                {isWomensBroadcast(channel.epg?.current?.title ?? "")
+                  ? channel.category
+                  : (channel.epg?.current?.title ?? channel.category)}
               </small>
             </span>
             <span className="status-label status-live text-[10px]">
@@ -489,7 +495,7 @@ function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
       <div className="divide-y divide-border">
         {scheduleItems.map((channel) => {
           const current = channel.epg?.current;
-          if (!current) return null;
+          if (!current || isWomensBroadcast(current.title)) return null;
           const progress = epgProgress(current);
           return (
             <Link
