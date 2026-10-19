@@ -50,7 +50,7 @@ export function MatchCover({
             size="lg"
             className={
               hero
-                ? "size-[clamp(5.5rem,40cqmin,13rem)]"
+                ? "size-[clamp(6.5rem,58cqmin,16rem)]"
                 : "h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem]"
             }
           />
@@ -69,7 +69,7 @@ export function MatchCover({
             size="lg"
             className={
               hero
-                ? "size-[clamp(5.5rem,40cqmin,13rem)]"
+                ? "size-[clamp(6.5rem,58cqmin,16rem)]"
                 : "h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem]"
             }
           />
