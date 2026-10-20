@@ -132,12 +132,12 @@ function HeroSection({ hero }: HeroSectionProps) {
               {event.competition}
             </p>
 
-            <h1 className="mt-3 text-balance font-display text-4xl font-bold leading-none sm:text-5xl lg:text-6xl">
+            <h1 className="mt-3 text-balance font-display text-3xl font-bold leading-tight sm:text-5xl sm:leading-none lg:text-6xl">
               {event.title}
             </h1>
 
             {event.teams && (
-              <div className="mt-5 flex items-center gap-4 lg:gap-6">
+              <div className="mt-5 hidden items-center gap-4 sm:flex lg:gap-6">
                 <TeamCrest
                   name={event.teams.home.name}
                   logo={event.teams.home.logo}
@@ -350,7 +350,7 @@ function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
             params={{ channelId: item.id }}
             className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 py-4 hover:text-primary"
           >
-            <div className="logo-box h-14 w-24">
+            <div className="logo-box h-12 w-20 shrink-0 sm:h-14 sm:w-24">
               <MediaImage
                 src={item.logo_url}
                 alt={item.name}
@@ -359,20 +359,20 @@ function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
               />
             </div>
             <div className="min-w-0">
-              <h3 className="truncate font-display text-lg font-medium">
+              <h3 className="truncate font-display text-base font-medium sm:text-lg">
                 {item.epg?.current?.title ?? item.name}
               </h3>
               <p className="text-xs text-muted-foreground">
                 {item.name} · {item.category}
               </p>
             </div>
-            <div className="hidden items-center gap-3 text-sm text-muted-foreground sm:flex">
-              <span className="tabular-nums">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground sm:flex">
+              <span className="hidden tabular-nums sm:inline">
                 {item.epg?.current ? formatEpgRange(item.epg.current) : ""}
               </span>
-              <span className="flex items-center gap-2 text-live">
+              <span className="flex items-center gap-1.5 text-xs text-live sm:text-sm">
                 <span className="live-dot" />
-                AO VIVO
+                <span className="hidden sm:inline">AO VIVO</span>
               </span>
             </div>
           </Link>
@@ -538,9 +538,9 @@ function HeroSkeleton() {
   );
 }
 
-function ChannelCardSkeleton() {
+function ChannelCardSkeleton({ className }: { className?: string }) {
   return (
-    <div className="border-b border-border pb-5">
+    <div className={className ?? "border-b border-border pb-5"}>
       <Skeleton className="aspect-video w-full" />
       <Skeleton className="mt-3 h-5 w-2/3" />
       <Skeleton className="mt-2 h-4 w-1/2" />
@@ -562,7 +562,7 @@ function Index() {
       {heroLoading ? <HeroSkeleton /> : <HeroSection hero={hero} />}
 
       <section className="border-b border-border">
-        <div className="page-container py-10">
+        <div className="page-container py-8 sm:py-10">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
               <Trophy className="size-5 text-primary" aria-hidden="true" />
@@ -576,15 +576,28 @@ function Index() {
             </Link>
           </div>
           {loadingEvents ? (
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-6 flex overflow-x-auto snap-x snap-mandatory gap-4 pb-3 -mx-4 px-4 scrollbar-none sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:gap-5 sm:pb-0">
               {Array.from({ length: 4 }).map((_, i) => (
-                <ChannelCardSkeleton key={i} />
+                <div
+                  key={i}
+                  className="w-[82vw] max-w-[320px] shrink-0 snap-start sm:w-auto sm:max-w-none"
+                >
+                  <ChannelCardSkeleton className="min-w-0 border-b-0 pb-0 sm:border-b sm:border-border sm:pb-5" />
+                </div>
               ))}
             </div>
           ) : (
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-6 flex overflow-x-auto snap-x snap-mandatory gap-4 pb-3 -mx-4 px-4 scrollbar-none sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-visible sm:gap-5 sm:pb-0">
               {featuredEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <div
+                  key={event.id}
+                  className="w-[82vw] max-w-[320px] shrink-0 snap-start sm:w-auto sm:max-w-none"
+                >
+                  <EventCard
+                    event={event}
+                    className="min-w-0 border-b-0 pb-0 sm:border-b sm:border-border sm:pb-5"
+                  />
+                </div>
               ))}
             </div>
           )}
