@@ -713,7 +713,7 @@ function teamsLooselyEqual(left: string, right: string): boolean {
 function groupFixtures(matches: PreparedMatch[]): PreparedMatch[][] {
   const groups: PreparedMatch[][] = [];
   for (const match of matches) {
-    const group = groups.find((items) => sameFixture(items[0], match));
+    const group = groups.find((items) => items[0] && sameFixture(items[0], match));
     if (group) group.push(match);
     else groups.push([match]);
   }
