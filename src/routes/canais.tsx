@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Layers3, Search, SlidersHorizontal } from "lucide-react";
+import { Layers3, Search, X } from "lucide-react";
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { ChannelCard } from "@/components/channel-card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChannels, useChannelCategories } from "@/hooks/use-api";
 import { filterChannels } from "@/lib/api";
@@ -83,11 +84,11 @@ function ChannelsPage() {
 
   return (
     <div className="page-container py-8 lg:py-12">
-      <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-12 lg:gap-6 lg:pb-8">
-        <div className="lg:col-span-7">
+      <header className="flex flex-col gap-6 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between lg:pb-8">
+        <div>
           <p className="section-kicker flex items-center gap-2 text-primary">
             <Layers3 className="size-3.5" aria-hidden="true" />
-            Catálogo
+            Catálogo de canais
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold sm:mt-3 sm:text-5xl">
             Todos os sinais,
@@ -98,41 +99,36 @@ function ChannelsPage() {
             Canais abertos, filmes, notícias, esportes e programação infantil em uma grade viva.
           </p>
         </div>
-        <label className="flex h-11 items-center gap-3 self-end rounded-md border border-border bg-card/60 px-3.5 sm:h-12 lg:col-span-5 lg:rounded-none lg:border-0 lg:border-b lg:bg-transparent lg:px-0">
-          <Search className="size-4 shrink-0 text-primary sm:size-5" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:text-base"
-            placeholder="Buscar canal ou programa"
-            aria-label="Buscar canal ou programa"
-          />
-        </label>
+
+        {/* Search input container */}
+        <div className="w-full lg:max-w-md">
+          <div className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-3.5 size-4 text-muted-foreground" aria-hidden="true" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-11 w-full rounded-xl border border-border/80 bg-card/60 pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/40 sm:h-12"
+              placeholder="Buscar canal ou programa..."
+              aria-label="Buscar canal ou programa"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 rounded-md p-1 text-muted-foreground hover:bg-card hover:text-foreground cursor-pointer"
+                aria-label="Limpar busca"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
       </header>
 
-      <div className="py-4 md:py-6">
-        <div className="hidden items-center gap-x-6 overflow-x-auto md:flex" role="tablist">
-          <SlidersHorizontal className="size-4 shrink-0 text-primary" aria-hidden="true" />
-          {categoryNames.map((item) => (
-            <button
-              key={item}
-              role="tab"
-              aria-selected={category === item}
-              onClick={() => setCategory(item)}
-              className={`min-h-11 shrink-0 border-b-2 text-sm transition-colors ${
-                category === item
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item}
-              <span className="ml-2 text-xs text-muted-foreground">{counts[item] ?? 0}</span>
-            </button>
-          ))}
-        </div>
-
+      {/* Category Pills & Filter Bar */}
+      <div className="py-5 sm:py-6">
         <div
-          className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:hidden"
+          className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
           role="tablist"
           aria-label="Categorias de canais"
         >
@@ -144,16 +140,18 @@ function ChannelsPage() {
                 role="tab"
                 aria-selected={isSelected}
                 onClick={() => setCategory(item)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all ${
+                className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? "bg-primary font-semibold text-primary-foreground shadow-sm"
-                    : "border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                    ? "bg-primary font-semibold text-primary-foreground shadow-sm shadow-primary/20 scale-[1.02]"
+                    : "border border-border/80 bg-card/60 text-muted-foreground hover:border-primary/50 hover:bg-card hover:text-foreground"
                 }`}
               >
                 <span>{item}</span>
                 <span
-                  className={`text-[10px] tabular-nums ${
-                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                  className={`rounded-full px-1.5 py-0.5 font-display text-[11px] tabular-nums ${
+                    isSelected
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-secondary/80 text-muted-foreground"
                   }`}
                 >
                   {counts[item] ?? 0}
@@ -164,25 +162,37 @@ function ChannelsPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-          <Layers3 className="size-5 text-primary" aria-hidden="true" />
-          {category}
-        </h2>
+      {/* Status Bar */}
+      <div className="flex items-center justify-between border-b border-border pb-3.5">
+        <div className="flex items-center gap-2">
+          <span className="font-display text-sm font-semibold text-foreground">
+            {category === ALL_LABEL ? "Todos os canais" : category}
+          </span>
+          {deferredQuery && (
+            <span className="text-xs text-muted-foreground">
+              · filtrado por &ldquo;<span className="text-foreground font-medium">{deferredQuery}</span>&rdquo;
+            </span>
+          )}
+        </div>
         {!isLoading && (
-          <span className="text-xs uppercase text-muted-foreground">
-            {filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}
+          <span className="font-display text-xs tabular-nums text-muted-foreground">
+            {filtered.length} {filtered.length === 1 ? "canal" : "canais"}
           </span>
         )}
       </div>
 
       {isLoading && (
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="border-b border-border pb-5">
-              <Skeleton className="aspect-video w-full" />
-              <Skeleton className="mt-3 h-5 w-2/3" />
-              <Skeleton className="mt-2 h-4 w-1/2" />
+            <div key={i} className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
+              <Skeleton className="aspect-video w-full rounded-none" />
+              <div className="p-4 space-y-2.5">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <div className="pt-2 border-t border-border/30">
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -198,7 +208,7 @@ function ChannelsPage() {
           </p>
           <button
             onClick={() => refetch()}
-            className="mt-4 text-sm text-primary underline-offset-4 hover:underline"
+            className="mt-4 text-sm text-primary underline-offset-4 hover:underline cursor-pointer"
           >
             Tentar novamente
           </button>
@@ -207,19 +217,24 @@ function ChannelsPage() {
 
       {!isLoading && !isError && filtered.length > 0 && (
         <>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {visible.map((channel) => (
               <ChannelCard key={channel.id} channel={channel} />
             ))}
           </div>
           {visible.length < filtered.length && (
-            <div className="mt-8 flex justify-center">
-              <button
+            <div className="mt-10 flex flex-col items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="lg"
                 onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                className="min-h-11 rounded-md border border-border px-5 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                className="rounded-xl border-border/80 bg-card/60 px-6 font-medium hover:border-primary/50 hover:bg-card cursor-pointer"
               >
-                Mostrar mais
-              </button>
+                Carregar mais {Math.min(PAGE_SIZE, filtered.length - visible.length)} canais
+              </Button>
+              <span className="text-xs text-muted-foreground font-display tabular-nums">
+                Exibindo {visible.length} de {filtered.length} canais
+              </span>
             </div>
           )}
         </>
