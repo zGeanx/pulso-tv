@@ -12,13 +12,7 @@ const STATUS_BADGE: Record<ApiSportEvent["status"], { label: string; live?: bool
   finished: { label: "ENCERRADO" },
 };
 
-export function EventCard({
-  event,
-  className,
-}: {
-  event: ApiSportEvent;
-  className?: string;
-}) {
+export function EventCard({ event, className }: { event: ApiSportEvent; className?: string }) {
   const badge = STATUS_BADGE[event.status];
   const day = formatEventDay(event);
   const time = formatEventTime(event);
@@ -29,7 +23,7 @@ export function EventCard({
   return (
     <article className={className ?? "min-w-0 border-b border-border pb-5"}>
       <Link to="/evento/$eventId" params={{ eventId: event.id }} className="group block min-w-0">
-        <div className="relative aspect-video overflow-hidden rounded-md bg-card">
+        <div className="relative aspect-video overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:border-primary/40 group-hover:shadow-md">
           {event.poster ? (
             <>
               <img
@@ -61,13 +55,15 @@ export function EventCard({
                 {badge.label}
               </span>
             ) : (
-              <span className="status-label">{badge.label}</span>
+              <span className="status-label border border-border/80 bg-background/85 text-muted-foreground backdrop-blur-md">
+                {badge.label}
+              </span>
             )}
           </div>
 
           {event.embeds.length > 0 && (
-            <span className="absolute bottom-3 right-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
-              <Play className="size-4" aria-hidden="true" />
+            <span className="absolute bottom-3 right-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md transition-all duration-200 opacity-100 sm:opacity-0 sm:scale-90 sm:group-hover:opacity-100 sm:group-hover:scale-100">
+              <Play className="size-4 fill-current" aria-hidden="true" />
             </span>
           )}
         </div>
