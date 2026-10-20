@@ -36,15 +36,33 @@ export function PulsoShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    if (!searchOpen) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+    function onGlobalKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isEditing =
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+
+      if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+        return;
+      }
+
+      if (e.key === "/" && !isEditing && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setSearchOpen(true);
+        return;
+      }
+
+      if (e.key === "Escape" && searchOpen) {
+        e.preventDefault();
         setSearchOpen(false);
         setQuery("");
       }
     }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+
+    document.addEventListener("keydown", onGlobalKeyDown);
+    return () => document.removeEventListener("keydown", onGlobalKeyDown);
   }, [searchOpen]);
 
   const { data: results, isFetching } = useSearch(query);
@@ -127,18 +145,21 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                   className="w-full bg-transparent font-display text-lg text-foreground outline-none placeholder:text-muted-foreground md:text-2xl"
                 />
               </label>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11"
-                onClick={() => {
-                  setSearchOpen(false);
-                  setQuery("");
-                }}
-                aria-label="Fechar busca"
-              >
-                <X />
-              </Button>
+              <div className="flex items-center gap-2">
+                <kbd className="desktop-kbd hidden sm:inline-flex">ESC</kbd>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setQuery("");
+                  }}
+                  aria-label="Fechar busca"
+                >
+                  <X className="size-4.5" />
+                </Button>
+              </div>
             </div>
 
             {!query && (
