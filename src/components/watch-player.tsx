@@ -127,11 +127,11 @@ export function WatchPlayer({ title, embeds }: WatchPlayerProps) {
               aria-controls={listId}
               aria-label="Escolher servidor de transmissão"
               onClick={() => setOpen((value) => !value)}
-              className="inline-flex min-h-11 max-w-72 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm transition-colors hover:border-primary"
+              className="inline-flex min-h-10 max-w-52 items-center justify-between gap-2 rounded-md border border-border bg-card px-2.5 text-xs sm:text-sm transition-colors hover:border-primary"
             >
               <span className="truncate">{optionLabel(current)}</span>
               <ChevronDown
-                className={`size-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+                className={`size-3.5 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
                 aria-hidden="true"
               />
             </button>
@@ -141,7 +141,7 @@ export function WatchPlayer({ title, embeds }: WatchPlayerProps) {
                 id={listId}
                 role="listbox"
                 aria-label="Servidores de transmissão"
-                className="absolute left-0 top-[calc(100%+0.35rem)] z-20 min-w-64 overflow-hidden rounded-md border border-border bg-popover py-1 shadow-lg"
+                className="absolute left-0 top-[calc(100%+0.35rem)] z-20 w-full min-w-44 overflow-hidden rounded-md border border-border bg-popover py-1 shadow-lg"
               >
                 {embeds.map((embed, index) => {
                   const selected = index === selectedIndex;
@@ -155,13 +155,13 @@ export function WatchPlayer({ title, embeds }: WatchPlayerProps) {
                           setSelectedIndex(index);
                           setOpen(false);
                         }}
-                        className={`flex min-h-11 w-full items-center px-3 text-left text-sm transition-colors ${
+                        className={`flex min-h-9 w-full items-center px-2.5 text-left text-xs sm:text-sm transition-colors ${
                           selected
-                            ? "bg-primary text-primary-foreground"
+                            ? "bg-primary text-primary-foreground font-medium"
                             : "text-muted-foreground hover:bg-accent hover:text-foreground"
                         }`}
                       >
-                        {optionLabel(embed)}
+                        <span className="truncate">{optionLabel(embed)}</span>
                       </button>
                     </li>
                   );
