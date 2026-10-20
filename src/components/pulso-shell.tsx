@@ -105,7 +105,7 @@ export function PulsoShell({ children }: { children: ReactNode }) {
 
       {searchOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-background/98 px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] backdrop-blur-xl md:pt-16"
+          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-background/98 px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(3rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:pt-16"
           role="dialog"
           aria-modal="true"
           aria-label="Busca global"
@@ -142,9 +142,36 @@ export function PulsoShell({ children }: { children: ReactNode }) {
             </div>
 
             {!query && (
-              <p className="py-8 text-sm text-muted-foreground">
-                Digite para pesquisar em toda a programação do Pulso TV.
-              </p>
+              <div className="py-6">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Buscas populares
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {[
+                    "Sportv",
+                    "ESPN",
+                    "Premiere",
+                    "CazéTV",
+                    "Brasileirão",
+                    "Champions League",
+                    "Flamengo",
+                    "Corinthians",
+                    "Real Madrid",
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => setQuery(suggestion)}
+                      className="rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary active:scale-95"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-6 text-xs text-muted-foreground">
+                  Ou digite o nome de qualquer time, emissora ou campeonato.
+                </p>
+              </div>
             )}
 
             {query.trim().length === 1 && (
