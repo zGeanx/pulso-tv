@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckCircle2, Clock3, List, Play, RadioTower, Search, Trophy } from "lucide-react";
+import { Calendar, CheckCircle2, Clock3, List, Play, RadioTower, Search, Trophy, Tv, X } from "lucide-react";
 import { useMemo, useState, type ElementType } from "react";
 import { useSports } from "@/hooks/use-api";
 import {
@@ -84,77 +84,109 @@ function AgendaPage() {
 
   return (
     <div className="page-container py-8 lg:py-12">
-      <header className="grid gap-5 border-b border-border pb-6 lg:grid-cols-12 lg:gap-6 lg:pb-8">
-        <div className="lg:col-span-7">
+      <header className="flex flex-col gap-6 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between lg:pb-8">
+        <div>
           <p className="section-kicker flex items-center gap-2 text-primary">
             <Trophy className="size-3.5" aria-hidden="true" />
-            Esportes
+            Agenda esportiva
           </p>
           <h1 className="mt-2 font-display text-3xl font-bold sm:mt-3 sm:text-5xl">
-            Agenda em campo.
+            Partidas em campo.
           </h1>
           <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:mt-4 sm:text-base">
             Acompanhe o que está ao vivo, o que começa em seguida e os placares do dia.
           </p>
         </div>
-        <label className="flex h-11 items-center gap-3 self-end rounded-md border border-border bg-card/60 px-3.5 sm:h-12 lg:col-span-5 lg:rounded-none lg:border-0 lg:border-b lg:bg-transparent lg:px-0">
-          <Search className="size-4 shrink-0 text-primary sm:size-5" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground sm:text-base"
-            placeholder="Time, campeonato ou esporte"
-            aria-label="Buscar time, campeonato ou esporte"
-          />
-        </label>
+
+        {/* Search input */}
+        <div className="w-full lg:max-w-md">
+          <div className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-3.5 size-4 text-muted-foreground" aria-hidden="true" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="h-11 w-full rounded-xl border border-border/80 bg-card/60 pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:border-primary focus:bg-card focus:ring-1 focus:ring-primary/40 sm:h-12"
+              placeholder="Buscar time, campeonato ou esporte..."
+              aria-label="Buscar time, campeonato ou esporte"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 rounded-md p-1 text-muted-foreground hover:bg-card hover:text-foreground cursor-pointer"
+                aria-label="Limpar busca"
+              >
+                <X className="size-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
       </header>
 
-      <div
-        className="flex items-center gap-2 overflow-x-auto border-b border-border pb-3 pt-4 touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:pt-6"
-        role="tablist"
-      >
-        {tabs.map((item) => {
-          const Icon = tabIcons[item];
-          const isSelected = tab === item;
-          return (
-            <button
-              key={item}
-              role="tab"
-              aria-selected={isSelected}
-              onClick={() => setTab(item)}
-              className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-xs font-medium transition-all ${
-                isSelected
-                  ? "bg-primary font-semibold text-primary-foreground shadow-sm"
-                  : "border border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground"
-              }`}
-            >
-              <Icon className="size-3.5" aria-hidden="true" />
-              <span>{item}</span>
-              <span
-                className={`text-[10px] tabular-nums ${
-                  isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+      {/* Filter Tabs */}
+      <div className="py-5 sm:py-6">
+        <div
+          className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
+          role="tablist"
+        >
+          {tabs.map((item) => {
+            const Icon = tabIcons[item];
+            const isSelected = tab === item;
+            return (
+              <button
+                key={item}
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setTab(item)}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isSelected
+                    ? "bg-primary font-semibold text-primary-foreground shadow-sm shadow-primary/20 scale-[1.02]"
+                    : "border border-border/80 bg-card/60 text-muted-foreground hover:border-primary/50 hover:bg-card hover:text-foreground"
                 }`}
               >
-                {counts[item]}
-              </span>
-            </button>
-          );
-        })}
+                <Icon className="size-3.5" aria-hidden="true" />
+                <span>{item}</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 font-display text-[11px] tabular-nums ${
+                    isSelected
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-secondary/80 text-muted-foreground"
+                  }`}
+                >
+                  {counts[item]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {isLoading && (
-        <div className="divide-y divide-border">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-4 py-5"
+              className="rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-5"
             >
-              <Skeleton className="h-10 w-16" />
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-2/3" />
-                <Skeleton className="h-4 w-1/3" />
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-center">
+                <div className="flex items-center gap-3 lg:col-span-3">
+                  <Skeleton className="h-12 w-16 rounded-xl" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+                <div className="lg:col-span-6 flex items-center justify-center gap-4">
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="size-8 rounded-full" />
+                  <Skeleton className="size-4" />
+                  <Skeleton className="size-8 rounded-full" />
+                  <Skeleton className="h-5 w-28" />
+                </div>
+                <div className="lg:col-span-3 flex justify-end">
+                  <Skeleton className="h-9 w-24 rounded-xl" />
+                </div>
               </div>
-              <Skeleton className="h-7 w-24" />
             </div>
           ))}
         </div>
@@ -168,7 +200,7 @@ function AgendaPage() {
           </p>
           <button
             onClick={() => refetch()}
-            className="mt-4 text-sm text-primary underline-offset-4 hover:underline"
+            className="mt-4 text-sm text-primary underline-offset-4 hover:underline cursor-pointer"
           >
             Tentar novamente
           </button>
@@ -176,7 +208,7 @@ function AgendaPage() {
       )}
 
       {!isLoading && !isError && filtered.length > 0 && (
-        <div>
+        <div className="space-y-2">
           {filtered.map((event, index) => {
             const statusLabel = SPORT_STATUS_LABEL[event.status];
             const isLive = event.status === "live";
@@ -192,74 +224,123 @@ function AgendaPage() {
             return (
               <div key={event.id}>
                 {showDivider && (
-                  <div className={`pb-2 pt-6 ${index > 0 ? "mt-2 border-t border-border" : ""}`}>
-                    <span className="inline-block rounded-md bg-secondary/80 px-2.5 py-1 text-xs font-semibold tracking-wide text-foreground">
+                  <div className={`flex items-center gap-3 pb-3 pt-6 ${index > 0 ? "mt-4" : ""}`}>
+                    <span className="flex items-center gap-2 rounded-lg border border-border/80 bg-card/90 px-3 py-1 font-display text-xs font-semibold uppercase tracking-wider text-primary shadow-sm">
+                      <Calendar className="size-3.5" />
                       {divider}
                     </span>
+                    <div className="h-px flex-1 bg-border/60" />
                   </div>
                 )}
                 <Link
                   to="/evento/$eventId"
                   params={{ eventId: event.id }}
-                  className="group block border-b border-border py-4 transition-colors hover:bg-card/40 active:scale-[0.99]"
+                  className="group block rounded-2xl border border-border/70 bg-card/40 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card/80 hover:shadow-lg hover:shadow-black/20"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                    <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
-                      <div className="w-14 shrink-0 text-left sm:w-16">
-                        <p className="font-display text-base font-semibold tabular-nums text-primary sm:text-lg">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-center">
+                    {/* Zona 1: Horário & Torneio */}
+                    <div className="flex items-center gap-3 lg:col-span-3">
+                      <div className="flex min-w-[4.25rem] flex-col items-center justify-center rounded-xl border border-border/70 bg-background/60 px-3 py-2 text-center shadow-inner">
+                        <span className="font-display text-base sm:text-lg font-bold tabular-nums text-foreground group-hover:text-primary transition-colors">
                           {time}
-                        </p>
+                        </span>
                         {showDay && (
-                          <p className="text-[10px] capitalize text-muted-foreground sm:text-[11px]">
+                          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                             {day}
-                          </p>
+                          </span>
                         )}
-                        <p className="text-[10px] uppercase text-muted-foreground sm:text-[11px]">
-                          {event.category}
-                        </p>
                       </div>
-
-                      {event.teams ? (
-                        <div className="flex shrink-0 items-center gap-1.5 pt-0.5 sm:pt-0">
-                          <TeamCrest
-                            name={event.teams.home.name}
-                            logo={event.teams.home.logo}
-                            logos={event.teams.home.logos}
-                            className="h-7 w-7"
-                          />
-                          <TeamCrest
-                            name={event.teams.away.name}
-                            logo={event.teams.away.logo}
-                            logos={event.teams.away.logos}
-                            className="h-7 w-7"
-                          />
-                        </div>
-                      ) : null}
-
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-display text-base font-medium text-foreground transition-colors group-hover:text-primary sm:text-lg">
-                          {event.title}
-                        </h3>
-                        <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                        <span className="inline-block rounded-md bg-secondary/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground truncate max-w-[200px]">
                           {event.competition}
-                          {channels.length > 0 ? ` · ${channels.join(" · ")}` : ""}
+                        </span>
+                        <p className="mt-0.5 truncate text-[11px] text-muted-foreground/80">
+                          {event.category}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 pl-[4.25rem] sm:justify-end sm:pl-0">
-                      <span
-                        className={
-                          isLive ? "status-label status-live text-[10px]" : "status-label text-[10px]"
-                        }
-                      >
-                        {isLive && <span className="live-dot" />}
-                        {statusLabel}
-                      </span>
-                      {hasEmbeds && (
-                        <span className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border bg-card/60 px-3 text-xs text-muted-foreground transition-colors group-hover:border-primary group-hover:text-primary">
-                          <Play className="size-3" />
-                          Assistir
+                    {/* Zona 2: Confronto & Transmissão */}
+                    <div className="flex flex-col justify-center min-w-0 lg:col-span-6">
+                      {event.teams ? (
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          {/* Time Mandante */}
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-end">
+                            <span className="truncate font-display text-sm sm:text-base font-semibold text-foreground text-right group-hover:text-primary transition-colors">
+                              {event.teams.home.name}
+                            </span>
+                            <TeamCrest
+                              name={event.teams.home.name}
+                              logo={event.teams.home.logo}
+                              logos={event.teams.home.logos}
+                              className="size-8 sm:size-9 shrink-0 drop-shadow-sm transition-transform duration-200 group-hover:scale-110"
+                            />
+                          </div>
+
+                          {/* Divisor VS */}
+                          <span className="shrink-0 rounded-full border border-border/80 bg-background/90 px-2.5 py-0.5 font-display text-[11px] font-bold text-muted-foreground shadow-sm">
+                            ×
+                          </span>
+
+                          {/* Time Visitante */}
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-start">
+                            <TeamCrest
+                              name={event.teams.away.name}
+                              logo={event.teams.away.logo}
+                              logos={event.teams.away.logos}
+                              className="size-8 sm:size-9 shrink-0 drop-shadow-sm transition-transform duration-200 group-hover:scale-110"
+                            />
+                            <span className="truncate font-display text-sm sm:text-base font-semibold text-foreground text-left group-hover:text-primary transition-colors">
+                              {event.teams.away.name}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <h3 className="truncate font-display text-base font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {event.title}
+                          </h3>
+                        </div>
+                      )}
+
+                      {/* Canais de Transmissão */}
+                      {channels.length > 0 && (
+                        <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+                          <Tv className="size-3 text-primary shrink-0" />
+                          <span className="truncate">
+                            {channels.join(" · ")}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Zona 3: Status & Ação Contextual */}
+                    <div className="flex items-center justify-between lg:justify-end gap-3 lg:col-span-3 pt-2 lg:pt-0 border-t border-border/40 lg:border-t-0">
+                      {isLive ? (
+                        <div className="flex items-center gap-2.5">
+                          <span className="status-label status-live text-[10px] shadow-sm">
+                            <span className="live-dot" />
+                            AO VIVO
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-1.5 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-all group-hover:scale-105">
+                            <Play className="size-3.5 fill-current" />
+                            Assistir
+                          </span>
+                        </div>
+                      ) : event.status === "upcoming" ? (
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-full border border-border/80 bg-background/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                            {statusLabel}
+                          </span>
+                          {hasEmbeds && (
+                            <span className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-card/60 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors group-hover:border-primary/50 group-hover:text-foreground">
+                              Transmissão
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                          {statusLabel}
                         </span>
                       )}
                     </div>
