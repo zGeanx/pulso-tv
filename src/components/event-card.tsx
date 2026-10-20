@@ -12,7 +12,13 @@ const STATUS_BADGE: Record<ApiSportEvent["status"], { label: string; live?: bool
   finished: { label: "ENCERRADO" },
 };
 
-export function EventCard({ event }: { event: ApiSportEvent }) {
+export function EventCard({
+  event,
+  className,
+}: {
+  event: ApiSportEvent;
+  className?: string;
+}) {
   const badge = STATUS_BADGE[event.status];
   const day = formatEventDay(event);
   const time = formatEventTime(event);
@@ -21,7 +27,7 @@ export function EventCard({ event }: { event: ApiSportEvent }) {
   const footerLine = channels.length > 0 ? channels.join(" · ") : event.category;
 
   return (
-    <article className="min-w-0 border-b border-border pb-5">
+    <article className={className ?? "min-w-0 border-b border-border pb-5"}>
       <Link to="/evento/$eventId" params={{ eventId: event.id }} className="group block min-w-0">
         <div className="relative aspect-video overflow-hidden rounded-md bg-card">
           {event.poster ? (
