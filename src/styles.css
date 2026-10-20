@@ -278,6 +278,12 @@ html.light .logo-box {
   object-fit: contain;
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.45));
 }
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .live-dot {
