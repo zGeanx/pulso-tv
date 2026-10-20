@@ -10,6 +10,7 @@ import {
   registerTeamLogosFromEvents,
   resolveTeamCrests,
 } from "@/lib/team-logos";
+import { curateUclEvent, isBogusPulsoMatchUrl } from "@/lib/ucl-fixtures";
 
 export const PULSO_ID_PREFIX = "pulso-";
 
@@ -278,13 +279,16 @@ function applyPulso(
     realPoster(event.poster, channels, match.source.thumbnail) ??
     realPoster(match.source.match_image, channels, match.source.thumbnail);
   absorbed.set(match.source.id, event.id);
+  const isBogus = isBogusPulsoMatchUrl(match.pair, match.source.url);
   return presentEvent(
     status === event.status && poster === event.poster ? event : { ...event, status, poster },
-    {
-      title: match.source.channelTitle || "Player",
-      url: match.source.url,
-      allow: match.source.allow,
-    },
+    isBogus
+      ? null
+      : {
+          title: match.source.channelTitle || "Player",
+          url: match.source.url,
+          allow: match.source.allow,
+        },
     channels,
   );
 }
@@ -294,11 +298,12 @@ function presentEvent(
   replacement: { title: string; url: string; allow: string } | null,
   channels: PulsoEmbedSource[],
 ): ApiSportEvent {
-  return withTeamCrests({
+  const presented = withTeamCrests({
     ...withInferredCategory(event),
     poster: realPoster(event.poster, channels),
     embeds: presentEventEmbeds(event.embeds, replacement, channels),
   });
+  return curateUclEvent(presented);
 }
 
 function withTeamCrests(event: ApiSportEvent): ApiSportEvent {
@@ -449,8 +454,10 @@ function presentEventEmbeds(
   }
 
   const ordered = groups.flatMap((slot) => {
-    const repeated = repeatedChannelOptions(slot.name, channels);
-    if (repeated.length > 0) return repeated;
+    if (slot.embeds.length === 0) {
+      const repeated = repeatedChannelOptions(slot.name, channels);
+      if (repeated.length > 0) return repeated;
+    }
     return slot.embeds.map((embed) => rawEmbed(slot.name, embed.embed_url, embed.allow ?? ""));
   });
   return numberOptions(ordered);
