@@ -14,6 +14,7 @@ import {
   formatEventTime,
   labelFromSlug,
   pickRelatedEvents,
+  type ApiSportEvent,
 } from "@/lib/api";
 
 export const Route = createFileRoute("/evento/$eventId")({
@@ -39,11 +40,112 @@ function stripMarkdown(text: string): string {
   return text.replace(/\*/g, "");
 }
 
+function EventDetailsPanel({
+  event,
+  isLive,
+  day,
+  countdown,
+  description,
+  theaterMode,
+}: {
+  event: ApiSportEvent;
+  isLive: boolean;
+  day: string | null;
+  countdown: string | null;
+  description: string | null;
+  theaterMode: boolean;
+}) {
+  return (
+    <aside className={theaterMode ? "mt-8 rounded-2xl border border-border/80 bg-card/40 p-6 shadow-sm" : "lg:col-span-4"}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={isLive ? "status-label status-live" : "status-label"}>
+          {isLive && <span className="live-dot" />}
+          {isLive ? "AO VIVO" : SPORT_STATUS_LABEL[event.status]}
+        </span>
+        {event.category && <span className="status-label">{event.category}</span>}
+        {event.competition && <span className="status-label">{event.competition}</span>}
+      </div>
+
+      {event.teams ? (
+        <div className="mt-5 flex items-center gap-3">
+          <div className="min-w-0 flex-1 text-center">
+            <TeamCrest
+              name={event.teams.home.name}
+              logo={event.teams.home.logo}
+              logos={event.teams.home.logos}
+              size="md"
+              className="mx-auto"
+            />
+            <p className="mt-2 truncate font-display text-sm font-semibold">
+              {event.teams.home.name}
+            </p>
+          </div>
+          <span className="shrink-0 font-display text-lg font-semibold text-muted-foreground">
+            ×
+          </span>
+          <div className="min-w-0 flex-1 text-center">
+            <TeamCrest
+              name={event.teams.away.name}
+              logo={event.teams.away.logo}
+              logos={event.teams.away.logos}
+              size="md"
+              className="mx-auto"
+            />
+            <p className="mt-2 truncate font-display text-sm font-semibold">
+              {event.teams.away.name}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      <h1 className="mt-5 font-display text-2xl sm:text-3xl font-bold">{event.title}</h1>
+
+      <dl className="mt-5 divide-y divide-border border-y border-border text-sm">
+        <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
+          <dt className="text-muted-foreground">Campeonato</dt>
+          <dd className="font-medium text-foreground">{event.competition || "—"}</dd>
+        </div>
+        <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
+          <dt className="text-muted-foreground">Esporte</dt>
+          <dd className="font-medium text-foreground">{event.category || "—"}</dd>
+        </div>
+        <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
+          <dt className="text-muted-foreground">Horário</dt>
+          <dd className="tabular-nums font-medium text-foreground">
+            {formatEventTime(event)}
+            {day ? ` · ${day}` : ""}
+            {countdown ? (
+              <span className="mt-1 block text-primary font-semibold">Começa em {countdown}</span>
+            ) : null}
+          </dd>
+        </div>
+        {event.embeds.length > 0 && (
+          <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
+            <dt className="text-muted-foreground">Sinais</dt>
+            <dd>
+              {event.embeds.map((embed) => (
+                <p key={embed.embed_url} className="text-xs text-muted-foreground">
+                  {embed.quality ? `${embed.provider} · ${embed.quality}` : embed.provider}
+                </p>
+              ))}
+            </dd>
+          </div>
+        )}
+      </dl>
+
+      {description && (
+        <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>
+      )}
+    </aside>
+  );
+}
+
 function EventWatchPage() {
   const { eventId } = Route.useParams();
   const { data: event, isLoading, isError, refetch } = useSport(eventId);
   const { data: events = [] } = useSports();
   const { data: channels = [] } = useChannels();
+  const [theaterMode, setTheaterMode] = useState(false);
   const countdown = useKickoffCountdown(event?.start_timestamp ?? 0, event?.status === "upcoming");
 
   useEffect(() => {
@@ -102,122 +204,104 @@ function EventWatchPage() {
   const isLive = event.status === "live";
 
   return (
-    <div className="page-container py-8 lg:py-12">
-      <nav
-        className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground"
-        aria-label="Trilha"
-      >
-        <Link to="/" className="hover:text-foreground">
-          Início
-        </Link>
-        <ChevronRight className="size-3" aria-hidden="true" />
-        <Link to="/agenda" className="hover:text-foreground">
-          Agenda
-        </Link>
-        <ChevronRight className="size-3" aria-hidden="true" />
-        <span className="text-foreground">{event.title}</span>
-      </nav>
-
-      <div className="mt-6 grid gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-8">
-          <WatchPlayer title={event.title} embeds={event.embeds} />
-          <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-            Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam conexões
-            de streaming. Instale o app gratuito{" "}
-            <a
-              href="https://one.one.one.one/"
-              target="_blank"
-              rel="noreferrer"
-              className="text-primary underline-offset-4 hover:underline"
+    <div>
+      {theaterMode ? (
+        <div className="w-full bg-black/95 border-b border-border/80 shadow-2xl">
+          <div className="mx-auto w-full max-w-[1720px] 2xl:max-w-[1880px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+            <nav
+              className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mb-4"
+              aria-label="Trilha"
             >
-              1.1.1.1 da Cloudflare
-            </a>
-            , ative e recarregue a página.
-          </p>
-        </div>
+              <Link to="/agenda" className="hover:text-foreground transition-colors">
+                Agenda
+              </Link>
+              <ChevronRight className="size-3" aria-hidden="true" />
+              <span className="text-foreground font-medium">{event.title}</span>
+            </nav>
 
-        <aside className="lg:col-span-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={isLive ? "status-label status-live" : "status-label"}>
-              {isLive && <span className="live-dot" />}
-              {isLive ? "AO VIVO" : SPORT_STATUS_LABEL[event.status]}
-            </span>
-            {event.category && <span className="status-label">{event.category}</span>}
-            {event.competition && <span className="status-label">{event.competition}</span>}
+            <WatchPlayer
+              title={event.title}
+              embeds={event.embeds}
+              theaterMode={true}
+              onToggleTheater={() => setTheaterMode(false)}
+            />
           </div>
+        </div>
+      ) : null}
 
-          {event.teams ? (
-            <div className="mt-5 flex items-center gap-3">
-              <div className="min-w-0 flex-1 text-center">
-                <TeamCrest
-                  name={event.teams.home.name}
-                  logo={event.teams.home.logo}
-                  logos={event.teams.home.logos}
-                  size="md"
-                  className="mx-auto"
+      <div className="page-container py-8 lg:py-12">
+        {!theaterMode ? (
+          <>
+            <nav
+              className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
+              aria-label="Trilha"
+            >
+              <Link to="/agenda" className="hover:text-foreground transition-colors">
+                Agenda
+              </Link>
+              <ChevronRight className="size-3" aria-hidden="true" />
+              <span className="text-foreground font-medium">{event.title}</span>
+            </nav>
+
+            <div className="mt-6 grid gap-8 lg:grid-cols-12">
+              <div className="lg:col-span-8">
+                <WatchPlayer
+                  title={event.title}
+                  embeds={event.embeds}
+                  theaterMode={false}
+                  onToggleTheater={() => setTheaterMode(true)}
                 />
-                <p className="mt-2 truncate font-display text-sm font-semibold">
-                  {event.teams.home.name}
+                <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+                  Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam conexões
+                  de streaming. Instale o app gratuito{" "}
+                  <a
+                    href="https://one.one.one.one/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    1.1.1.1 da Cloudflare
+                  </a>
+                  , ative e recarregue a página.
                 </p>
               </div>
-              <span className="shrink-0 font-display text-lg font-semibold text-muted-foreground">
-                ×
-              </span>
-              <div className="min-w-0 flex-1 text-center">
-                <TeamCrest
-                  name={event.teams.away.name}
-                  logo={event.teams.away.logo}
-                  logos={event.teams.away.logos}
-                  size="md"
-                  className="mx-auto"
-                />
-                <p className="mt-2 truncate font-display text-sm font-semibold">
-                  {event.teams.away.name}
-                </p>
-              </div>
-            </div>
-          ) : null}
 
-          <h1 className="mt-5 font-display text-3xl font-bold">{event.title}</h1>
+              <EventDetailsPanel
+                event={event}
+                isLive={isLive}
+                day={day}
+                countdown={countdown}
+                description={description}
+                theaterMode={false}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-sm leading-relaxed text-muted-foreground max-w-2xl">
+              Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam conexões
+              de streaming. Instale o app gratuito{" "}
+              <a
+                href="https://one.one.one.one/"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                1.1.1.1 da Cloudflare
+              </a>
+              , ative e recarregue a página.
+            </p>
 
-          <dl className="mt-5 divide-y divide-border border-y border-border text-sm">
-            <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
-              <dt className="text-muted-foreground">Campeonato</dt>
-              <dd>{event.competition || "—"}</dd>
-            </div>
-            <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
-              <dt className="text-muted-foreground">Esporte</dt>
-              <dd>{event.category || "—"}</dd>
-            </div>
-            <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
-              <dt className="text-muted-foreground">Horário</dt>
-              <dd className="tabular-nums">
-                {formatEventTime(event)}
-                {day ? ` · ${day}` : ""}
-                {countdown ? (
-                  <span className="mt-1 block text-primary">Começa em {countdown}</span>
-                ) : null}
-              </dd>
-            </div>
-            {event.embeds.length > 0 && (
-              <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 py-2.5">
-                <dt className="text-muted-foreground">Sinais</dt>
-                <dd>
-                  {event.embeds.map((embed) => (
-                    <p key={embed.embed_url}>
-                      {embed.quality ? `${embed.provider} · ${embed.quality}` : embed.provider}
-                    </p>
-                  ))}
-                </dd>
-              </div>
-            )}
-          </dl>
-
-          {description && (
-            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{description}</p>
-          )}
-        </aside>
-      </div>
+            <EventDetailsPanel
+              event={event}
+              isLive={isLive}
+              day={day}
+              countdown={countdown}
+              description={description}
+              theaterMode={true}
+            />
+          </>
+        )}
 
       {broadcastChannels.length > 0 && (
         <section className="mt-12">
@@ -256,6 +340,7 @@ function EventWatchPage() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }
