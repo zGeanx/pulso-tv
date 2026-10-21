@@ -15,9 +15,7 @@ export function ZappingBar({ currentChannelId, channels, category }: ZappingBarP
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Filtra canais relevantes (mesma categoria ou com EPG ativo), limitando a 16
-  const pool = category
-    ? channels.filter((ch) => ch.category === category)
-    : channels;
+  const pool = category ? channels.filter((ch) => ch.category === category) : channels;
   const displayChannels = pool.slice(0, 16);
 
   const scroll = (direction: -1 | 1) => {
@@ -32,14 +30,8 @@ export function ZappingBar({ currentChannelId, channels, category }: ZappingBarP
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div className="flex items-center gap-2">
           <RadioTower className="size-4 text-primary" aria-hidden="true" />
-          <span className="font-display text-sm font-semibold text-foreground">
-            Zapping rápido
-          </span>
-          {category && (
-            <span className="text-xs text-muted-foreground">
-              · {category}
-            </span>
-          )}
+          <span className="font-display text-sm font-semibold text-foreground">Zapping rápido</span>
+          {category && <span className="text-xs text-muted-foreground">· {category}</span>}
         </div>
         <div className="flex items-center gap-1.5">
           <Button
@@ -93,7 +85,9 @@ export function ZappingBar({ currentChannelId, channels, category }: ZappingBarP
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-1">
-                  <span className={`truncate font-display text-xs font-semibold ${isCurrent ? "text-primary" : "text-foreground group-hover:text-primary transition-colors"}`}>
+                  <span
+                    className={`truncate font-display text-xs font-semibold ${isCurrent ? "text-primary" : "text-foreground group-hover:text-primary transition-colors"}`}
+                  >
                     {channel.name}
                   </span>
                   {isCurrent && (

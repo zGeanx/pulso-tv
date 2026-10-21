@@ -433,18 +433,12 @@ function presentEventEmbeds(
   for (const embed of embeds) {
     const name = baseProvider(embed.provider);
     if (!name) continue;
-    const key = canonicalChannel(name);
-    if (isAlternative(embed.provider)) {
-      if (key) hadAlternative.add(key);
-      ensure(name);
-      continue;
-    }
     const slot = ensure(name);
     if (!slot || slot.embeds.some((item) => item.embed_url === embed.embed_url)) continue;
     slot.embeds.push(embed);
   }
 
-  if (replacement) {
+  if (replacement && replacement.url) {
     const target =
       pickReplacementGroup(groups, hadAlternative, replacement.title) ?? ensure(replacement.title);
     const extra = rawEmbed(target?.name || replacement.title, replacement.url, replacement.allow);
@@ -454,11 +448,11 @@ function presentEventEmbeds(
   }
 
   const ordered = groups.flatMap((slot) => {
-    if (slot.embeds.length === 0) {
-      const repeated = repeatedChannelOptions(slot.name, channels);
-      if (repeated.length > 0) return repeated;
-    }
-    return slot.embeds.map((embed) => rawEmbed(slot.name, embed.embed_url, embed.allow ?? ""));
+    return slot.embeds.map((embed) => {
+      const isAlt = isAlternative(embed.provider);
+      const title = isAlt ? `${slot.name} (Alternativo)` : slot.name;
+      return rawEmbed(title, embed.embed_url, embed.allow ?? "");
+    });
   });
   return numberOptions(ordered);
 }

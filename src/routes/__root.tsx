@@ -19,9 +19,7 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Essa página não existe ou foi movida.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">Essa página não existe ou foi movida.</p>
         <div className="mt-6">
           <Link
             to="/"
@@ -103,7 +101,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Grotesk:wght@400;500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Space+Grotesk:wght@400;500;600;700&display=swap",
+      },
       { rel: "icon", href: "/favicon.ico?v=2", sizes: "any" },
       { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png?v=2" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png?v=2" },
@@ -135,7 +136,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PulsoShell><Outlet /></PulsoShell>
+      <PulsoShell>
+        <Outlet />
+      </PulsoShell>
     </QueryClientProvider>
   );
 }

@@ -77,7 +77,10 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
 
           {program && (
             <div className="absolute inset-x-0 bottom-0 z-20 h-1 bg-background/60">
-              <div className="h-full bg-live transition-all" style={{ width: `${progress * 100}%` }} />
+              <div
+                className="h-full bg-live transition-all"
+                style={{ width: `${progress * 100}%` }}
+              />
             </div>
           )}
         </div>
@@ -98,11 +101,12 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
           </div>
 
           <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2 text-[11px] text-muted-foreground">
-            <span className="font-display tabular-nums">
-              {range || "Sinal 24h"}
-            </span>
+            <span className="font-display tabular-nums">{range || "Sinal 24h"}</span>
             {nextProgram ? (
-              <span className="truncate max-w-[130px] text-muted-foreground/80" title={`A seguir: ${nextProgram}`}>
+              <span
+                className="truncate max-w-[130px] text-muted-foreground/80"
+                title={`A seguir: ${nextProgram}`}
+              >
                 A seguir: {nextProgram}
               </span>
             ) : (

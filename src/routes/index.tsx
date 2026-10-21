@@ -459,9 +459,7 @@ function ExploreSection({
     return acc;
   }, {});
 
-  const sorted = [...categories].sort(
-    (a, b) => (counts[b.name] ?? 0) - (counts[a.name] ?? 0),
-  );
+  const sorted = [...categories].sort((a, b) => (counts[b.name] ?? 0) - (counts[a.name] ?? 0));
 
   const mainCategory = sorted[0];
   const otherCategories = sorted.slice(1);
@@ -482,47 +480,50 @@ function ExploreSection({
       </div>
 
       <div className="mt-3.5 grid grid-cols-2 gap-2.5">
-        {mainCategory && (() => {
-          const Icon = categoryIcons[mainCategory.name] ?? Tv;
-          const style = categoryStyles[mainCategory.name] ?? {
-            gradient: "from-primary/15 via-primary/5 to-transparent",
-            borderHover: "hover:border-primary/50",
-            iconBg: "bg-primary/15 text-primary",
-            badgeText: "Destaque",
-          };
-          const count = counts[mainCategory.name] ?? 0;
+        {mainCategory &&
+          (() => {
+            const Icon = categoryIcons[mainCategory.name] ?? Tv;
+            const style = categoryStyles[mainCategory.name] ?? {
+              gradient: "from-primary/15 via-primary/5 to-transparent",
+              borderHover: "hover:border-primary/50",
+              iconBg: "bg-primary/15 text-primary",
+              badgeText: "Destaque",
+            };
+            const count = counts[mainCategory.name] ?? 0;
 
-          return (
-            <Link
-              key={mainCategory.name}
-              to="/canais"
-              search={{ categoria: mainCategory.name }}
-              className={`group col-span-2 relative flex items-center justify-between overflow-hidden rounded-xl border border-border/80 bg-card/60 bg-gradient-to-r ${style.gradient} p-3 sm:p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${style.borderHover}`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 transition-colors ${style.iconBg}`}>
-                  <Icon className="size-5" aria-hidden="true" />
-                </span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-display text-sm sm:text-base font-semibold group-hover:text-primary transition-colors">
-                      {mainCategory.name}
-                    </span>
-                    <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-400">
-                      {style.badgeText ?? "Destaque"}
-                    </span>
+            return (
+              <Link
+                key={mainCategory.name}
+                to="/canais"
+                search={{ categoria: mainCategory.name }}
+                className={`group col-span-2 relative flex items-center justify-between overflow-hidden rounded-xl border border-border/80 bg-card/60 bg-gradient-to-r ${style.gradient} p-3 sm:p-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${style.borderHover}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/60 transition-colors ${style.iconBg}`}
+                  >
+                    <Icon className="size-5" aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-display text-sm sm:text-base font-semibold group-hover:text-primary transition-colors">
+                        {mainCategory.name}
+                      </span>
+                      <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-400">
+                        {style.badgeText ?? "Destaque"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                      {count} canais disponíveis ao vivo
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                    {count} canais disponíveis ao vivo
-                  </p>
                 </div>
-              </div>
-              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background/60 text-muted-foreground transition-all duration-200 group-hover:border-primary/50 group-hover:text-primary group-hover:translate-x-0.5">
-                <ArrowRight className="size-3.5" />
-              </div>
-            </Link>
-          );
-        })()}
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background/60 text-muted-foreground transition-all duration-200 group-hover:border-primary/50 group-hover:text-primary group-hover:translate-x-0.5">
+                  <ArrowRight className="size-3.5" />
+                </div>
+              </Link>
+            );
+          })()}
 
         {otherCategories.map((cat) => {
           const Icon = categoryIcons[cat.name] ?? Tv;
@@ -541,7 +542,9 @@ function ExploreSection({
               className={`group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/70 bg-card/50 bg-gradient-to-br ${style.gradient} p-2.5 sm:p-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${style.borderHover}`}
             >
               <div className="flex items-start justify-between gap-2">
-                <span className={`flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 transition-colors ${style.iconBg}`}>
+                <span
+                  className={`flex size-7 sm:size-8 shrink-0 items-center justify-center rounded-lg border border-border/60 transition-colors ${style.iconBg}`}
+                >
                   <Icon className="size-3.5 sm:size-4" aria-hidden="true" />
                 </span>
                 <span className="font-display text-[11px] tabular-nums text-muted-foreground group-hover:text-foreground">

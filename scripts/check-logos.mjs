@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 
 const PULSO_ORIGIN = "https://api.pulso-tv.online";
@@ -154,6 +154,24 @@ const workers = Array.from({ length: 4 }, async () => {
     const next = queue.shift();
     if (!next) return;
     const [name, raw] = next;
+    const localFile = new URL(`../public${raw}`, import.meta.url);
+    if (raw.startsWith("/logos/") && existsSync(localFile)) {
+      try {
+        const buf = readFileSync(localFile);
+        const info = imageInfo(buf);
+        if (!info.ok || !info.transparent) {
+          problems.push(`${name}: imagem local ok=${info.ok}, transparência=${info.transparent}`);
+          continue;
+        }
+        const hash = createHash("sha256").update(buf).digest("hex");
+        const names = byHash.get(hash) ?? [];
+        names.push(name);
+        byHash.set(hash, names);
+      } catch (error) {
+        problems.push(`${name}: ${error instanceof Error ? error.message : error}`);
+      }
+      continue;
+    }
     const hosted = raw.startsWith("/logos/teams/") ? raw.replace(/\.png$/i, ".webp") : raw;
     const url = hosted.startsWith("/logos/") ? `${PULSO_ORIGIN}${hosted}` : hosted;
     try {

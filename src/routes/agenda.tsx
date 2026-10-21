@@ -1,5 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Calendar, CheckCircle2, Clock3, List, Play, RadioTower, Search, Trophy, Tv, X } from "lucide-react";
+import {
+  Calendar,
+  CheckCircle2,
+  Clock3,
+  List,
+  Play,
+  RadioTower,
+  Search,
+  Trophy,
+  Tv,
+  X,
+} from "lucide-react";
 import { useMemo, useState, type ElementType } from "react";
 import { useSports } from "@/hooks/use-api";
 import {
@@ -101,7 +112,10 @@ function AgendaPage() {
         {/* Search input */}
         <div className="w-full lg:max-w-md">
           <div className="relative flex items-center">
-            <Search className="pointer-events-none absolute left-3.5 size-4 text-muted-foreground" aria-hidden="true" />
+            <Search
+              className="pointer-events-none absolute left-3.5 size-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -125,10 +139,7 @@ function AgendaPage() {
 
       {/* Filter Tabs */}
       <div className="py-5 sm:py-6">
-        <div
-          className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
-          role="tablist"
-        >
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist">
           {tabs.map((item) => {
             const Icon = tabIcons[item];
             const isSelected = tab === item;
@@ -164,10 +175,7 @@ function AgendaPage() {
       {isLoading && (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-5"
-            >
+            <div key={i} className="rounded-2xl border border-border/70 bg-card/40 p-4 sm:p-5">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-center">
                 <div className="flex items-center gap-3 lg:col-span-3">
                   <Skeleton className="h-12 w-16 rounded-xl" />
@@ -307,9 +315,7 @@ function AgendaPage() {
                       {channels.length > 0 && (
                         <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
                           <Tv className="size-3 text-primary shrink-0" />
-                          <span className="truncate">
-                            {channels.join(" · ")}
-                          </span>
+                          <span className="truncate">{channels.join(" · ")}</span>
                         </div>
                       )}
                     </div>

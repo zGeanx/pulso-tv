@@ -48,11 +48,7 @@ export function MatchCover({
             logo={event.teams.home.logo}
             logos={event.teams.home.logos}
             size={hero ? "lg" : "md"}
-            className={
-              hero
-                ? "sm:h-20 sm:w-20 lg:h-36 lg:w-36"
-                : "sm:h-14 sm:w-14 lg:h-16 lg:w-16"
-            }
+            className={hero ? "sm:h-20 sm:w-20 lg:h-36 lg:w-36" : "sm:h-14 sm:w-14 lg:h-16 lg:w-16"}
           />
           <span
             className={cn(
@@ -67,11 +63,7 @@ export function MatchCover({
             logo={event.teams.away.logo}
             logos={event.teams.away.logos}
             size={hero ? "lg" : "md"}
-            className={
-              hero
-                ? "sm:h-20 sm:w-20 lg:h-36 lg:w-36"
-                : "sm:h-14 sm:w-14 lg:h-16 lg:w-16"
-            }
+            className={hero ? "sm:h-20 sm:w-20 lg:h-36 lg:w-36" : "sm:h-14 sm:w-14 lg:h-16 lg:w-16"}
           />
         </div>
       ) : (

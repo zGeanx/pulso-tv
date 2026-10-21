@@ -127,7 +127,9 @@ export function isWomensBroadcast(title: string): boolean {
 }
 
 function clubScore(name: string): number {
-  const padded = ` ${fold(name).replace(/[^a-z0-9]+/g, " ").trim()} `;
+  const padded = ` ${fold(name)
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()} `;
   let best = 0;
   for (const [club, score] of CLUBS) {
     const needle = ` ${club} `;
@@ -142,7 +144,9 @@ export function fameScore(event: ApiSportEvent): number {
   if (isWomensEvent(event) || BLOCKED.test(text)) return 0;
   const league = LEAGUES.find(([pattern]) => pattern.test(text));
   if (!league) return 0;
-  const teams = (event.teams ? clubScore(event.teams.home.name) : 0) + (event.teams ? clubScore(event.teams.away.name) : 0);
+  const teams =
+    (event.teams ? clubScore(event.teams.home.name) : 0) +
+    (event.teams ? clubScore(event.teams.away.name) : 0);
   return league[1] + teams + (event.popular ? 4 : 0);
 }
 

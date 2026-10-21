@@ -278,12 +278,13 @@ export function eventChannelNames(event: Pick<ApiSportEvent, "embeds">): string[
   const names: string[] = [];
   const seen = new Set<string>();
   for (const embed of event.embeds) {
-    const clean = embed.provider
+    let clean = embed.provider
       .replace(/\s*\[[^\]]+\]\s*$/g, "")
       .replace(/\s*\(alternativo\)\s*/gi, " ")
       .trim()
       .replace(/\s+/g, " ");
     if (!clean || /^player$/i.test(clean)) continue;
+    if (/^hbo\s*max(\s*1)?$/i.test(clean)) clean = "Max";
     const key = clean.toLocaleLowerCase("pt-BR");
     if (seen.has(key)) continue;
     seen.add(key);

@@ -108,9 +108,7 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
     <div className="w-full">
       <div
         className={`relative overflow-hidden rounded-xl bg-black border border-border/80 shadow-2xl transition-all duration-300 ${
-          theaterMode
-            ? "aspect-video w-full max-h-[82vh] mx-auto"
-            : "aspect-video w-full"
+          theaterMode ? "aspect-video w-full max-h-[82vh] mx-auto" : "aspect-video w-full"
         }`}
       >
         {current ? (
@@ -194,7 +192,11 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
                 }`}
                 title={theaterMode ? "Sair do modo cinema [T]" : "Modo cinema [T]"}
               >
-                {theaterMode ? <Minimize2 className="size-3.5" /> : <Maximize2 className="size-3.5" />}
+                {theaterMode ? (
+                  <Minimize2 className="size-3.5" />
+                ) : (
+                  <Maximize2 className="size-3.5" />
+                )}
                 <span className="hidden sm:inline">
                   {theaterMode ? "Modo normal" : "Modo cinema"}
                 </span>
@@ -209,7 +211,11 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
               onClick={() => void copyEmbed()}
               className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border/80 bg-card/60 px-3 text-xs text-muted-foreground transition-all hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer shadow-sm"
             >
-              {copied === "embed" ? <Check className="size-3.5 text-primary" /> : <Link2 className="size-3.5" />}
+              {copied === "embed" ? (
+                <Check className="size-3.5 text-primary" />
+              ) : (
+                <Link2 className="size-3.5" />
+              )}
               {copied === "embed" ? "Copiado" : "Copiar embed"}
             </button>
 
@@ -218,7 +224,11 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
               onClick={() => void sharePage()}
               className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border/80 bg-card/60 px-3 text-xs text-muted-foreground transition-all hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer shadow-sm"
             >
-              {copied === "share" ? <Check className="size-3.5 text-primary" /> : <Share2 className="size-3.5" />}
+              {copied === "share" ? (
+                <Check className="size-3.5 text-primary" />
+              ) : (
+                <Share2 className="size-3.5" />
+              )}
               {copied === "share" ? "Link copiado" : "Compartilhar"}
             </button>
           </div>

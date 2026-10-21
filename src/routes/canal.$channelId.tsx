@@ -83,9 +83,7 @@ function ChannelDetailsPanel({
         </div>
 
         {channel.description && (
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {channel.description}
-          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{channel.description}</p>
         )}
       </div>
 
@@ -96,7 +94,9 @@ function ChannelDetailsPanel({
               <RadioTower className="size-3.5 text-primary" aria-hidden="true" />
               No ar agora
             </p>
-            <p className="mt-1.5 font-display text-lg font-semibold text-foreground">{current.title}</p>
+            <p className="mt-1.5 font-display text-lg font-semibold text-foreground">
+              {current.title}
+            </p>
             {currentRange && (
               <p className="mt-0.5 font-display text-xs tabular-nums text-muted-foreground">
                 {currentRange}
@@ -293,50 +293,50 @@ function ChannelWatchPage() {
           </>
         )}
 
-      {games.length > 0 && (
-        <section className="mt-12">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-              <CalendarDays className="size-5 text-primary" aria-hidden="true" />
-              Próximos jogos
-            </h2>
-            <Link
-              to="/agenda"
-              className="text-xs uppercase text-muted-foreground hover:text-primary"
-            >
-              Agenda completa
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {games.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
-        </section>
-      )}
+        {games.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+                <CalendarDays className="size-5 text-primary" aria-hidden="true" />
+                Próximos jogos
+              </h2>
+              <Link
+                to="/agenda"
+                className="text-xs uppercase text-muted-foreground hover:text-primary"
+              >
+                Agenda completa
+              </Link>
+            </div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {games.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          </section>
+        )}
 
-      {related.length > 0 && (
-        <section className="mt-12">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-              <Tv className="size-5 text-primary" aria-hidden="true" />
-              Outros canais · {channel.category}
-            </h2>
-            <Link
-              to="/canais"
-              search={{ categoria: channel.category }}
-              className="text-xs uppercase text-muted-foreground hover:text-primary"
-            >
-              Ver todos
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((item) => (
-              <ChannelCard key={item.id} channel={item} />
-            ))}
-          </div>
-        </section>
-      )}
+        {related.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+                <Tv className="size-5 text-primary" aria-hidden="true" />
+                Outros canais · {channel.category}
+              </h2>
+              <Link
+                to="/canais"
+                search={{ categoria: channel.category }}
+                className="text-xs uppercase text-muted-foreground hover:text-primary"
+              >
+                Ver todos
+              </Link>
+            </div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((item) => (
+                <ChannelCard key={item.id} channel={item} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

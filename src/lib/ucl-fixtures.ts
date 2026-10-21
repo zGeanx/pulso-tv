@@ -124,8 +124,44 @@ export const UCL_FIXTURES: Record<string, UclFixtureConfig> = {
     ],
   },
   "atletico madrid|stuttgart": {
-    channels: ["HBO Max"],
-    primaryChannel: "HBO Max",
+    channels: ["Max"],
+    primaryChannel: "Max",
+  },
+  "rb leipzig|real madrid": {
+    channels: ["TNT", "Max"],
+    primaryChannel: "TNT",
+  },
+  "arsenal|bayern munchen": {
+    channels: ["Space", "Max"],
+    primaryChannel: "Space",
+  },
+  "como|manchester united": {
+    channels: ["Max"],
+    primaryChannel: "Max",
+  },
+  "galatasaray|lille": {
+    channels: ["Max"],
+    primaryChannel: "Max",
+  },
+  "aston villa|viking": {
+    channels: ["Max"],
+    primaryChannel: "Max",
+  },
+  "club brugge|lens": {
+    channels: ["Max"],
+    primaryChannel: "Max",
+  },
+  "lask linz|sporting": {
+    channels: ["Max"],
+    primaryChannel: "Max",
+  },
+  "inter|shakhtar": {
+    channels: ["Max"],
+    primaryChannel: "Max",
+  },
+  "feyenoord|real betis": {
+    channels: ["Space", "Max"],
+    primaryChannel: "Space",
   },
 };
 
@@ -186,11 +222,11 @@ function renumberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
 /**
  * Curates a UEFA Champions League event to ensure:
  * 1. Only PSG x Barcelona has HBO Max 1 (beside TNT and SBT).
- * 2. Fenerbahçe x Slavia Praga and Liverpool x Villarreal are labeled as Space.
- * 3. Sabah x Borussia Dortmund is labeled as TNT.
+ * 2. Fenerbahçe x Slavia Praga, Liverpool x Villarreal, Bayern x Arsenal, Betis x Feyenoord have Space.
+ * 3. Sabah x Borussia Dortmund and Real Madrid x RB Leipzig have TNT.
  * 4. Man City, Napoli, Porto, Roma have HBO Max 2, 3, 4, 5 respectively.
- * 5. Stuttgart x Atlético de Madrid has HBO Max.
- * 6. Bogus max1 streams from Pulso API are stripped from other matches.
+ * 5. General UCL matches are labeled as Max (never repeated "HBO Max 1" across all games).
+ * 6. Bogus max1 streams from Pulso API are stripped from all non-PSG fixtures.
  * 7. Real match streams from esportesembed.org are preserved and prioritized.
  */
 export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
@@ -199,11 +235,12 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
   if (!names) return event;
   const pair = uclPairKey(names.home, names.away);
   const config = UCL_FIXTURES[pair];
-  if (!config) return event;
+  const primaryChannel = config?.primaryChannel || "Max";
+  const isPsgBarca = pair === "barcelona|psg";
 
   // Filter out any bogus max1 streams mistakenly attached to non-PSG fixtures
   const validEmbeds = event.embeds.filter((embed) => {
-    if (pair === "barcelona|psg") return true;
+    if (isPsgBarca) return true;
     return !/(?:\/|=)max1(?:[^\d]|$)/i.test(embed.embed_url);
   });
 
@@ -216,9 +253,9 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
     embeds.push(embed);
   };
 
-  if (pair === "barcelona|psg") {
+  if (isPsgBarca) {
     // 1. HBO Max 1 catalog channel feeds
-    for (const extra of config.extraEmbeds ?? []) {
+    for (const extra of config?.extraEmbeds ?? []) {
       push({
         provider: extra.provider,
         quality: "",
@@ -245,8 +282,8 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
     };
   }
 
-  // 1. Extra embeds for the designated channel (Space / HBO Max 2-5)
-  for (const extra of config.extraEmbeds ?? []) {
+  // 1. Extra embeds for the designated channel (Space / HBO Max 2-5) if configured
+  for (const extra of config?.extraEmbeds ?? []) {
     push({
       provider: extra.provider,
       quality: "",
@@ -255,13 +292,11 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
     });
   }
 
-  // 2. Existing streams from Reidos/Pulso with provider rewritten to match the fixture
+  // 2. Existing streams from Reidos/Pulso with provider rewritten cleanly (never generic "HBO Max 1")
   for (const embed of validEmbeds) {
     let provider = embed.provider;
-    if (/hbo\s*max/i.test(provider)) {
-      provider = isAlternative(provider)
-        ? `${config.primaryChannel} (Alternativo)`
-        : config.primaryChannel;
+    if (/hbo\s*max(\s*1)?|max\b/i.test(provider)) {
+      provider = isAlternative(provider) ? `${primaryChannel} (Alternativo)` : primaryChannel;
     }
     push({
       ...embed,

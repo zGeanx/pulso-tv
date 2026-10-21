@@ -44,8 +44,7 @@ function ChannelsPage() {
   );
 
   const category =
-    search.categoria &&
-    (apiCategories.length === 0 || categoryNames.includes(search.categoria))
+    search.categoria && (apiCategories.length === 0 || categoryNames.includes(search.categoria))
       ? search.categoria
       : ALL_LABEL;
 
@@ -103,7 +102,10 @@ function ChannelsPage() {
         {/* Search input container */}
         <div className="w-full lg:max-w-md">
           <div className="relative flex items-center">
-            <Search className="pointer-events-none absolute left-3.5 size-4 text-muted-foreground" aria-hidden="true" />
+            <Search
+              className="pointer-events-none absolute left-3.5 size-4 text-muted-foreground"
+              aria-hidden="true"
+            />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -170,7 +172,8 @@ function ChannelsPage() {
           </span>
           {deferredQuery && (
             <span className="text-xs text-muted-foreground">
-              · filtrado por &ldquo;<span className="text-foreground font-medium">{deferredQuery}</span>&rdquo;
+              · filtrado por &ldquo;
+              <span className="text-foreground font-medium">{deferredQuery}</span>&rdquo;
             </span>
           )}
         </div>

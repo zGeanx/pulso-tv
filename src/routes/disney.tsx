@@ -32,8 +32,8 @@ function DisneyPage() {
           </p>
           <h1 className="mt-3 font-display text-4xl font-bold sm:text-5xl">Em breve.</h1>
           <p className="mt-4 max-w-xl text-muted-foreground">
-            A grade Disney+ está em manutenção. Voltamos assim que os canais estiverem
-            disponíveis de novo.
+            A grade Disney+ está em manutenção. Voltamos assim que os canais estiverem disponíveis
+            de novo.
           </p>
         </div>
       </header>

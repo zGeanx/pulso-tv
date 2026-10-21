@@ -83,7 +83,10 @@ async function proxyPulsoCatalog(request: Request): Promise<Response | null> {
   try {
     const upstream = await fetch(target, { headers: { Accept: "application/json" } });
     const headers = new Headers();
-    headers.set("content-type", upstream.headers.get("content-type") ?? "application/json; charset=utf-8");
+    headers.set(
+      "content-type",
+      upstream.headers.get("content-type") ?? "application/json; charset=utf-8",
+    );
     if (upstream.ok) headers.set("cache-control", "public, max-age=30");
     return new Response(request.method === "HEAD" ? null : await upstream.arrayBuffer(), {
       status: upstream.status,

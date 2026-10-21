@@ -56,7 +56,13 @@ function EventDetailsPanel({
   theaterMode: boolean;
 }) {
   return (
-    <aside className={theaterMode ? "mt-8 rounded-2xl border border-border/80 bg-card/40 p-6 shadow-sm" : "lg:col-span-4"}>
+    <aside
+      className={
+        theaterMode
+          ? "mt-8 rounded-2xl border border-border/80 bg-card/40 p-6 shadow-sm"
+          : "lg:col-span-4"
+      }
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className={isLive ? "status-label status-live" : "status-label"}>
           {isLive && <span className="live-dot" />}
@@ -252,8 +258,8 @@ function EventWatchPage() {
                   onToggleTheater={() => setTheaterMode(true)}
                 />
                 <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-                  Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam conexões
-                  de streaming. Instale o app gratuito{" "}
+                  Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam
+                  conexões de streaming. Instale o app gratuito{" "}
                   <a
                     href="https://one.one.one.one/"
                     target="_blank"
@@ -279,8 +285,8 @@ function EventWatchPage() {
         ) : (
           <>
             <p className="text-sm leading-relaxed text-muted-foreground max-w-2xl">
-              Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam conexões
-              de streaming. Instale o app gratuito{" "}
+              Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam
+              conexões de streaming. Instale o app gratuito{" "}
               <a
                 href="https://one.one.one.one/"
                 target="_blank"
@@ -303,43 +309,43 @@ function EventWatchPage() {
           </>
         )}
 
-      {broadcastChannels.length > 0 && (
-        <section className="mt-12">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-              <Tv className="size-5 text-primary" aria-hidden="true" />
-              Canais da transmissão
-            </h2>
-          </div>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {broadcastChannels.map((channel) => (
-              <ChannelCard key={channel.id} channel={channel} />
-            ))}
-          </div>
-        </section>
-      )}
+        {broadcastChannels.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+                <Tv className="size-5 text-primary" aria-hidden="true" />
+                Canais da transmissão
+              </h2>
+            </div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {broadcastChannels.map((channel) => (
+                <ChannelCard key={channel.id} channel={channel} />
+              ))}
+            </div>
+          </section>
+        )}
 
-      {related.length > 0 && (
-        <section className="mt-12">
-          <div className="flex items-center justify-between border-b border-border pb-3">
-            <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
-              <CalendarDays className="size-5 text-primary" aria-hidden="true" />
-              Outros jogos
-            </h2>
-            <Link
-              to="/agenda"
-              className="text-xs uppercase text-muted-foreground hover:text-primary"
-            >
-              Agenda completa
-            </Link>
-          </div>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {related.map((item) => (
-              <EventCard key={item.id} event={item} />
-            ))}
-          </div>
-        </section>
-      )}
+        {related.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+                <CalendarDays className="size-5 text-primary" aria-hidden="true" />
+                Outros jogos
+              </h2>
+              <Link
+                to="/agenda"
+                className="text-xs uppercase text-muted-foreground hover:text-primary"
+              >
+                Agenda completa
+              </Link>
+            </div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {related.map((item) => (
+                <EventCard key={item.id} event={item} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
