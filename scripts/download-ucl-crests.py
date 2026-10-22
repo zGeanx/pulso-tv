@@ -122,6 +122,9 @@ def fetch(url: str) -> bytes:
 
 def to_webp(data: bytes, dest: Path) -> None:
     img = Image.open(io.BytesIO(data)).convert("RGBA")
+    bbox = img.getbbox()
+    if bbox:
+        img = img.crop(bbox)
     if max(img.size) > 512:
         img.thumbnail((512, 512), Image.Resampling.LANCZOS)
     dest.parent.mkdir(parents=True, exist_ok=True)
