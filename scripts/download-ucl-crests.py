@@ -99,6 +99,7 @@ TEAMS: dict[str, int] = {
     "colo_colo": 2434,
     "deportivo_cali": 4124,
     "talleres": 3938,
+    "estudiantes": 288,
     "cerro_porteno": 4464,
     "nacional": 4434,
     "penarol": 2817,
