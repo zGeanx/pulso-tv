@@ -6,7 +6,21 @@ const BASE_URL = "https://api.reidoscanais.si";
 
 // ─── Raw API Types ────────────────────────────────────────────────────────────
 
-export type ApiSportStatus = "live" | "upcoming" | "finished";
+import {
+  EVENT_STATUS_ORDER,
+  MATCH_DURATION_SECONDS,
+  getEventEffectiveStatus,
+  isEventFinished,
+  type ApiSportStatus,
+} from "@/lib/sport-status";
+
+export {
+  EVENT_STATUS_ORDER,
+  MATCH_DURATION_SECONDS,
+  getEventEffectiveStatus,
+  isEventFinished,
+  type ApiSportStatus,
+};
 
 export interface ApiEmbed {
   provider: string;
@@ -248,10 +262,11 @@ export function formatEventRelative(
   event: Pick<ApiSportEvent, "start_timestamp" | "status">,
   nowMs = Date.now(),
 ): string | null {
-  if (!Number.isFinite(event.start_timestamp) || event.status === "finished") return null;
+  const status = getEventEffectiveStatus(event, nowMs / 1000);
+  if (!Number.isFinite(event.start_timestamp) || status === "finished") return null;
   const diffMin = Math.round((event.start_timestamp * 1000 - nowMs) / 60_000);
 
-  if (event.status === "live") {
+  if (status === "live") {
     if (diffMin > 0) return "agora";
     const elapsed = Math.max(1, -diffMin);
     if (elapsed < 60) return `começou há ${elapsed} min`;
@@ -395,26 +410,26 @@ export function pickFeaturedChannels(channels: ApiChannel[], count = 4): ApiChan
   return [...picked, ...pickUnique(samplePool(channels), count - picked.length, true)];
 }
 
-const EVENT_STATUS_ORDER: Record<ApiSportStatus, number> = {
-  live: 0,
-  upcoming: 1,
-  finished: 2,
-};
-
 /** Live first, then upcoming, then finished. Inside each group, by kickoff. */
 export function sortEvents(events: ApiSportEvent[]): ApiSportEvent[] {
+  const now = Date.now() / 1000;
   return [...events].sort((a, b) => {
-    const status = EVENT_STATUS_ORDER[a.status] - EVENT_STATUS_ORDER[b.status];
+    const statusA = getEventEffectiveStatus(a, now);
+    const statusB = getEventEffectiveStatus(b, now);
+    const status = EVENT_STATUS_ORDER[statusA] - EVENT_STATUS_ORDER[statusB];
     if (status !== 0) return status;
+    if (statusA === "finished") {
+      return b.start_timestamp - a.start_timestamp;
+    }
     return a.start_timestamp - b.start_timestamp;
   });
 }
 
-/** Home agenda cards: the most watched headline matches still to be played. */
+/** Home agenda cards: only live and upcoming matches still to be played. */
 export function pickFeaturedEvents(events: ApiSportEvent[], count = 4): ApiSportEvent[] {
   const ranked = headlineEvents(events);
-  const active = ranked.filter((event) => event.status !== "finished");
-  return (active.length >= count ? active : ranked).slice(0, count);
+  const active = ranked.filter((event) => !isEventFinished(event));
+  return active.slice(0, count);
 }
 
 /** Schedule list: sports first, never Caze TV. */
@@ -430,7 +445,7 @@ export function eventsForChannel(channel: ApiChannel, events: ApiSportEvent[]): 
   if (!channel.name.trim()) return [];
   return sortEvents(
     events
-      .filter((event) => event.status !== "finished")
+      .filter((event) => !isEventFinished(event))
       .filter((event) =>
         event.embeds.some((embed) => sameBroadcastChannel(embed.provider, channel.name)),
       ),
@@ -443,7 +458,7 @@ export function pickRelatedEvents(
   count = 6,
 ): ApiSportEvent[] {
   return sortEvents(
-    events.filter((event) => event.id !== current.id && event.status !== "finished"),
+    events.filter((event) => event.id !== current.id && !isEventFinished(event)),
   ).slice(0, count);
 }
 
