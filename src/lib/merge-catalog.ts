@@ -273,8 +273,16 @@ function applyPulso(
   channels: PulsoEmbedSource[],
 ): ApiSportEvent {
   const pulsoStatus = mapPulsoStatus(match.source.status, match.unix, nowMs);
-  const status: ApiSportStatus =
-    event.status === "upcoming" && pulsoStatus === "live" ? "live" : event.status;
+  let status: ApiSportStatus = event.status;
+  if (
+    pulsoStatus === "finished" ||
+    event.status === "finished" ||
+    (event.start_timestamp > 0 && nowMs >= event.start_timestamp * 1000 + PULSO_LIVE_WINDOW_MS)
+  ) {
+    status = "finished";
+  } else if (event.status === "upcoming" && pulsoStatus === "live") {
+    status = "live";
+  }
   const poster =
     realPoster(event.poster, channels, match.source.thumbnail) ??
     realPoster(match.source.match_image, channels, match.source.thumbnail);
@@ -637,10 +645,10 @@ const PULSO_LIVE_WINDOW_MS = (2 * 60 + 15) * 60 * 1000;
 
 function mapPulsoStatus(status: string, kickoffUnix: number, nowMs: number): ApiSportStatus {
   if (status === "finished") return "finished";
-  if (status === "live") return "live";
   const startMs = kickoffUnix * 1000;
+  if (startMs > 0 && nowMs >= startMs + PULSO_LIVE_WINDOW_MS) return "finished";
+  if (status === "live") return "live";
   if (nowMs >= startMs && nowMs < startMs + PULSO_LIVE_WINDOW_MS) return "live";
-  if (nowMs >= startMs + PULSO_LIVE_WINDOW_MS) return "finished";
   return "upcoming";
 }
 
