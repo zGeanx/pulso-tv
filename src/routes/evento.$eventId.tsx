@@ -12,6 +12,7 @@ import {
   channelsForEvent,
   formatEventDay,
   formatEventTime,
+  getEventEffectiveStatus,
   labelFromSlug,
   pickRelatedEvents,
   type ApiSportEvent,
@@ -65,8 +66,9 @@ function EventDetailsPanel({
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className={isLive ? "status-label status-live" : "status-label"}>
-          {isLive && <span className="live-dot" />}
-          {isLive ? "AO VIVO" : SPORT_STATUS_LABEL[event.status]}
+          {isLive
+            ? "AO VIVO"
+            : (SPORT_STATUS_LABEL[event.status as keyof typeof SPORT_STATUS_LABEL] ?? "Agendado")}
         </span>
         {event.category && <span className="status-label">{event.category}</span>}
         {event.competition && <span className="status-label">{event.competition}</span>}
@@ -207,7 +209,7 @@ function EventWatchPage() {
 
   const description = event.description ? stripMarkdown(event.description) : null;
   const day = formatEventDay(event);
-  const isLive = event.status === "live";
+  const isLive = getEventEffectiveStatus(event) === "live";
 
   return (
     <div>
