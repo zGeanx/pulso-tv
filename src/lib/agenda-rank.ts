@@ -1,4 +1,5 @@
 import type { ApiSportEvent } from "@/lib/api";
+import { EVENT_STATUS_ORDER, getEventEffectiveStatus } from "@/lib/sport-status";
 
 /** A match below this is a lower division, a small league, or a minor fixture. */
 const MIN_FAME = 70;
@@ -150,13 +151,34 @@ export function fameScore(event: ApiSportEvent): number {
   return league[1] + teams + (event.popular ? 4 : 0);
 }
 
-/** Main leagues only, most watched match first. */
+/** Main leagues only, live and upcoming matches first, ordered by relevance and kickoff. */
 export function headlineEvents(events: ApiSportEvent[]): ApiSportEvent[] {
+  const now = Date.now() / 1000;
   return events
-    .filter((event) => fameScore(event) >= MIN_FAME)
+    .filter((event) => {
+      const status = getEventEffectiveStatus(event, now);
+      return fameScore(event) >= MIN_FAME || status === "live";
+    })
     .sort((a, b) => {
-      const fame = fameScore(b) - fameScore(a);
-      if (fame !== 0) return fame;
-      return a.start_timestamp - b.start_timestamp;
+      const statusA = getEventEffectiveStatus(a, now);
+      const statusB = getEventEffectiveStatus(b, now);
+      const statusDiff = EVENT_STATUS_ORDER[statusA] - EVENT_STATUS_ORDER[statusB];
+      if (statusDiff !== 0) return statusDiff;
+
+      if (statusA === "live") {
+        const fame = fameScore(b) - fameScore(a);
+        if (fame !== 0) return fame;
+        return a.start_timestamp - b.start_timestamp;
+      }
+
+      if (statusA === "upcoming") {
+        const timeDiff = a.start_timestamp - b.start_timestamp;
+        if (timeDiff !== 0) return timeDiff;
+        return fameScore(b) - fameScore(a);
+      }
+
+      const timeDiff = b.start_timestamp - a.start_timestamp;
+      if (timeDiff !== 0) return timeDiff;
+      return fameScore(b) - fameScore(a);
     });
 }
