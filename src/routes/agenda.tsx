@@ -20,8 +20,11 @@ import {
   formatAgendaDay,
   formatEventDay,
   formatEventTime,
+  getEventEffectiveStatus,
+  isEventFinished,
   type SportStatusLabel,
   type ApiSportStatus,
+  type ApiSportEvent,
 } from "@/lib/api";
 import { headlineEvents } from "@/lib/agenda-rank";
 import { eventSearchBlob } from "@/lib/merge-catalog";
@@ -47,7 +50,7 @@ const labelToApiStatus: Record<SportStatusLabel, ApiSportStatus> = {
 };
 
 const emptyCopy: Record<TabLabel, string> = {
-  "Todos os jogos": "Nenhum evento encontrado",
+  "Todos os jogos": "Nenhum jogo ao vivo ou agendado no momento",
   "Ao vivo agora": "Nenhum jogo ao vivo agora",
   "Hoje & Próximos": "Nenhum jogo próximo no momento",
   Encerrados: "Nenhum jogo encerrado na lista",
@@ -77,21 +80,51 @@ function AgendaPage() {
   const [tab, setTab] = useState<TabLabel>(ALL_TAB);
   const [query, setQuery] = useState("");
   const { data: events = [], isLoading, isError, refetch } = useSports();
-  const headlines = useMemo(() => headlineEvents(events), [events]);
+
+  const normalizedEvents = useMemo(() => {
+    const nowSec = Date.now() / 1000;
+    return events.map((event) => {
+      const effective = getEventEffectiveStatus(event, nowSec);
+      return effective === event.status ? event : { ...event, status: effective };
+    });
+  }, [events]);
+
+  const headlines = useMemo(() => headlineEvents(normalizedEvents), [normalizedEvents]);
+
+  const activeHeadlines = useMemo(
+    () => headlines.filter((event) => !isEventFinished(event)),
+    [headlines],
+  );
+
+  const finishedHeadlines = useMemo(
+    () => headlines.filter((event) => isEventFinished(event)),
+    [headlines],
+  );
 
   const counts: Record<TabLabel, number> = {
-    "Todos os jogos": headlines.length,
-    "Ao vivo agora": headlines.filter((event) => event.status === "live").length,
-    "Hoje & Próximos": headlines.filter((event) => event.status === "upcoming").length,
-    Encerrados: headlines.filter((event) => event.status === "finished").length,
+    "Todos os jogos": activeHeadlines.length,
+    "Ao vivo agora": activeHeadlines.filter((event) => getEventEffectiveStatus(event) === "live")
+      .length,
+    "Hoje & Próximos": activeHeadlines.filter(
+      (event) => getEventEffectiveStatus(event) === "upcoming",
+    ).length,
+    Encerrados: finishedHeadlines.length,
   };
 
   const filtered = useMemo(() => {
-    const status = tab === ALL_TAB ? null : labelToApiStatus[tab];
-    const inTab = status ? headlines.filter((event) => event.status === status) : headlines;
+    let inTab: ApiSportEvent[];
+    if (tab === ALL_TAB) {
+      inTab = activeHeadlines;
+    } else if (tab === "Encerrados") {
+      inTab = finishedHeadlines;
+    } else if (tab === "Ao vivo agora") {
+      inTab = activeHeadlines.filter((event) => getEventEffectiveStatus(event) === "live");
+    } else {
+      inTab = activeHeadlines.filter((event) => getEventEffectiveStatus(event) === "upcoming");
+    }
     const q = query.trim();
     return q ? inTab.filter((event) => fold(eventSearchBlob(event)).includes(fold(q))) : inTab;
-  }, [headlines, query, tab]);
+  }, [activeHeadlines, finishedHeadlines, query, tab]);
 
   return (
     <div className="page-container py-8 lg:py-12">
@@ -141,7 +174,7 @@ function AgendaPage() {
       <div className="py-5 sm:py-6">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist">
           {tabs.map((item) => {
-            const Icon = tabIcons[item];
+            const Icon = tabIcons[item] ?? List;
             const isSelected = tab === item;
             return (
               <button
@@ -218,8 +251,9 @@ function AgendaPage() {
       {!isLoading && !isError && filtered.length > 0 && (
         <div className="space-y-2">
           {filtered.map((event, index) => {
-            const statusLabel = SPORT_STATUS_LABEL[event.status];
-            const isLive = event.status === "live";
+            const effectiveStatus = getEventEffectiveStatus(event);
+            const statusLabel = SPORT_STATUS_LABEL[effectiveStatus];
+            const isLive = effectiveStatus === "live";
             const time = formatEventTime(event);
             const day = formatEventDay(event);
             const hasEmbeds = event.embeds.length > 0;
