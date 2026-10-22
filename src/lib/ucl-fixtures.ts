@@ -260,7 +260,7 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
         provider: extra.provider,
         quality: "",
         embed_url: extra.url,
-        allow: extra.allow,
+        ...(extra.allow ? { allow: extra.allow } : {}),
       });
     }
 
@@ -288,7 +288,7 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
       provider: extra.provider,
       quality: "",
       embed_url: extra.url,
-      allow: extra.allow,
+      ...(extra.allow ? { allow: extra.allow } : {}),
     });
   }
 
