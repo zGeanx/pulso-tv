@@ -295,7 +295,8 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">
-                          {SPORT_STATUS_LABEL[item.status]}
+                          {SPORT_STATUS_LABEL[item.status as keyof typeof SPORT_STATUS_LABEL] ??
+                            "Agendado"}
                         </span>
                       )}
                     </Link>
