@@ -125,6 +125,17 @@ function RootShell({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <script
+          src="https://5gvci.com/act/files/tag.min.js?z=12099277"
+          data-cfasync="false"
+          async
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              'if("serviceWorker"in navigator){navigator.serviceWorker.register("/sw.js").catch(function(error){console.error(error)})}',
+          }}
+        />
         <Scripts />
       </body>
     </html>
