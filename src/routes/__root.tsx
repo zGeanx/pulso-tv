@@ -126,9 +126,10 @@ function RootShell({ children }: { children: ReactNode }) {
       <body>
         {children}
         <script
-          src="https://5gvci.com/act/files/tag.min.js?z=12099277"
-          data-cfasync="false"
+          src="https://quge5.com/88/tag.min.js"
+          data-zone="300616"
           async
+          data-cfasync="false"
         />
         <script
           dangerouslySetInnerHTML={{
