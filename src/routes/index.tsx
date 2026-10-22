@@ -30,6 +30,8 @@ import {
   formatEventDay,
   formatEventTime,
   epgProgress,
+  getEventEffectiveStatus,
+  isEventFinished,
   pickFeaturedChannels,
   pickFeaturedEvents,
   pickLiveNow,
@@ -75,18 +77,19 @@ function pickHero(
   events: ApiSportEvent[],
   channels: ApiChannel[],
 ): ApiSportEvent | ApiChannel | undefined {
-  const withPlayer = events.filter((event) => event.embeds.length > 0);
-  const pool = withPlayer.length > 0 ? withPlayer : events;
+  const activeEvents = events.filter((event) => !isEventFinished(event));
+  const withPlayer = activeEvents.filter((event) => event.embeds.length > 0);
+  const pool = withPlayer.length > 0 ? withPlayer : activeEvents;
   const now = Date.now() / 1000;
   const nearest = (items: ApiSportEvent[]) =>
     [...items].sort(
       (a, b) => Math.abs(a.start_timestamp - now) - Math.abs(b.start_timestamp - now),
     );
 
-  const live = nearest(pool.filter((event) => event.status === "live"));
+  const live = nearest(pool.filter((event) => getEventEffectiveStatus(event) === "live"));
   if (live[0]) return live[0];
 
-  const upcoming = nearest(pool.filter((event) => event.status === "upcoming"));
+  const upcoming = nearest(pool.filter((event) => getEventEffectiveStatus(event) === "upcoming"));
   if (upcoming[0]) return upcoming[0];
 
   return channels.find((channel) => channel.embeds.length > 0) ?? channels[0];
@@ -94,10 +97,11 @@ function pickHero(
 
 function heroKicker(hero: ApiSportEvent | ApiChannel | undefined): string {
   if (!hero || !isSportEvent(hero)) return "Transmissão em destaque";
-  if (hero.status === "live") {
+  const status = getEventEffectiveStatus(hero);
+  if (status === "live") {
     return hero.category === "Futebol" ? "Futebol ao vivo" : "Esportes ao vivo";
   }
-  if (hero.status === "upcoming") {
+  if (status === "upcoming") {
     const day = formatEventDay(hero);
     const when = !day || day === "Hoje" ? "Hoje" : day === "Amanhã" ? "Amanhã" : day;
     return `${when} às ${formatEventTime(hero)}`;
@@ -118,7 +122,7 @@ function HeroSection({ hero }: HeroSectionProps) {
 
   if (hero && isSportEvent(hero)) {
     const event = hero;
-    const isLive = event.status === "live";
+    const isLive = getEventEffectiveStatus(event) === "live";
     const hasEmbeds = event.embeds.length > 0;
     const description = event.description ? stripMarkdown(event.description) : null;
 
