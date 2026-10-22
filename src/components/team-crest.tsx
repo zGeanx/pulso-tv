@@ -52,7 +52,7 @@ export function TeamCrest({
       <MediaImage
         src={sources}
         alt={name}
-        className="h-full w-full overflow-visible bg-transparent"
+        className="h-full w-full overflow-hidden bg-transparent"
         imgClassName="crest-img"
         fallback={<CrestFallback name={name} />}
       />

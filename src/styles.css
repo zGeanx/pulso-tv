@@ -313,25 +313,27 @@ html.light .logo-box {
   border-radius: 999px;
 }
 @utility logo-box-img {
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
-  width: auto;
-  height: auto;
+  max-height: 100%;
   object-fit: contain;
+  object-position: center;
 }
 @utility crest-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: visible;
+  overflow: hidden;
   background: transparent;
 }
 @utility crest-img {
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
-  width: auto;
-  height: auto;
+  max-height: 100%;
   object-fit: contain;
+  object-position: center;
   filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.45));
 }
 @utility scrollbar-none {
