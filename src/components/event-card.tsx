@@ -1,7 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Play } from "lucide-react";
 import type { ApiSportEvent } from "@/lib/api";
-import { eventChannelNames, formatEventDay, formatEventRelative, formatEventTime } from "@/lib/api";
+import {
+  eventChannelNames,
+  formatEventDay,
+  formatEventRelative,
+  formatEventTime,
+  getEventEffectiveStatus,
+} from "@/lib/api";
 import { MatchCover } from "@/components/match-cover";
 import { MediaImage } from "@/components/media-image";
 import { TeamCrest } from "@/components/team-crest";
@@ -13,7 +19,8 @@ const STATUS_BADGE: Record<ApiSportEvent["status"], { label: string; live?: bool
 };
 
 export function EventCard({ event, className }: { event: ApiSportEvent; className?: string }) {
-  const badge = STATUS_BADGE[event.status];
+  const effectiveStatus = getEventEffectiveStatus(event);
+  const badge = STATUS_BADGE[effectiveStatus] ?? STATUS_BADGE.upcoming;
   const day = formatEventDay(event);
   const time = formatEventTime(event);
   const relative = formatEventRelative(event);
