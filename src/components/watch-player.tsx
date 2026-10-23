@@ -107,7 +107,7 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
   return (
     <div className="w-full">
       <div
-        className={`relative overflow-hidden rounded-xl bg-black border border-border/80 shadow-2xl transition-all duration-300 ${
+        className={`relative overflow-hidden rounded-xl bg-black border border-border/80 shadow-2xl transition-[max-height,max-width,border-color,box-shadow] duration-300 ease-[var(--ease-out)] ${
           theaterMode ? "aspect-video w-full max-h-[82vh] mx-auto" : "aspect-video w-full"
         }`}
       >
@@ -151,7 +151,7 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
                 id={listId}
                 role="listbox"
                 aria-label="Servidores de transmissão"
-                className="absolute left-0 top-[calc(100%+0.35rem)] z-30 w-full min-w-48 overflow-hidden rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md py-1.5 shadow-xl"
+                className="dropdown-pop absolute left-0 top-[calc(100%+0.35rem)] z-30 w-full min-w-48 overflow-hidden rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md py-1.5 shadow-xl"
               >
                 {embeds.map((embed, index) => {
                   const selected = index === selectedIndex;
@@ -185,7 +185,7 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
               <button
                 type="button"
                 onClick={onToggleTheater}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 text-xs transition-all cursor-pointer ${
+                className={`inline-flex min-h-10 items-center gap-2 rounded-xl border px-3 text-xs transition-colors cursor-pointer ${
                   theaterMode
                     ? "border-primary bg-primary/15 text-primary font-medium shadow-sm"
                     : "border-border/80 bg-card/60 text-muted-foreground hover:border-primary/50 hover:bg-card hover:text-foreground"
@@ -209,7 +209,7 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
             <button
               type="button"
               onClick={() => void copyEmbed()}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border/80 bg-card/60 px-3 text-xs text-muted-foreground transition-all hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer shadow-sm"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border/80 bg-card/60 px-3 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer shadow-sm"
             >
               {copied === "embed" ? (
                 <Check className="size-3.5 text-primary" />
@@ -222,7 +222,7 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
             <button
               type="button"
               onClick={() => void sharePage()}
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border/80 bg-card/60 px-3 text-xs text-muted-foreground transition-all hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer shadow-sm"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border/80 bg-card/60 px-3 text-xs text-muted-foreground transition-colors hover:border-primary/50 hover:bg-card hover:text-foreground cursor-pointer shadow-sm"
             >
               {copied === "share" ? (
                 <Check className="size-3.5 text-primary" />
