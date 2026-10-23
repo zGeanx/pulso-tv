@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, RadioTower } from "lucide-react";
 import { useRef } from "react";
 import { MediaImage } from "@/components/media-image";
 import { Button } from "@/components/ui/button";
+import { smoothHorizontalScroll } from "@/lib/motion";
 import type { ApiChannel } from "@/lib/api";
 
 interface ZappingBarProps {
@@ -19,8 +20,7 @@ export function ZappingBar({ currentChannelId, channels, category }: ZappingBarP
   const displayChannels = pool.slice(0, 16);
 
   const scroll = (direction: -1 | 1) => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({ left: direction * 420, behavior: "smooth" });
+    smoothHorizontalScroll(scrollRef.current, direction * 420);
   };
 
   if (displayChannels.length <= 1) return null;
@@ -55,10 +55,7 @@ export function ZappingBar({ currentChannelId, channels, category }: ZappingBarP
         </div>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="mt-3 flex gap-3 overflow-x-auto scroll-smooth scrollbar-none pb-1"
-      >
+      <div ref={scrollRef} className="mt-3 flex gap-3 overflow-x-auto scrollbar-none pb-1">
         {displayChannels.map((channel) => {
           const isCurrent = channel.id === currentChannelId;
           const currentProgram = channel.epg?.current?.title;
