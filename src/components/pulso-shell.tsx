@@ -123,12 +123,12 @@ export function PulsoShell({ children }: { children: ReactNode }) {
 
       {searchOpen && (
         <div
-          className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-background/98 px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(3rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:pt-16"
+          className="search-overlay-animated fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-background/98 px-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(3rem+env(safe-area-inset-bottom,0px))] backdrop-blur-xl md:pt-16"
           role="dialog"
           aria-modal="true"
           aria-label="Busca global"
         >
-          <div className="mx-auto max-w-3xl">
+          <div className="search-content-animated mx-auto max-w-3xl">
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-primary pb-4">
               <label className="flex min-w-0 items-center gap-3">
                 {isFetching ? (
@@ -308,7 +308,9 @@ export function PulsoShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <main className="pb-16 lg:pb-0">{children}</main>
+      <main key={pathname} className="page-enter-animated pb-16 lg:pb-0">
+        {children}
+      </main>
 
       <footer className="border-t border-border pb-20 lg:pb-8">
         <div className="page-container grid gap-x-8 gap-y-4 py-8 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
