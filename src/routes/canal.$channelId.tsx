@@ -194,76 +194,58 @@ function ChannelWatchPage() {
 
   return (
     <div>
-      {theaterMode ? (
-        <div className="w-full bg-black/95 border-b border-border/80 shadow-2xl">
-          <div className="mx-auto w-full max-w-[1720px] 2xl:max-w-[1880px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-            <nav
-              className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mb-4"
-              aria-label="Trilha"
+      <div
+        className={
+          theaterMode
+            ? "w-full bg-black/95 border-b border-border/80 shadow-2xl transition-[background-color,border-color] duration-300"
+            : "page-container pt-8 lg:pt-12"
+        }
+      >
+        <div
+          className={
+            theaterMode
+              ? "mx-auto w-full max-w-[1720px] 2xl:max-w-[1880px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6"
+              : ""
+          }
+        >
+          <nav
+            className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mb-4"
+            aria-label="Trilha"
+          >
+            <Link to="/canais" className="hover:text-foreground transition-colors">
+              Canais
+            </Link>
+            <ChevronRight className="size-3" aria-hidden="true" />
+            <Link
+              to="/canais"
+              search={{ categoria: channel.category }}
+              className="hover:text-foreground transition-colors"
             >
-              <Link to="/canais" className="hover:text-foreground transition-colors">
-                Canais
-              </Link>
-              <ChevronRight className="size-3" aria-hidden="true" />
-              <Link
-                to="/canais"
-                search={{ categoria: channel.category }}
-                className="hover:text-foreground transition-colors"
-              >
-                {channel.category}
-              </Link>
-              <ChevronRight className="size-3" aria-hidden="true" />
-              <span className="text-foreground font-medium">{channel.name}</span>
-            </nav>
+              {channel.category}
+            </Link>
+            <ChevronRight className="size-3" aria-hidden="true" />
+            <span className="text-foreground font-medium">{channel.name}</span>
+          </nav>
 
-            <WatchPlayer
-              title={channel.name}
-              embeds={channel.embeds}
-              theaterMode={true}
-              onToggleTheater={() => setTheaterMode(false)}
-            />
-          </div>
-        </div>
-      ) : null}
+          <div className={theaterMode ? "w-full" : "grid gap-8 lg:grid-cols-12"}>
+            <div className={theaterMode ? "w-full" : "lg:col-span-8"}>
+              <WatchPlayer
+                title={channel.name}
+                embeds={channel.embeds}
+                theaterMode={theaterMode}
+                onToggleTheater={() => setTheaterMode((prev) => !prev)}
+              />
 
-      <div className="page-container py-8 lg:py-12">
-        {!theaterMode ? (
-          <>
-            <nav
-              className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
-              aria-label="Trilha"
-            >
-              <Link to="/canais" className="hover:text-foreground transition-colors">
-                Canais
-              </Link>
-              <ChevronRight className="size-3" aria-hidden="true" />
-              <Link
-                to="/canais"
-                search={{ categoria: channel.category }}
-                className="hover:text-foreground transition-colors"
-              >
-                {channel.category}
-              </Link>
-              <ChevronRight className="size-3" aria-hidden="true" />
-              <span className="text-foreground font-medium">{channel.name}</span>
-            </nav>
-
-            <div className="mt-6 grid gap-8 lg:grid-cols-12">
-              <div className="lg:col-span-8">
-                <WatchPlayer
-                  title={channel.name}
-                  embeds={channel.embeds}
-                  theaterMode={false}
-                  onToggleTheater={() => setTheaterMode(true)}
-                />
-
+              {!theaterMode && (
                 <ZappingBar
                   currentChannelId={channel.id}
                   channels={channels}
                   category={channel.category}
                 />
-              </div>
+              )}
+            </div>
 
+            {!theaterMode && (
               <ChannelDetailsPanel
                 channel={channel}
                 current={current}
@@ -272,9 +254,15 @@ function ChannelWatchPage() {
                 nextRange={nextRange}
                 theaterMode={false}
               />
-            </div>
-          </>
-        ) : (
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={theaterMode ? "page-container py-8 lg:py-12" : "page-container pb-8 lg:pb-12"}
+      >
+        {theaterMode && (
           <>
             <ZappingBar
               currentChannelId={channel.id}
