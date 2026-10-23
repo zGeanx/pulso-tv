@@ -213,52 +213,41 @@ function EventWatchPage() {
 
   return (
     <div>
-      {theaterMode ? (
-        <div className="w-full bg-black/95 border-b border-border/80 shadow-2xl">
-          <div className="mx-auto w-full max-w-[1720px] 2xl:max-w-[1880px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-            <nav
-              className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mb-4"
-              aria-label="Trilha"
-            >
-              <Link to="/agenda" className="hover:text-foreground transition-colors">
-                Agenda
-              </Link>
-              <ChevronRight className="size-3" aria-hidden="true" />
-              <span className="text-foreground font-medium">{event.title}</span>
-            </nav>
+      <div
+        className={
+          theaterMode
+            ? "w-full bg-black/95 border-b border-border/80 shadow-2xl transition-[background-color,border-color] duration-300"
+            : "page-container pt-8 lg:pt-12"
+        }
+      >
+        <div
+          className={
+            theaterMode
+              ? "mx-auto w-full max-w-[1720px] 2xl:max-w-[1880px] px-4 sm:px-6 lg:px-8 py-4 sm:py-6"
+              : ""
+          }
+        >
+          <nav
+            className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mb-4"
+            aria-label="Trilha"
+          >
+            <Link to="/agenda" className="hover:text-foreground transition-colors">
+              Agenda
+            </Link>
+            <ChevronRight className="size-3" aria-hidden="true" />
+            <span className="text-foreground font-medium">{event.title}</span>
+          </nav>
 
-            <WatchPlayer
-              title={event.title}
-              embeds={event.embeds}
-              theaterMode={true}
-              onToggleTheater={() => setTheaterMode(false)}
-            />
-          </div>
-        </div>
-      ) : null}
+          <div className={theaterMode ? "w-full" : "grid gap-8 lg:grid-cols-12"}>
+            <div className={theaterMode ? "w-full" : "lg:col-span-8"}>
+              <WatchPlayer
+                title={event.title}
+                embeds={event.embeds}
+                theaterMode={theaterMode}
+                onToggleTheater={() => setTheaterMode((prev) => !prev)}
+              />
 
-      <div className="page-container py-8 lg:py-12">
-        {!theaterMode ? (
-          <>
-            <nav
-              className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground"
-              aria-label="Trilha"
-            >
-              <Link to="/agenda" className="hover:text-foreground transition-colors">
-                Agenda
-              </Link>
-              <ChevronRight className="size-3" aria-hidden="true" />
-              <span className="text-foreground font-medium">{event.title}</span>
-            </nav>
-
-            <div className="mt-6 grid gap-8 lg:grid-cols-12">
-              <div className="lg:col-span-8">
-                <WatchPlayer
-                  title={event.title}
-                  embeds={event.embeds}
-                  theaterMode={false}
-                  onToggleTheater={() => setTheaterMode(true)}
-                />
+              {!theaterMode && (
                 <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
                   Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam
                   conexões de streaming. Instale o app gratuito{" "}
@@ -272,8 +261,10 @@ function EventWatchPage() {
                   </a>
                   , ative e recarregue a página.
                 </p>
-              </div>
+              )}
+            </div>
 
+            {!theaterMode && (
               <EventDetailsPanel
                 event={event}
                 isLive={isLive}
@@ -282,9 +273,15 @@ function EventWatchPage() {
                 description={description}
                 theaterMode={false}
               />
-            </div>
-          </>
-        ) : (
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={theaterMode ? "page-container py-8 lg:py-12" : "page-container pb-8 lg:pb-12"}
+      >
+        {theaterMode && (
           <>
             <p className="text-sm leading-relaxed text-muted-foreground max-w-2xl">
               Player não carregou ou o sinal travou? Alguns provedores de internet bloqueiam
