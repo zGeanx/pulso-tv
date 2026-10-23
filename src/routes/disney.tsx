@@ -1,5 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Clapperboard, Construction } from "lucide-react";
+import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { prefersReducedMotion } from "@/lib/motion";
 
 export const Route = createFileRoute("/disney")({
   head: () => ({
@@ -22,6 +26,26 @@ export const Route = createFileRoute("/disney")({
 });
 
 function DisneyPage() {
+  const iconRef = useRef<SVGSVGElement>(null);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion() || !iconRef.current) return;
+      const tween = gsap.to(iconRef.current, {
+        rotation: 6,
+        duration: 2,
+        ease: "sine.inOut",
+        yoyo: true,
+        repeat: -1,
+        transformOrigin: "center bottom",
+      });
+      return () => {
+        tween.kill();
+      };
+    },
+    { scope: iconRef },
+  );
+
   return (
     <div className="page-container py-8 lg:py-12">
       <header className="grid gap-6 border-b border-border pb-8 lg:grid-cols-12">
@@ -39,7 +63,7 @@ function DisneyPage() {
       </header>
 
       <div className="py-20 text-center">
-        <Construction className="mx-auto size-10 text-primary" aria-hidden="true" />
+        <Construction ref={iconRef} className="mx-auto size-10 text-primary" aria-hidden="true" />
         <h2 className="mt-5 font-display text-xl font-semibold">Em manutenção</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Sem canais Disney+ no momento. Enquanto isso, acompanhe a grade e a agenda.
