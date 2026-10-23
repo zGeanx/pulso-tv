@@ -12,7 +12,7 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
   const range = program ? formatEpgRange(program) : "";
 
   return (
-    <article className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/80 bg-card/60 transition-all duration-200 hover:-translate-y-1 hover:border-primary/50 hover:bg-card/90 hover:shadow-xl hover:shadow-black/30">
+    <article className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/80 bg-card/60 card-interactive hover:bg-card/90">
       <Link
         to="/canal/$channelId"
         params={{ channelId: channel.id }}
@@ -69,7 +69,7 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
           )}
 
           {/* Desktop play affordance */}
-          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/30 opacity-0 backdrop-blur-[1px] transition-all duration-200 group-hover:opacity-100">
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/30 opacity-0 backdrop-blur-[1px] transition-opacity duration-200 group-hover:opacity-100">
             <span className="flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-200 scale-90 group-hover:scale-100">
               <Play className="size-5 fill-current ml-0.5" aria-hidden="true" />
             </span>
@@ -78,7 +78,7 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
           {program && (
             <div className="absolute inset-x-0 bottom-0 z-20 h-1 bg-background/60">
               <div
-                className="h-full bg-live transition-all"
+                className="h-full bg-live transition-[width] duration-300 ease-linear"
                 style={{ width: `${progress * 100}%` }}
               />
             </div>
