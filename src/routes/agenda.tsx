@@ -11,8 +11,10 @@ import {
   Tv,
   X,
 } from "lucide-react";
-import { useMemo, useState, type ElementType } from "react";
+import { useMemo, useRef, useState, type ElementType } from "react";
+import { useGSAP } from "@gsap/react";
 import { useSports } from "@/hooks/use-api";
+import { staggerEntrance } from "@/lib/motion";
 import {
   SPORT_STATUS_LABEL,
   ALL_SPORT_STATUS_LABELS,
@@ -79,6 +81,7 @@ export const Route = createFileRoute("/agenda")({
 function AgendaPage() {
   const [tab, setTab] = useState<TabLabel>(ALL_TAB);
   const [query, setQuery] = useState("");
+  const listRef = useRef<HTMLDivElement>(null);
   const { data: events = [], isLoading, isError, refetch } = useSports();
 
   const normalizedEvents = useMemo(() => {
@@ -125,6 +128,17 @@ function AgendaPage() {
     const q = query.trim();
     return q ? inTab.filter((event) => fold(eventSearchBlob(event)).includes(fold(q))) : inTab;
   }, [activeHeadlines, finishedHeadlines, query, tab]);
+
+  useGSAP(
+    () => {
+      if (!listRef.current || isLoading || filtered.length === 0) return;
+      const items = listRef.current.children;
+      if (items.length > 0) {
+        staggerEntrance(Array.from(items).slice(0, 12), { y: 8, duration: 0.24, stagger: 0.02 });
+      }
+    },
+    { scope: listRef, dependencies: [tab, query, isLoading, filtered.length] },
+  );
 
   return (
     <div className="page-container py-8 lg:py-12">
@@ -249,7 +263,7 @@ function AgendaPage() {
       )}
 
       {!isLoading && !isError && filtered.length > 0 && (
-        <div className="space-y-2">
+        <div ref={listRef} className="space-y-2">
           {filtered.map((event, index) => {
             const effectiveStatus = getEventEffectiveStatus(event);
             const statusLabel = SPORT_STATUS_LABEL[effectiveStatus];
@@ -277,7 +291,7 @@ function AgendaPage() {
                 <Link
                   to="/evento/$eventId"
                   params={{ eventId: event.id }}
-                  className="group block rounded-2xl border border-border/70 bg-card/40 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card/80 hover:shadow-lg hover:shadow-black/20"
+                  className="group block rounded-2xl border border-border/70 bg-card/40 p-4 transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card/80 hover:shadow-lg hover:shadow-black/20"
                 >
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-center">
                     {/* Zona 1: Horário & Torneio */}
