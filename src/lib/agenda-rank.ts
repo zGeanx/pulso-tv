@@ -154,31 +154,36 @@ export function fameScore(event: ApiSportEvent): number {
 /** Main leagues only, live and upcoming matches first, ordered by relevance and kickoff. */
 export function headlineEvents(events: ApiSportEvent[]): ApiSportEvent[] {
   const now = Date.now() / 1000;
-  return events
-    .filter((event) => {
-      const status = getEventEffectiveStatus(event, now);
-      return fameScore(event) >= MIN_FAME || status === "live";
-    })
-    .sort((a, b) => {
-      const statusA = getEventEffectiveStatus(a, now);
-      const statusB = getEventEffectiveStatus(b, now);
-      const statusDiff = EVENT_STATUS_ORDER[statusA] - EVENT_STATUS_ORDER[statusB];
-      if (statusDiff !== 0) return statusDiff;
+  const filtered = events.filter((event) => {
+    const status = getEventEffectiveStatus(event, now);
+    return fameScore(event) >= MIN_FAME || status === "live";
+  });
 
-      if (statusA === "live") {
-        const fame = fameScore(b) - fameScore(a);
-        if (fame !== 0) return fame;
-        return a.start_timestamp - b.start_timestamp;
-      }
+  const activeCount = filtered.filter(
+    (event) => getEventEffectiveStatus(event, now) !== "finished",
+  ).length;
+  const list = activeCount > 0 ? filtered : events.filter((event) => !isWomensEvent(event));
 
-      if (statusA === "upcoming") {
-        const timeDiff = a.start_timestamp - b.start_timestamp;
-        if (timeDiff !== 0) return timeDiff;
-        return fameScore(b) - fameScore(a);
-      }
+  return list.sort((a, b) => {
+    const statusA = getEventEffectiveStatus(a, now);
+    const statusB = getEventEffectiveStatus(b, now);
+    const statusDiff = EVENT_STATUS_ORDER[statusA] - EVENT_STATUS_ORDER[statusB];
+    if (statusDiff !== 0) return statusDiff;
 
-      const timeDiff = b.start_timestamp - a.start_timestamp;
+    if (statusA === "live") {
+      const fame = fameScore(b) - fameScore(a);
+      if (fame !== 0) return fame;
+      return a.start_timestamp - b.start_timestamp;
+    }
+
+    if (statusA === "upcoming") {
+      const timeDiff = a.start_timestamp - b.start_timestamp;
       if (timeDiff !== 0) return timeDiff;
       return fameScore(b) - fameScore(a);
-    });
+    }
+
+    const timeDiff = b.start_timestamp - a.start_timestamp;
+    if (timeDiff !== 0) return timeDiff;
+    return fameScore(b) - fameScore(a);
+  });
 }
