@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Layers3, Search, X } from "lucide-react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useGSAP } from "@gsap/react";
 import { ChannelCard } from "@/components/channel-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChannels, useChannelCategories } from "@/hooks/use-api";
 import { filterChannels } from "@/lib/api";
+import { staggerEntrance } from "@/lib/motion";
 
 type ChannelSearch = { categoria?: string | undefined };
 
@@ -51,6 +53,7 @@ function ChannelsPage() {
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const deferredQuery = useDeferredValue(query);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const { data: channels = [], isLoading, isError, refetch } = useChannels();
 
@@ -80,6 +83,17 @@ function ChannelsPage() {
       replace: true,
     });
   }
+
+  useGSAP(
+    () => {
+      if (!gridRef.current || isLoading || visible.length === 0) return;
+      const items = gridRef.current.children;
+      if (items.length > 0) {
+        staggerEntrance(Array.from(items).slice(0, 16));
+      }
+    },
+    { scope: gridRef, dependencies: [category, deferredQuery, isLoading, visible.length] },
+  );
 
   return (
     <div className="page-container py-8 lg:py-12">
@@ -220,7 +234,10 @@ function ChannelsPage() {
 
       {!isLoading && !isError && filtered.length > 0 && (
         <>
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div
+            ref={gridRef}
+            className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
             {visible.map((channel) => (
               <ChannelCard key={channel.id} channel={channel} />
             ))}
