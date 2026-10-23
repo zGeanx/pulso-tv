@@ -25,7 +25,7 @@ import { MediaImage } from "@/components/media-image";
 import { TeamCrest } from "@/components/team-crest";
 import { Skeleton } from "@/components/ui/skeleton";
 import { smoothHorizontalScroll, staggerEntrance } from "@/lib/motion";
-import { isWomensBroadcast } from "@/lib/agenda-rank";
+import { headlineEvents, isWomensBroadcast } from "@/lib/agenda-rank";
 import { useChannels, useChannelCategories, useSports } from "@/hooks/use-api";
 import {
   formatEpgRange,
@@ -79,7 +79,7 @@ function pickHero(
   events: ApiSportEvent[],
   channels: ApiChannel[],
 ): ApiSportEvent | ApiChannel | undefined {
-  const activeEvents = events.filter((event) => !isEventFinished(event));
+  const activeEvents = headlineEvents(events).filter((event) => !isEventFinished(event));
   const withPlayer = activeEvents.filter((event) => event.embeds.length > 0);
   const pool = withPlayer.length > 0 ? withPlayer : activeEvents;
   const now = Date.now() / 1000;
