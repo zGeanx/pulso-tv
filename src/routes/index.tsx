@@ -17,12 +17,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useRef } from "react";
+import { useGSAP } from "@gsap/react";
 import { Button } from "@/components/ui/button";
 import { EventCard } from "@/components/event-card";
 import { MatchCover } from "@/components/match-cover";
 import { MediaImage } from "@/components/media-image";
 import { TeamCrest } from "@/components/team-crest";
 import { Skeleton } from "@/components/ui/skeleton";
+import { smoothHorizontalScroll, staggerEntrance } from "@/lib/motion";
 import { isWomensBroadcast } from "@/lib/agenda-rank";
 import { useChannels, useChannelCategories, useSports } from "@/hooks/use-api";
 import {
@@ -700,8 +702,7 @@ function SportsAgendaSection({ events, loading }: { events: ApiSportEvent[]; loa
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: -1 | 1) => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({ left: direction * 560, behavior: "smooth" });
+    smoothHorizontalScroll(scrollRef.current, direction * 560);
   };
 
   return (
@@ -753,12 +754,12 @@ function SportsAgendaSection({ events, loading }: { events: ApiSportEvent[]; loa
         ) : (
           <div
             ref={scrollRef}
-            className="mt-6 flex gap-5 overflow-x-auto scroll-smooth scrollbar-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+            className="mt-6 flex gap-5 overflow-x-auto scrollbar-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
           >
             {events.map((event) => (
               <div
                 key={event.id}
-                className="w-[82vw] max-w-[320px] shrink-0 sm:w-[280px] lg:w-[320px]"
+                className="sports-card-item w-[82vw] max-w-[320px] shrink-0 sm:w-[280px] lg:w-[320px]"
               >
                 <EventCard event={event} className="min-w-0 border-b-0 pb-0" />
               </div>
@@ -771,6 +772,7 @@ function SportsAgendaSection({ events, loading }: { events: ApiSportEvent[]; loa
 }
 
 function Index() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { data: channels = [], isLoading: loadingChannels } = useChannels();
   const { data: events = [], isLoading: loadingEvents } = useSports();
   const { data: categories = [] } = useChannelCategories();
@@ -779,8 +781,25 @@ function Index() {
   const heroLoading = loadingChannels || loadingEvents;
   const featuredEvents = pickFeaturedEvents(events, 8);
 
+  useGSAP(
+    () => {
+      if (!containerRef.current) return;
+      if (!loadingEvents && featuredEvents.length > 0) {
+        const carouselCards = containerRef.current.querySelectorAll(".sports-card-item");
+        if (carouselCards.length > 0) {
+          staggerEntrance(Array.from(carouselCards).slice(0, 8), {
+            y: 12,
+            stagger: 0.03,
+            duration: 0.3,
+          });
+        }
+      }
+    },
+    { scope: containerRef, dependencies: [loadingEvents, featuredEvents.length] },
+  );
+
   return (
-    <div>
+    <div ref={containerRef}>
       {heroLoading ? <HeroSkeleton /> : <HeroSection hero={hero} />}
 
       <SportsAgendaSection events={featuredEvents} loading={loadingEvents} />
