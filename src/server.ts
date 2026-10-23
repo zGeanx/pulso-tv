@@ -77,11 +77,14 @@ async function proxyPulsoLogo(request: Request): Promise<Response | null> {
 /** Same-origin read of the public Pulso catalog. Localhost is not on that API's CORS list. */
 async function proxyPulsoCatalog(request: Request): Promise<Response | null> {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
-  const target = PULSO_PUBLIC_PROXY[new URL(request.url).pathname];
+  const url = new URL(request.url);
+  const target = PULSO_PUBLIC_PROXY[url.pathname];
   if (!target) return null;
 
   try {
-    const upstream = await fetch(target, { headers: { Accept: "application/json" } });
+    const upstream = await fetch(`${target}${url.search}`, {
+      headers: { Accept: "application/json" },
+    });
     const headers = new Headers();
     headers.set(
       "content-type",
