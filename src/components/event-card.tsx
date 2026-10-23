@@ -30,7 +30,7 @@ export function EventCard({ event, className }: { event: ApiSportEvent; classNam
   return (
     <article className={className ?? "min-w-0 border-b border-border pb-5"}>
       <Link to="/evento/$eventId" params={{ eventId: event.id }} className="group block min-w-0">
-        <div className="relative aspect-video overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-all duration-300 group-hover:scale-[1.02] group-hover:border-primary/40 group-hover:shadow-md">
+        <div className="relative aspect-video overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm transition-[transform,border-color,box-shadow] duration-200 group-hover:border-primary/40 group-hover:shadow-md sm:group-hover:scale-[1.02]">
           {event.poster ? (
             <>
               <img
@@ -69,7 +69,7 @@ export function EventCard({ event, className }: { event: ApiSportEvent; classNam
           </div>
 
           {event.embeds.length > 0 && (
-            <span className="absolute bottom-3 right-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md transition-all duration-200 opacity-100 sm:opacity-0 sm:scale-90 sm:group-hover:opacity-100 sm:group-hover:scale-100">
+            <span className="absolute bottom-3 right-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-md transition-[opacity,transform] duration-200 opacity-100 sm:opacity-0 sm:scale-90 sm:group-hover:opacity-100 sm:group-hover:scale-100">
               <Play className="size-4 fill-current" aria-hidden="true" />
             </span>
           )}
