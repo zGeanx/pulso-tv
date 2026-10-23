@@ -154,15 +154,7 @@ export function fameScore(event: ApiSportEvent): number {
 /** Main leagues only, live and upcoming matches first, ordered by relevance and kickoff. */
 export function headlineEvents(events: ApiSportEvent[]): ApiSportEvent[] {
   const now = Date.now() / 1000;
-  const filtered = events.filter((event) => {
-    const status = getEventEffectiveStatus(event, now);
-    return fameScore(event) >= MIN_FAME || status === "live";
-  });
-
-  const activeCount = filtered.filter(
-    (event) => getEventEffectiveStatus(event, now) !== "finished",
-  ).length;
-  const list = activeCount > 0 ? filtered : events.filter((event) => !isWomensEvent(event));
+  const list = events.filter((event) => fameScore(event) >= MIN_FAME);
 
   return list.sort((a, b) => {
     const statusA = getEventEffectiveStatus(a, now);
