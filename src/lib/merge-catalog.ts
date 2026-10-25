@@ -1,4 +1,5 @@
 import { isWomensEvent, rememberWomensFixtures } from "@/lib/agenda-rank";
+import { correctBrasileiraoEvent } from "@/lib/brasileirao";
 import type { ApiChannel, ApiEmbed, ApiSportEvent, ApiSportStatus, ApiTeam } from "@/lib/api";
 import { isFlagLogo, pulsoLogoFile, resolvePulsoAsset } from "@/lib/pulso-assets";
 import { isPlaceholderLogo, type PulsoEmbedSource, type PulsoMatch } from "@/lib/pulso-api";
@@ -107,7 +108,7 @@ export function mergeSportEvents(
   });
 
   if (!includeUnmatched) {
-    return { events: withoutWomens(withoutDisneyOnly(events)), absorbed };
+    return { events: publishEvents(events), absorbed };
   }
 
   const extras: ApiSportEvent[] = [];
@@ -127,7 +128,11 @@ export function mergeSportEvents(
   }
   extras.sort((a, b) => a.start_timestamp - b.start_timestamp);
 
-  return { events: withoutWomens(withoutDisneyOnly([...events, ...extras])), absorbed };
+  return { events: publishEvents([...events, ...extras]), absorbed };
+}
+
+function publishEvents(events: ApiSportEvent[]): ApiSportEvent[] {
+  return withoutWomens(withoutDisneyOnly(events)).map(correctBrasileiraoEvent);
 }
 
 function withoutWomens(events: ApiSportEvent[]): ApiSportEvent[] {
