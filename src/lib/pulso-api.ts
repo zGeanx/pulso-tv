@@ -17,7 +17,6 @@ import {
   pulsoSlug,
 } from "@/lib/merge-catalog";
 import { isFlagLogo, PULSO_ORIGIN, resolvePulsoAsset } from "@/lib/pulso-assets";
-import { generateNextDayUpcomingEvents } from "@/lib/upcoming-schedule";
 
 export interface PulsoMatch {
   id: number;
@@ -217,28 +216,7 @@ export async function fetchMergedSports(params: SportsParams = {}): Promise<ApiS
     { channels: catalog.status === "fulfilled" ? catalog.value : [] },
   );
 
-  const nextDay = generateNextDayUpcomingEvents();
-  const existingPairs = new Set(
-    events.map((e) => {
-      const h = e.teams?.home.name.toLocaleLowerCase("pt-BR") ?? "";
-      const a = e.teams?.away.name.toLocaleLowerCase("pt-BR") ?? "";
-      return h && a ? `${h}|${a}` : e.title.toLocaleLowerCase("pt-BR");
-    }),
-  );
-
-  const additionalNextDay = nextDay.filter((item) => {
-    const h = item.teams?.home.name.toLocaleLowerCase("pt-BR") ?? "";
-    const a = item.teams?.away.name.toLocaleLowerCase("pt-BR") ?? "";
-    const pair = `${h}|${a}`;
-    const invPair = `${a}|${h}`;
-    return (
-      !existingPairs.has(pair) &&
-      !existingPairs.has(invPair) &&
-      !existingPairs.has(item.title.toLocaleLowerCase("pt-BR"))
-    );
-  });
-
-  return sliceSports([...events, ...additionalNextDay], params);
+  return sliceSports(events, params);
 }
 
 export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
