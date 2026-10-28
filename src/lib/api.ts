@@ -4,6 +4,9 @@ import { headlineEvents } from "@/lib/agenda-rank";
 
 const BASE_URL = "https://api.reidoscanais.si";
 
+/** Dead host used to sit on the browser's connect timeout (~20s) and held the agenda. */
+const REIDOS_TIMEOUT_MS = 8_000;
+
 // ─── Raw API Types ────────────────────────────────────────────────────────────
 
 import {
@@ -123,8 +126,11 @@ interface ApiItemResponse<T> {
 // ─── Fetch helper ─────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const timeout = AbortSignal.timeout(REIDOS_TIMEOUT_MS);
+  const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
+    signal,
     headers: {
       Accept: "application/json",
       ...init?.headers,

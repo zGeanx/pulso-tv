@@ -454,16 +454,27 @@ function presentEventEmbeds(
   if (replacement && replacement.url) {
     const target =
       pickReplacementGroup(groups, hadAlternative, replacement.title) ?? ensure(replacement.title);
-    const extra = rawEmbed(target?.name || replacement.title, replacement.url, replacement.allow);
+    const named = target?.name || replacement.title;
+    const provider = /(?:youtube\.com|youtu\.be)/i.test(replacement.url)
+      ? `${named} [YouTube]`
+      : named;
+    const extra = rawEmbed(provider, replacement.url, replacement.allow);
     if (target && !target.embeds.some((item) => item.embed_url === extra.embed_url)) {
       target.embeds.push(extra);
     }
   }
 
+  addPrimaryCazeFeeds(groups, channels);
+
   const ordered = groups.flatMap((slot) => {
     return slot.embeds.map((embed) => {
       const isAlt = isAlternative(embed.provider);
-      const title = isAlt ? `${slot.name} (Alternativo)` : slot.name;
+      const tagged = /\[[^\]]+\]/.test(embed.provider);
+      const title = tagged
+        ? embed.provider
+        : isAlt
+          ? `${slot.name} (Alternativo)`
+          : slot.name;
       return rawEmbed(title, embed.embed_url, embed.allow ?? "");
     });
   });
@@ -553,6 +564,25 @@ function embedHost(url: string): string {
     return new URL(url).hostname.replace(/^www\./, "").toLocaleLowerCase("en-US");
   } catch {
     return "";
+  }
+}
+
+/** Plain "CazéTV" is the main feed. Numbered siblings are other games at the same time. */
+function addPrimaryCazeFeeds(
+  groups: { name: string; embeds: ApiEmbed[] }[],
+  channels: PulsoEmbedSource[],
+) {
+  const slot = groups.find((group) => canonicalChannel(group.name) === "cazetv");
+  if (!slot) return;
+  for (const channel of channels) {
+    if (!channel.active || !isPlayable(channel.title, channel.url, channel.type)) continue;
+    const stem = normalizeLabel(splitChannelTag(baseProvider(channel.title)).stem);
+    if (stem !== "cazetv") continue;
+    // "CazéTV [HLS2]" still points at cazetv-3, a second game. Keep the main feed only.
+    if (/cazetv[-_]?[23](?!\d)/i.test(`${channel.slug} ${channel.url}`)) continue;
+    const extra = rawEmbed(channel.title, channel.url, channel.allow);
+    if (slot.embeds.some((item) => item.embed_url === extra.embed_url)) continue;
+    slot.embeds.push(extra);
   }
 }
 

@@ -778,7 +778,7 @@ function Index() {
   const { data: categories = [] } = useChannelCategories();
 
   const hero = pickHero(events, channels);
-  const heroLoading = loadingChannels || loadingEvents;
+  const heroLoading = loadingEvents || (events.length === 0 && loadingChannels);
   const featuredEvents = pickFeaturedEvents(events, 8);
 
   useGSAP(

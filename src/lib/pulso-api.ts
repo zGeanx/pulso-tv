@@ -16,6 +16,7 @@ import {
   mergeSportEvents,
   pulsoSlug,
 } from "@/lib/merge-catalog";
+import { supplementCazeMatches } from "@/lib/caze-broadcasts";
 import { isFlagLogo, PULSO_ORIGIN, resolvePulsoAsset } from "@/lib/pulso-assets";
 
 export interface PulsoMatch {
@@ -173,10 +174,21 @@ function readEmbed(value: unknown): PulsoEmbedSource | null {
 
 export async function fetchPulsoMatches(): Promise<PulsoMatch[]> {
   const payload = await fetchPulsoList("/api/pulso/matches", "/api/public/matches");
-  return payload.flatMap((item) => {
+  const matches = payload.flatMap((item) => {
     const match = readMatch(item);
     return match ? [match] : [];
   });
+  return supplementCazeMatches(matches);
+}
+
+export function composeSports(
+  reidosEvents: ApiSportEvent[],
+  pulsoMatches: PulsoMatch[],
+  embeds: PulsoEmbedSource[],
+  params: SportsParams = {},
+): ApiSportEvent[] {
+  const { events } = mergeSportEvents(reidosEvents, pulsoMatches, { channels: embeds });
+  return sliceSports(events, params);
 }
 
 export async function fetchPulsoEmbeds(): Promise<PulsoEmbedSource[]> {
@@ -210,13 +222,12 @@ export async function fetchMergedSports(params: SportsParams = {}): Promise<ApiS
   if (reidos.status === "rejected" && pulso.status === "rejected") {
     throw reidos.reason;
   }
-  const { events } = mergeSportEvents(
+  return composeSports(
     reidos.status === "fulfilled" ? reidos.value : [],
     pulso.status === "fulfilled" ? pulso.value : [],
-    { channels: catalog.status === "fulfilled" ? catalog.value : [] },
+    catalog.status === "fulfilled" ? catalog.value : [],
+    params,
   );
-
-  return sliceSports(events, params);
 }
 
 export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
