@@ -337,7 +337,13 @@ export function filterChannels(channels: ApiChannel[], query: string): ApiChanne
 }
 
 function logoKey(url: string): string {
-  return url.split("?")[0] ?? url;
+  return (url.split("?")[0] ?? url).trim();
+}
+
+function channelIdentity(channel: ApiChannel): string {
+  const logo = logoKey(channel.logo_url);
+  if (logo) return `logo:${logo}`;
+  return `name:${channel.name.trim().toLocaleLowerCase("pt-BR")}`;
 }
 
 function hasCurrentProgram(channel: ApiChannel): boolean {
@@ -348,8 +354,18 @@ function isCazeTv(channel: ApiChannel): boolean {
   return /caze/i.test(channel.name);
 }
 
+function isPlayableChannel(channel: ApiChannel): boolean {
+  return channel.embeds.length > 0;
+}
+
+/**
+ * Prefer channels with a live EPG row. When Rei dos Canais is down the Pulso
+ * catalog has no guide, so fall back to any playable channel.
+ */
 function samplePool(channels: ApiChannel[]): ApiChannel[] {
-  return channels.filter((ch) => !isCazeTv(ch) && hasCurrentProgram(ch));
+  const withoutCaze = channels.filter((ch) => !isCazeTv(ch) && isPlayableChannel(ch));
+  const withGuide = withoutCaze.filter(hasCurrentProgram);
+  return withGuide.length > 0 ? withGuide : withoutCaze;
 }
 
 function sportsRank(name: string): number {
@@ -380,17 +396,17 @@ function pickUnique(
   count: number,
   preferNewCategory: boolean,
 ): ApiChannel[] {
-  const seenLogos = new Set<string>();
+  const seen = new Set<string>();
   const seenCats = new Set<string>();
   const picked: ApiChannel[] = [];
 
   const attempt = (requireNewCat: boolean) => {
     for (const channel of channels) {
       if (picked.length >= count) return;
-      const key = logoKey(channel.logo_url);
-      if (seenLogos.has(key)) continue;
+      const key = channelIdentity(channel);
+      if (seen.has(key)) continue;
       if (requireNewCat && seenCats.has(channel.category)) continue;
-      seenLogos.add(key);
+      seen.add(key);
       seenCats.add(channel.category);
       picked.push(channel);
     }
@@ -408,12 +424,19 @@ export function pickLiveNow(channels: ApiChannel[], count = 3): ApiChannel[] {
   return pickUnique(sortSportsFirst(samplePool(channels)), count, false);
 }
 
+function playablePool(channels: ApiChannel[]): ApiChannel[] {
+  return channels.filter((channel) => !isCazeTv(channel) && isPlayableChannel(channel));
+}
+
 /** Featured cards: ESPN, Sportv, Premiere and other sports — never Caze TV. */
 export function pickFeaturedChannels(channels: ApiChannel[], count = 4): ApiChannel[] {
   const sports = sortSportsFirst(samplePool(channels).filter((ch) => ch.category === "Esportes"));
   const picked = pickUnique(sports, count, false);
   if (picked.length >= count) return picked;
-  return [...picked, ...pickUnique(samplePool(channels), count - picked.length, true)];
+  const rest = sortSportsFirst(
+    playablePool(channels).filter((channel) => !picked.some((item) => item.id === channel.id)),
+  );
+  return [...picked, ...pickUnique(rest, count - picked.length, false)];
 }
 
 /** Live first, then upcoming, then finished. Inside each group, by kickoff. */
@@ -443,7 +466,52 @@ export function pickScheduleChannels(channels: ApiChannel[], count = 6): ApiChan
   const sports = sortSportsFirst(samplePool(channels).filter((ch) => ch.category === "Esportes"));
   const first = pickUnique(sports, count, false);
   if (first.length >= count) return first;
-  return [...first, ...pickUnique(samplePool(channels), count - first.length, true)];
+  const rest = sortSportsFirst(
+    playablePool(channels).filter((channel) => !first.some((item) => item.id === channel.id)),
+  );
+  return [...first, ...pickUnique(rest, count - first.length, false)];
+}
+
+/**
+ * When the EPG API is down, stamp live/upcoming Pulso matches onto the matching
+ * channel so "Ao vivo" and "Programação" still show real titles.
+ */
+export function decorateChannelsWithEvents(
+  channels: ApiChannel[],
+  events: ApiSportEvent[],
+): ApiChannel[] {
+  if (channels.length === 0 || events.length === 0) return channels;
+  const now = Date.now() / 1000;
+  const active = sortEvents(
+    events.filter((event) => {
+      const status = getEventEffectiveStatus(event, now);
+      return status === "live" || status === "upcoming";
+    }),
+  );
+  if (active.length === 0) return channels;
+
+  return channels.map((channel) => {
+    if (channel.epg?.current?.title) return channel;
+    const match = active.find((event) =>
+      event.embeds.some((embed) => sameBroadcastChannel(embed.provider, channel.name)),
+    );
+    if (!match) return channel;
+    const end = match.start_timestamp + MATCH_DURATION_SECONDS;
+    return {
+      ...channel,
+      epg: {
+        current: {
+          title: match.title,
+          description: match.competition || null,
+          formatted_time: `${formatEventTime(match)}${end ? ` – ${formatClock(end)}` : ""}`,
+          start_time: match.start_timestamp,
+          end_time: end,
+          image: match.poster,
+        },
+        next: null,
+      },
+    };
+  });
 }
 
 /** Games on this channel. "ESPN" does not include ESPN 2 or ESPN 4. */
