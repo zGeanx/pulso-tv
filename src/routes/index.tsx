@@ -28,6 +28,7 @@ import { smoothHorizontalScroll, staggerEntrance } from "@/lib/motion";
 import { headlineEvents, isWomensBroadcast } from "@/lib/agenda-rank";
 import { useChannels, useChannelCategories, useSports } from "@/hooks/use-api";
 import {
+  decorateChannelsWithEvents,
   formatEpgRange,
   formatEventDay,
   formatEventTime,
@@ -627,7 +628,9 @@ function FeaturedChannelsSection({ channels }: { channels: ApiChannel[] }) {
 }
 
 function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
-  const scheduleItems = pickScheduleChannels(channels, 6);
+  const scheduleItems = pickScheduleChannels(channels, 6).filter(
+    (channel) => !isWomensBroadcast(channel.epg?.current?.title ?? ""),
+  );
 
   return (
     <div className="lg:col-span-7">
@@ -640,8 +643,9 @@ function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
       <div className="mt-2 divide-y divide-border/60">
         {scheduleItems.map((channel) => {
           const current = channel.epg?.current;
-          if (!current || isWomensBroadcast(current.title)) return null;
-          const progress = epgProgress(current);
+          const title = current?.title ?? "Transmissão ao vivo";
+          const range = current ? formatEpgRange(current) : "Ao vivo";
+          const progress = current ? epgProgress(current) : 0.35;
           return (
             <Link
               key={channel.id}
@@ -650,11 +654,11 @@ function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
               className="group grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-4 py-3.5 px-3 -mx-3 rounded-xl text-sm transition-all duration-200 hover:bg-card/50"
             >
               <span className="font-display tabular-nums text-muted-foreground text-xs sm:text-sm">
-                {formatEpgRange(current)}
+                {range}
               </span>
               <span className="min-w-0">
                 <span className="block truncate font-medium group-hover:text-primary transition-colors">
-                  {current.title}
+                  {title}
                 </span>
                 <span className="mt-1.5 block h-1 max-w-44 rounded-full bg-foreground/10 overflow-hidden">
                   <span
@@ -777,7 +781,8 @@ function Index() {
   const { data: events = [], isLoading: loadingEvents } = useSports();
   const { data: categories = [] } = useChannelCategories();
 
-  const hero = pickHero(events, channels);
+  const guideChannels = decorateChannelsWithEvents(channels, events);
+  const hero = pickHero(events, guideChannels);
   const heroLoading = loadingEvents || (events.length === 0 && loadingChannels);
   const featuredEvents = pickFeaturedEvents(events, 8);
 
@@ -823,8 +828,8 @@ function Index() {
             </div>
           ) : (
             <>
-              <LiveNowSection channels={channels} />
-              <ExploreSection categories={categories} channels={channels} />
+              <LiveNowSection channels={guideChannels} />
+              <ExploreSection categories={categories} channels={guideChannels} />
             </>
           )}
         </div>
@@ -840,7 +845,7 @@ function Index() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : (
-            <ScheduleSection channels={channels} />
+            <ScheduleSection channels={guideChannels} />
           )}
           {loadingChannels ? (
             <div className="col-span-5 space-y-3">
@@ -849,7 +854,7 @@ function Index() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : (
-            <FeaturedChannelsSection channels={channels} />
+            <FeaturedChannelsSection channels={guideChannels} />
           )}
         </div>
       </section>
