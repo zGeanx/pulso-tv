@@ -153,7 +153,7 @@ export function mergeChannelLists(
   for (const embed of pulsoEmbeds) {
     if (!embed.active || !safeSlug(embed.slug)) continue;
     if (!isPlayable(embed.title || embed.slug, embed.url, embed.type)) continue;
-    const key = canonicalChannel(embed.title || embed.slug);
+    const key = channelGroupKey(embed.title || embed.slug);
     if (!key) continue;
     const group = extrasByKey.get(key);
     if (group) group.push(embed);
@@ -162,7 +162,7 @@ export function mergeChannelLists(
 
   const usedKeys = new Set<string>();
   const channels = reidosChannels.map((channel) => {
-    const key = canonicalChannel(channel.name);
+    const key = channelGroupKey(channel.name);
     const extras = key && !usedKeys.has(key) ? extrasByKey.get(key) : undefined;
     if (key && extras) {
       usedKeys.add(key);
@@ -178,11 +178,11 @@ export function mergeChannelLists(
     return { channels: labelRepeatedChannels(channels, pulsoEmbeds), absorbed };
 
   const unmatched: ApiChannel[] = [];
-  for (const embed of pulsoEmbeds) {
-    if (absorbed.has(embed.slug)) continue;
-    const channel = toPulsoChannel(embed);
+  for (const [key, group] of extrasByKey) {
+    if (usedKeys.has(key)) continue;
+    const channel = channelFromPulsoGroup(group);
     if (!channel) continue;
-    absorbed.set(embed.slug, channel.id);
+    for (const embed of group) absorbed.set(embed.slug, channel.id);
     unmatched.push(channel);
   }
   unmatched.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -394,20 +394,85 @@ function toPulsoEvent(
   };
 }
 
-function toPulsoChannel(embed: PulsoEmbedSource): ApiChannel | null {
-  const slug = safeSlug(embed.slug);
-  if (!slug || !embed.active) return null;
-  const title = embed.title || slug;
-  if (!isPlayable(title, embed.url, embed.type)) return null;
+function channelFromPulsoGroup(group: PulsoEmbedSource[]): ApiChannel | null {
+  const playable = group.filter(
+    (embed) =>
+      embed.active &&
+      safeSlug(embed.slug) &&
+      isPlayable(embed.title || embed.slug, embed.url, embed.type),
+  );
+  if (playable.length === 0) return null;
+  const primary = pickPrimaryPulsoEmbed(playable);
+  const slug = safeSlug(primary.slug);
+  if (!slug) return null;
+  const title = splitChannelTag(baseProvider(primary.title || slug)).stem || slug;
+  const description = playable.map((embed) => embed.description.trim()).find(Boolean) ?? "";
+  const thumbnail =
+    playable.map((embed) => embed.thumbnail.trim()).find((url) => url.length > 0) ?? "";
   return {
     id: pulsoId(slug),
     name: title,
-    description: embed.description.trim() ? embed.description.trim() : null,
-    logo_url: embed.thumbnail,
-    category: "Esportes",
-    embeds: presentChannelEmbeds(title, [], [embed]),
+    description: description || null,
+    logo_url: thumbnail,
+    category: inferChannelCategory(title),
+    embeds: presentChannelEmbeds(title, [], playable),
     epg: null,
   };
+}
+
+/** Prefer the untagged main feed so "CazéTV [HLS]" does not become the channel name. */
+function pickPrimaryPulsoEmbed(group: PulsoEmbedSource[]): PulsoEmbedSource {
+  return group.reduce((best, embed) => {
+    const score = pulsoEmbedScore(embed);
+    return score > pulsoEmbedScore(best) ? embed : best;
+  });
+}
+
+function pulsoEmbedScore(embed: PulsoEmbedSource): number {
+  const { stem, tag } = splitChannelTag(embed.title);
+  let score = stem.length;
+  if (!tag) score += 1000;
+  if (embed.thumbnail.trim()) score += 50;
+  if (embed.description.trim()) score += 10;
+  return score;
+}
+
+/**
+ * Pulso embeds have no category field. Guess from the channel name so the home
+ * grid still has Notícias / Infantil / etc. when Rei dos Canais is down.
+ */
+function inferChannelCategory(name: string): string {
+  const value = normalizeLabel(name);
+  if (
+    /\b(band news|bloomberg|bm c|cnn|globo news|globonews|record news|jornal)\b/.test(value)
+  ) {
+    return "Notícias";
+  }
+  if (/\b(cartoon|cartoonito|discovery kids|nick|gloob|disney junior)\b/.test(value)) {
+    return "Infantil";
+  }
+  if (
+    /\b(discovery|animal planet|curta|arte 1|nat geo|national geographic|history|id extra)\b/.test(
+      value,
+    )
+  ) {
+    return "Documentários";
+  }
+  if (
+    /\b(hbo|amc|axn|cinemax|paramount|prime video|telecine|megapix|canal brasil|bis)\b/.test(value)
+  ) {
+    return "Filmes e Séries";
+  }
+  if (/\b(a e|adult swim|fazenda|multishow|mtv|gnt|viva|comedy)\b/.test(value)) {
+    return "Entretenimento";
+  }
+  if (
+    /\b(globo|sbt|record|band|rede tv|cultura)\b/.test(value) &&
+    !/\bsports?\b|\bnews\b/.test(value)
+  ) {
+    return "Canais Abertos";
+  }
+  return "Esportes";
 }
 
 function presentChannelEmbeds(
@@ -822,6 +887,11 @@ function canonicalChannel(name: string): string {
   if (!normalized) return "";
   if (normalized === "sport tv") return "sportv";
   return normalized;
+}
+
+/** Strip feed tags like [MPHD] so every ESPN mirror lands in one channel. */
+function channelGroupKey(name: string): string {
+  return canonicalChannel(splitChannelTag(baseProvider(name)).stem);
 }
 
 function normalizeLabel(value: string): string {
