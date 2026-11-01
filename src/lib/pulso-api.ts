@@ -82,9 +82,14 @@ function flagEnabled(value: unknown): boolean {
   return value !== false;
 }
 
+const PULSO_TIMEOUT_MS = 3_500;
+
 async function fetchPulsoList(proxyPath: string, upstreamPath: string): Promise<unknown[]> {
   const url = typeof window === "undefined" ? `${PULSO_ORIGIN}${upstreamPath}` : proxyPath;
-  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const response = await fetch(url, {
+    headers: { Accept: "application/json" },
+    signal: AbortSignal.timeout(PULSO_TIMEOUT_MS),
+  });
   if (!response.ok) {
     throw new Error(`Pulso API error ${response.status}: ${proxyPath}`);
   }
@@ -191,6 +196,23 @@ export function composeSports(
   return sliceSports(events, params);
 }
 
+export function composeSportsWithAbsorbed(
+  reidosEvents: ApiSportEvent[],
+  pulsoMatches: PulsoMatch[],
+  embeds: PulsoEmbedSource[],
+  params: SportsParams = {},
+): { events: ApiSportEvent[]; absorbed: Map<number, string>; slugToId: Map<string, string> } {
+  const { events, absorbed } = mergeSportEvents(reidosEvents, pulsoMatches, { channels: embeds });
+  const slugToId = new Map<string, string>();
+  for (const match of pulsoMatches) {
+    const hostId = absorbed.get(match.id);
+    if (hostId && match.slug) {
+      slugToId.set(match.slug, hostId);
+    }
+  }
+  return { events: sliceSports(events, params), absorbed, slugToId };
+}
+
 export async function fetchPulsoEmbeds(): Promise<PulsoEmbedSource[]> {
   const payload = await fetchPulsoList("/api/pulso/embeds", "/api/public/embeds");
   return payload.flatMap((item) => {
@@ -199,7 +221,7 @@ export async function fetchPulsoEmbeds(): Promise<PulsoEmbedSource[]> {
   });
 }
 
-function sliceSports(events: ApiSportEvent[], params: SportsParams): ApiSportEvent[] {
+export function sliceSports(events: ApiSportEvent[], params: SportsParams): ApiSportEvent[] {
   let list = events;
   if (params.status) list = list.filter((event) => event.status === params.status);
   if (params.category) list = list.filter((event) => event.category === params.category);
