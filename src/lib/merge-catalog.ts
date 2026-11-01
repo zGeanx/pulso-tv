@@ -30,7 +30,6 @@ export interface MergeChannelResult {
 interface MergeOptions {
   includeUnmatched?: boolean;
   now?: number;
-  /** Catalog feeds used to expand repeated channels such as HBO Max / HBO Max 1. */
   channels?: PulsoEmbedSource[];
 }
 
@@ -76,6 +75,7 @@ export function mergeSportEvents(
   const includeUnmatched = options.includeUnmatched !== false;
   const now = options.now ?? Date.now();
   const channels = options.channels ?? [];
+  const channelArts = channelArtSet(channels);
   const available = pulsoMatches.flatMap((match) => {
     const prepared = prepareMatch(match);
     return prepared ? [prepared] : [];
@@ -83,8 +83,12 @@ export function mergeSportEvents(
   const consumed = new Set<number>();
   const absorbed = new Map<number, string>();
 
-  const events = reidosEvents.map((event) => {
-    const prepared = prepareEvent(event);
+  const preparedReidos = reidosEvents.map((event) => ({
+    event,
+    prepared: prepareEvent(event),
+  }));
+
+  const events = preparedReidos.map(({ event, prepared }) => {
     const candidates = available.filter(
       (match) => !consumed.has(match.source.id) && sameFixture(prepared, match),
     );
@@ -98,10 +102,10 @@ export function mergeSportEvents(
     const canPlay =
       chosen != null &&
       isPlayable(chosen.source.channelTitle || "Player", chosen.source.url, "embed");
-    if (!chosen || !canPlay) return presentEvent(event, null, channels);
+    if (!chosen || !canPlay) return presentEvent(event, null, channels, channelArts);
     for (const match of candidates) consumed.add(match.source.id);
     consumed.add(chosen.source.id);
-    const merged = applyPulso(event, chosen, now, absorbed, channels);
+    const merged = applyPulso(event, chosen, now, absorbed, channels, channelArts);
     for (const match of candidates) absorbed.set(match.source.id, merged.id);
     absorbed.set(chosen.source.id, merged.id);
     return merged;
@@ -111,15 +115,16 @@ export function mergeSportEvents(
     return { events: publishEvents(events), absorbed };
   }
 
+  const preparedEvents = events.map(prepareEvent);
   const extras: ApiSportEvent[] = [];
   const pending = available.filter((match) => {
     if (consumed.has(match.source.id) || !match.away || !match.pair) return false;
     if (!isPlayable(match.source.channelTitle || "Player", match.source.url, "embed")) return false;
-    return !events.some((event) => sameFixture(prepareEvent(event), match));
+    return !preparedEvents.some((prepared) => sameFixture(prepared, match));
   });
   for (const group of groupFixtures(pending)) {
     const match = richestMatch(group);
-    const event = toPulsoEvent(match, now, channels);
+    const event = toPulsoEvent(match, now, channels, channelArts);
     for (const item of group) {
       consumed.add(item.source.id);
       absorbed.set(item.source.id, event.id);
@@ -192,10 +197,13 @@ export function mergeChannelLists(
 
 /** Plain "HBO Max" is feed 1 when "HBO Max 1 …" also exists. Put that id in the name. */
 function labelRepeatedChannels(list: ApiChannel[], catalog: PulsoEmbedSource[]): ApiChannel[] {
+  const bases = plainChannelBases(catalog);
+  const twinBases = getTwinBases(catalog, bases);
+
   return list.map((channel) => {
-    const name = nameWithChannelId(channel.name, catalog);
+    const name = nameWithChannelId(channel.name, bases, twinBases);
     const embeds = channel.embeds.map((embed) => {
-      const provider = nameWithChannelId(embed.provider, catalog);
+      const provider = nameWithChannelId(embed.provider, bases, twinBases);
       if (provider === embed.provider) return embed;
       const next: ApiEmbed = { ...embed, provider };
       if (/^Opção \d+$/.test(embed.quality)) next.quality = "";
@@ -208,18 +216,24 @@ function labelRepeatedChannels(list: ApiChannel[], catalog: PulsoEmbedSource[]):
   });
 }
 
-function nameWithChannelId(title: string, catalog: PulsoEmbedSource[]): string {
-  const bases = plainChannelBases(catalog);
+function getTwinBases(catalog: PulsoEmbedSource[], bases: Set<string>): Set<string> {
+  const twins = new Set<string>();
+  for (const channel of catalog) {
+    if (channel.active && isNumberedDuplicate(channel.title, bases)) {
+      const base = channelBase(channel.title, bases);
+      if (base && bases.has(base)) {
+        twins.add(base);
+      }
+    }
+  }
+  return twins;
+}
+
+function nameWithChannelId(title: string, bases: Set<string>, twinBases: Set<string>): string {
   if (splitChannelTag(title).tag || isNumberedDuplicate(title, bases)) return title;
   const base = channelBase(title, bases);
   if (!base || !bases.has(base)) return title;
-  const hasTwin = catalog.some(
-    (channel) =>
-      channel.active &&
-      isNumberedDuplicate(channel.title, bases) &&
-      channelBase(channel.title, bases) === base,
-  );
-  return hasTwin ? identifiedChannelTitle(title) : title;
+  return twinBases.has(base) ? identifiedChannelTitle(title) : title;
 }
 
 function prepareMatch(match: PulsoMatch): PreparedMatch | null {
@@ -276,6 +290,7 @@ function applyPulso(
   nowMs: number,
   absorbed: Map<number, string>,
   channels: PulsoEmbedSource[],
+  channelArts?: Set<string>,
 ): ApiSportEvent {
   const pulsoStatus = mapPulsoStatus(match.source.status, match.unix, nowMs);
   let status: ApiSportStatus = event.status;
@@ -288,9 +303,10 @@ function applyPulso(
   } else if (event.status === "upcoming" && pulsoStatus === "live") {
     status = "live";
   }
+  const posterTarget = channelArts ?? channels;
   const poster =
-    realPoster(event.poster, channels, match.source.thumbnail) ??
-    realPoster(match.source.match_image, channels, match.source.thumbnail);
+    realPoster(event.poster, posterTarget, match.source.thumbnail) ??
+    realPoster(match.source.match_image, posterTarget, match.source.thumbnail);
   absorbed.set(match.source.id, event.id);
   const isBogus = isBogusPulsoMatchUrl(match.pair, match.source.url);
   return presentEvent(
@@ -303,6 +319,7 @@ function applyPulso(
           allow: match.source.allow,
         },
     channels,
+    channelArts,
   );
 }
 
@@ -310,10 +327,11 @@ function presentEvent(
   event: ApiSportEvent,
   replacement: { title: string; url: string; allow: string } | null,
   channels: PulsoEmbedSource[],
+  channelArts?: Set<string>,
 ): ApiSportEvent {
   const presented = withTeamCrests({
     ...withInferredCategory(event),
-    poster: realPoster(event.poster, channels),
+    poster: realPoster(event.poster, channelArts ?? channels),
     embeds: presentEventEmbeds(event.embeds, replacement, channels),
   });
   return curateUclEvent(presented);
@@ -362,6 +380,7 @@ function toPulsoEvent(
   match: PreparedMatch,
   nowMs: number,
   channels: PulsoEmbedSource[],
+  channelArts?: Set<string>,
 ): ApiSportEvent {
   const home = match.source.home_team.trim();
   const away = match.source.away_team.trim();
@@ -371,7 +390,7 @@ function toPulsoEvent(
     id: pulsoId(slug),
     title,
     description: null,
-    poster: realPoster(match.source.match_image, channels, match.source.thumbnail),
+    poster: realPoster(match.source.match_image, channelArts ?? channels, match.source.thumbnail),
     category: inferCategory(`${match.source.competition} ${title}`),
     competition: match.source.competition || "Futebol",
     teams: {
@@ -443,9 +462,7 @@ function pulsoEmbedScore(embed: PulsoEmbedSource): number {
  */
 function inferChannelCategory(name: string): string {
   const value = normalizeLabel(name);
-  if (
-    /\b(band news|bloomberg|bm c|cnn|globo news|globonews|record news|jornal)\b/.test(value)
-  ) {
+  if (/\b(band news|bloomberg|bm c|cnn|globo news|globonews|record news|jornal)\b/.test(value)) {
     return "Notícias";
   }
   if (/\b(cartoon|cartoonito|discovery kids|nick|gloob|disney junior)\b/.test(value)) {
@@ -480,12 +497,25 @@ function presentChannelEmbeds(
   embeds: ApiEmbed[],
   replacements: PulsoEmbedSource[],
 ): ApiEmbed[] {
-  const extras = replacements.map((embed) =>
-    rawEmbed(embed.title || channelName, embed.url, embed.allow),
-  );
-  const ordered = spliceReplacement(embeds, () => true, extras).map((embed) =>
-    rawEmbed(channelName, embed.embed_url, embed.allow ?? ""),
-  );
+  const seen = new Set<string>();
+  const ordered: ApiEmbed[] = [];
+
+  const push = (embed: ApiEmbed) => {
+    if (!embed.embed_url || seen.has(embed.embed_url)) return;
+    seen.add(embed.embed_url);
+    ordered.push(embed);
+  };
+
+  // 1. Playable Pulso embeds first so Opção 1 is immediately functional across all networks
+  for (const extra of replacements) {
+    push(rawEmbed(extra.title || channelName, extra.url, extra.allow));
+  }
+
+  // 2. Original embeds from Reidos as additional options
+  for (const embed of embeds) {
+    push(rawEmbed(embed.provider || channelName, embed.embed_url, embed.allow ?? ""));
+  }
+
   return numberOptions(ordered);
 }
 
@@ -525,7 +555,7 @@ function presentEventEmbeds(
       : named;
     const extra = rawEmbed(provider, replacement.url, replacement.allow);
     if (target && !target.embeds.some((item) => item.embed_url === extra.embed_url)) {
-      target.embeds.push(extra);
+      target.embeds.unshift(extra);
     }
   }
 
@@ -535,11 +565,7 @@ function presentEventEmbeds(
     return slot.embeds.map((embed) => {
       const isAlt = isAlternative(embed.provider);
       const tagged = /\[[^\]]+\]/.test(embed.provider);
-      const title = tagged
-        ? embed.provider
-        : isAlt
-          ? `${slot.name} (Alternativo)`
-          : slot.name;
+      const title = tagged ? embed.provider : isAlt ? `${slot.name} (Alternativo)` : slot.name;
       return rawEmbed(title, embed.embed_url, embed.allow ?? "");
     });
   });
@@ -737,6 +763,7 @@ function isAlternative(provider: string): boolean {
 function baseProvider(provider: string): string {
   return provider
     .replace(/\s*\(alternativo\)\s*/gi, " ")
+    .replace(/\s*·\s*[^[\]]+$/i, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -841,9 +868,22 @@ function matchRichness(match: PreparedMatch): number {
   return art + names;
 }
 
+function channelArtSet(channels: PulsoEmbedSource[]): Set<string> {
+  const set = new Set<string>();
+  for (const channel of channels) {
+    const art = channel.thumbnail?.trim();
+    if (art) {
+      set.add(art);
+      const resolved = resolvePulsoAsset(art);
+      if (resolved) set.add(resolved);
+    }
+  }
+  return set;
+}
+
 function realPoster(
   value: string | null | undefined,
-  channels: PulsoEmbedSource[],
+  channels: PulsoEmbedSource[] | Set<string>,
   channelThumbnail = "",
 ): string | null {
   const raw = value?.trim() ?? "";
@@ -852,15 +892,20 @@ function realPoster(
   const resolved = resolvePulsoAsset(raw);
   const thumb = channelThumbnail.trim();
   if (thumb && (raw === thumb || resolved === resolvePulsoAsset(thumb))) return null;
-  if (
-    channels.some((channel) => {
-      const channelArt = channel.thumbnail.trim();
-      return (
-        channelArt.length > 0 && (raw === channelArt || resolved === resolvePulsoAsset(channelArt))
-      );
-    })
-  ) {
-    return null;
+  if (channels instanceof Set) {
+    if (channels.has(raw) || channels.has(resolved)) return null;
+  } else {
+    if (
+      channels.some((channel) => {
+        const channelArt = channel.thumbnail.trim();
+        return (
+          channelArt.length > 0 &&
+          (raw === channelArt || resolved === resolvePulsoAsset(channelArt))
+        );
+      })
+    ) {
+      return null;
+    }
   }
   return resolved;
 }
@@ -879,18 +924,37 @@ function canonicalTeam(name: string): string {
   return normalizeTeamKey(name);
 }
 
+const CHANNEL_ALIASES = new Map<string, string>([
+  ["caze tv", "cazetv"],
+  ["caze tv 1", "cazetv"],
+  ["cazetv 1", "cazetv"],
+  ["caze tv 2", "cazetv 2"],
+  ["caze tv 3", "cazetv 3"],
+  ["sport tv", "sportv"],
+  ["a e", "ae"],
+  ["a e e", "ae"],
+  ["arte1", "arte 1"],
+  ["cartoon", "cartoon network"],
+  ["discovery", "discovery channel"],
+  ["discovery home health", "discovery home e health"],
+  ["premiere clubes", "premiere"],
+  ["paramount plus 1", "paramount plus"],
+  ["paramount", "paramount plus"],
+  ["band sports", "bandsports"],
+]);
+
 function canonicalChannel(name: string): string {
   const normalized = normalizeLabel(name)
     .replace(/\bfc\b/g, " ")
+    .replace(/\b(hd|sd|fhd|uhd|4k|hls)\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (!normalized) return "";
-  if (normalized === "sport tv") return "sportv";
-  return normalized;
+  return CHANNEL_ALIASES.get(normalized) ?? normalized;
 }
 
 /** Strip feed tags like [MPHD] so every ESPN mirror lands in one channel. */
-function channelGroupKey(name: string): string {
+export function channelGroupKey(name: string): string {
   return canonicalChannel(splitChannelTag(baseProvider(name)).stem);
 }
 
@@ -900,6 +964,7 @@ function normalizeLabel(value: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("pt-BR")
     .replace(/&/g, " e ")
+    .replace(/\+/g, " plus ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .replace(/\s+/g, " ");
@@ -917,13 +982,15 @@ function parseKickoff(kickoff: string): { day: string; unix: number } | null {
   return { day, unix: Math.floor(unixMs / 1000) };
 }
 
+const SAO_PAULO_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 function saoPauloDay(unixSeconds: number): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(unixSeconds * 1000));
+  const parts = SAO_PAULO_DAY_FORMATTER.formatToParts(new Date(unixSeconds * 1000));
   const year = parts.find((part) => part.type === "year")?.value ?? "";
   const month = parts.find((part) => part.type === "month")?.value ?? "";
   const day = parts.find((part) => part.type === "day")?.value ?? "";
