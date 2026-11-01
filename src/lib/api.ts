@@ -1,11 +1,18 @@
-// Typed API client for https://api.reidoscanais.si
+// Typed API client for https://api.reidoscanais.my
 
 import { headlineEvents } from "@/lib/agenda-rank";
 
-const BASE_URL = "https://api.reidoscanais.si";
+export const REIDOS_ORIGIN = "https://api.reidoscanais.my";
+const REIDOS_PROXY_PREFIX = "/api/reidos";
 
-/** Dead host used to sit on the browser's connect timeout (~20s) and held the agenda. */
-const REIDOS_TIMEOUT_MS = 8_000;
+/** Fail fast: the live host answers in under a second when reachable. */
+const REIDOS_TIMEOUT_MS = 3_500;
+
+/** Browser uses the same-origin proxy; the worker/SSR talks to the API directly. */
+function reidosUrl(path: string): string {
+  if (typeof window === "undefined") return `${REIDOS_ORIGIN}${path}`;
+  return `${REIDOS_PROXY_PREFIX}${path}`;
+}
 
 // ─── Raw API Types ────────────────────────────────────────────────────────────
 
@@ -128,7 +135,7 @@ interface ApiItemResponse<T> {
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const timeout = AbortSignal.timeout(REIDOS_TIMEOUT_MS);
   const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(reidosUrl(path), {
     ...init,
     signal,
     headers: {
