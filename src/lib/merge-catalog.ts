@@ -154,11 +154,12 @@ export function mergeChannelLists(
   const includeUnmatched = options.includeUnmatched !== false;
   const absorbed = new Map<string, string>();
   const extrasByKey = new Map<string, PulsoEmbedSource[]>();
+  const plainBases = plainChannelBases(pulsoEmbeds);
 
   for (const embed of pulsoEmbeds) {
     if (!embed.active || !safeSlug(embed.slug)) continue;
     if (!isPlayable(embed.title || embed.slug, embed.url, embed.type)) continue;
-    const key = channelGroupKey(embed.title || embed.slug);
+    const key = catalogGroupKey(embed.title || embed.slug, plainBases);
     if (!key) continue;
     const group = extrasByKey.get(key);
     if (group) group.push(embed);
@@ -167,7 +168,7 @@ export function mergeChannelLists(
 
   const usedKeys = new Set<string>();
   const channels = reidosChannels.map((channel) => {
-    const key = channelGroupKey(channel.name);
+    const key = catalogGroupKey(channel.name, plainBases);
     const extras = key && !usedKeys.has(key) ? extrasByKey.get(key) : undefined;
     if (key && extras) {
       usedKeys.add(key);
@@ -559,13 +560,20 @@ function presentEventEmbeds(
     }
   }
 
-  addPrimaryCazeFeeds(groups, channels);
+  addCatalogFeeds(groups, channels);
 
   const ordered = groups.flatMap((slot) => {
     return slot.embeds.map((embed) => {
       const isAlt = isAlternative(embed.provider);
       const tagged = /\[[^\]]+\]/.test(embed.provider);
-      const title = tagged ? embed.provider : isAlt ? `${slot.name} (Alternativo)` : slot.name;
+      const own = embed.provider.trim();
+      const title = tagged
+        ? own
+        : isAlt
+          ? `${slot.name} (Alternativo)`
+          : own && own !== slot.name
+            ? own
+            : slot.name;
       return rawEmbed(title, embed.embed_url, embed.allow ?? "");
     });
   });
@@ -573,44 +581,13 @@ function presentEventEmbeds(
 }
 
 /**
- * "HBO Max" and "HBO Max 1 [MPHD2]" are the same channel: the first feed was
- * registered without a number. When that pair exists, show both and label the
- * unnumbered feed as 1.
+ * "HBO Max" and "HBO MAX 1 [MPHD2]" are the same feed family. Group them
+ * together so every registered player shows up on that channel.
  */
-function repeatedChannelOptions(provider: string, channels: PulsoEmbedSource[]): ApiEmbed[] {
-  const plainBases = plainChannelBases(channels);
-  const wanted = channelBase(provider, plainBases);
-  if (!wanted) return [];
-
-  const family = channels.filter((channel) => {
-    if (!channel.active || !isPlayable(channel.title, channel.url, channel.type)) return false;
-    return channelBase(channel.title, plainBases) === wanted;
-  });
-  const numbered = family.filter((channel) => isNumberedDuplicate(channel.title, plainBases));
-  const primary = family.filter((channel) => {
-    if (isNumberedDuplicate(channel.title, plainBases)) return false;
-    return !splitChannelTag(channel.title).tag;
-  });
-  if (numbered.length === 0 || primary.length === 0) return [];
-
-  const primaryHost = embedHost(primary[0]?.url ?? "");
-  const sameHost = numbered.filter((channel) => embedHost(channel.url) === primaryHost);
-  const duplicates = (sameHost.length > 0 ? sameHost : numbered).sort((a, b) =>
-    a.title.localeCompare(b.title, "pt-BR"),
-  );
-
-  const ordered = [...primary, ...duplicates];
-  const seen = new Set<string>();
-  const options: ApiEmbed[] = [];
-  for (const channel of ordered) {
-    if (seen.has(channel.url)) continue;
-    seen.add(channel.url);
-    const title = isNumberedDuplicate(channel.title, plainBases)
-      ? channel.title
-      : identifiedChannelTitle(channel.title);
-    options.push(rawEmbed(title, channel.url, channel.allow));
-  }
-  return options;
+function catalogGroupKey(name: string, plainBases: Set<string>): string {
+  const key = channelGroupKey(name);
+  if (!key) return "";
+  return channelBase(key, plainBases);
 }
 
 function plainChannelBases(channels: PulsoEmbedSource[]): Set<string> {
@@ -650,30 +627,30 @@ function splitChannelTag(title: string): { stem: string; tag: string | null } {
   return { stem: match[1].trim(), tag: match[2]?.trim() || null };
 }
 
-function embedHost(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "").toLocaleLowerCase("en-US");
-  } catch {
-    return "";
-  }
-}
-
-/** Plain "CazéTV" is the main feed. Numbered siblings are other games at the same time. */
-function addPrimaryCazeFeeds(
+/**
+ * A match used to keep only the two servers that came with the fixture.
+ * Every playable embed registered for that same channel is an option too.
+ * Plain "CazéTV" stays the main game: numbered siblings are other matches.
+ */
+function addCatalogFeeds(
   groups: { name: string; embeds: ApiEmbed[] }[],
   channels: PulsoEmbedSource[],
 ) {
-  const slot = groups.find((group) => canonicalChannel(group.name) === "cazetv");
-  if (!slot) return;
-  for (const channel of channels) {
-    if (!channel.active || !isPlayable(channel.title, channel.url, channel.type)) continue;
-    const stem = normalizeLabel(splitChannelTag(baseProvider(channel.title)).stem);
-    if (stem !== "cazetv") continue;
-    // "CazéTV [HLS2]" still points at cazetv-3, a second game. Keep the main feed only.
-    if (/cazetv[-_]?[23](?!\d)/i.test(`${channel.slug} ${channel.url}`)) continue;
-    const extra = rawEmbed(channel.title, channel.url, channel.allow);
-    if (slot.embeds.some((item) => item.embed_url === extra.embed_url)) continue;
-    slot.embeds.push(extra);
+  if (groups.length === 0 || channels.length === 0) return;
+  const plainBases = plainChannelBases(channels);
+  for (const slot of groups) {
+    const wanted = catalogGroupKey(slot.name, plainBases);
+    if (!wanted) continue;
+    for (const channel of channels) {
+      if (!channel.active || !isPlayable(channel.title, channel.url, channel.type)) continue;
+      if (catalogGroupKey(channel.title || channel.slug, plainBases) !== wanted) continue;
+      if (wanted === "cazetv" && /cazetv[-_]?[23](?!\d)/i.test(`${channel.slug} ${channel.url}`)) {
+        continue;
+      }
+      const extra = rawEmbed(channel.title || slot.name, channel.url, channel.allow);
+      if (slot.embeds.some((item) => item.embed_url === extra.embed_url)) continue;
+      slot.embeds.push(extra);
+    }
   }
 }
 
