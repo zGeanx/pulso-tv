@@ -51,10 +51,24 @@ async function copyText(value: string) {
 export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: WatchPlayerProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [open, setOpen] = useState(false);
+  const [menuAbove, setMenuAbove] = useState(false);
+  const [menuMaxHeight, setMenuMaxHeight] = useState(320);
   const [copied, setCopied] = useState<"embed" | "share" | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const current = embeds[selectedIndex];
+
+  function placeMenu() {
+    const rect = boxRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const gap = 12;
+    const below = window.innerHeight - rect.bottom - gap;
+    const above = rect.top - gap;
+    const openAbove = below < 220 && above > below;
+    const room = openAbove ? above : below;
+    setMenuAbove(openAbove);
+    setMenuMaxHeight(Math.max(96, Math.floor(room)));
+  }
 
   useEffect(() => {
     function onPointer(event: MouseEvent) {
@@ -136,8 +150,11 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
               aria-expanded={open}
               aria-controls={listId}
               aria-label="Escolher servidor de transmissão"
-              onClick={() => setOpen((value) => !value)}
-              className="inline-flex min-h-10 max-w-56 items-center justify-between gap-2.5 rounded-xl border border-border/80 bg-card/60 px-3 text-xs sm:text-sm transition-colors hover:border-primary hover:bg-card cursor-pointer shadow-sm"
+              onClick={() => {
+                if (!open) placeMenu();
+                setOpen((value) => !value);
+              }}
+              className="inline-flex min-h-10 max-w-[18rem] items-center justify-between gap-2.5 rounded-xl border border-border/80 bg-card/60 px-3 text-xs sm:text-sm transition-colors hover:border-primary hover:bg-card cursor-pointer shadow-sm"
             >
               <span className="truncate font-medium">{optionLabel(current)}</span>
               <ChevronDown
@@ -151,7 +168,10 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
                 id={listId}
                 role="listbox"
                 aria-label="Servidores de transmissão"
-                className="dropdown-pop absolute left-0 top-[calc(100%+0.35rem)] z-30 w-full min-w-48 overflow-hidden rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md py-1.5 shadow-xl"
+                style={{ maxHeight: menuMaxHeight }}
+                className={`dropdown-pop absolute left-0 z-30 w-max min-w-full max-w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md py-1.5 shadow-xl ${
+                  menuAbove ? "bottom-[calc(100%+0.35rem)]" : "top-[calc(100%+0.35rem)]"
+                }`}
               >
                 {embeds.map((embed, index) => {
                   const selected = index === selectedIndex;
