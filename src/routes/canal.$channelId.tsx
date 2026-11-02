@@ -17,7 +17,6 @@ import {
   type ApiEpgEntry,
   type ApiEpgNextEntry,
 } from "@/lib/api";
-
 export const Route = createFileRoute("/canal/$channelId")({
   head: ({ params }) => {
     const label = labelFromSlug(params.channelId);
@@ -36,7 +35,6 @@ export const Route = createFileRoute("/canal/$channelId")({
   },
   component: ChannelWatchPage,
 });
-
 function ChannelDetailsPanel({
   channel,
   current,
@@ -125,18 +123,15 @@ function ChannelDetailsPanel({
     </aside>
   );
 }
-
 function ChannelWatchPage() {
   const { channelId } = Route.useParams();
   const { data: channel, isLoading, isError, refetch } = useChannel(channelId);
   const { data: channels = [] } = useChannels();
   const { data: events = [] } = useSports();
   const [theaterMode, setTheaterMode] = useState(false);
-
   useEffect(() => {
     if (channel) document.title = `${channel.name} | Pulso TV`;
   }, [channel]);
-
   const games = useMemo(
     () => (channel ? eventsForChannel(channel, events).slice(0, 6) : []),
     [channel, events],
@@ -145,7 +140,6 @@ function ChannelWatchPage() {
     () => (channel ? pickRelatedChannels(channels, channel, 6) : []),
     [channel, channels],
   );
-
   if (isLoading) {
     return (
       <div className="page-container py-8 lg:py-12">
@@ -161,7 +155,6 @@ function ChannelWatchPage() {
       </div>
     );
   }
-
   if (isError || !channel) {
     return (
       <div className="page-container py-20 text-center">
@@ -183,7 +176,6 @@ function ChannelWatchPage() {
       </div>
     );
   }
-
   const current = channel.epg?.current;
   const next = channel.epg?.next;
   const currentRange = current ? formatEpgRange(current) : "";
@@ -191,7 +183,6 @@ function ChannelWatchPage() {
     next?.start_time && next.end_time
       ? formatEpgRange({ start_time: next.start_time, end_time: next.end_time })
       : "";
-
   return (
     <div>
       <div

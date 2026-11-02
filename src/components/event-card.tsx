@@ -11,13 +11,17 @@ import {
 import { MatchCover } from "@/components/match-cover";
 import { MediaImage } from "@/components/media-image";
 import { TeamCrest } from "@/components/team-crest";
-
-const STATUS_BADGE: Record<ApiSportEvent["status"], { label: string; live?: boolean }> = {
+const STATUS_BADGE: Record<
+  ApiSportEvent["status"],
+  {
+    label: string;
+    live?: boolean;
+  }
+> = {
   live: { label: "AO VIVO", live: true },
   upcoming: { label: "EM BREVE" },
   finished: { label: "ENCERRADO" },
 };
-
 export function EventCard({ event, className }: { event: ApiSportEvent; className?: string }) {
   const effectiveStatus = getEventEffectiveStatus(event);
   const badge = STATUS_BADGE[effectiveStatus] ?? STATUS_BADGE.upcoming;
@@ -26,7 +30,6 @@ export function EventCard({ event, className }: { event: ApiSportEvent; classNam
   const relative = formatEventRelative(event);
   const channels = eventChannelNames(event);
   const footerLine = channels.length > 0 ? channels.join(" · ") : event.category;
-
   return (
     <article className={className ?? "min-w-0 border-b border-border pb-5"}>
       <Link to="/evento/$eventId" params={{ eventId: event.id }} className="group block min-w-0">

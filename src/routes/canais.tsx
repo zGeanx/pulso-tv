@@ -8,9 +8,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useChannels, useChannelCategories } from "@/hooks/use-api";
 import { filterChannels } from "@/lib/api";
 import { staggerEntrance } from "@/lib/motion";
-
-type ChannelSearch = { categoria?: string | undefined };
-
+type ChannelSearch = {
+  categoria?: string | undefined;
+};
 export const Route = createFileRoute("/canais")({
   validateSearch: (search: Record<string, unknown>): ChannelSearch => ({
     categoria:
@@ -31,32 +31,25 @@ export const Route = createFileRoute("/canais")({
   }),
   component: ChannelsPage,
 });
-
 const ALL_LABEL = "Todos";
 const PAGE_SIZE = 24;
-
 function ChannelsPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/canais" });
-
   const { data: apiCategories = [] } = useChannelCategories();
   const categoryNames = useMemo(
     () => [ALL_LABEL, ...apiCategories.map((c) => c.name)],
     [apiCategories],
   );
-
   const category =
     search.categoria && (apiCategories.length === 0 || categoryNames.includes(search.categoria))
       ? search.categoria
       : ALL_LABEL;
-
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const deferredQuery = useDeferredValue(query);
   const gridRef = useRef<HTMLDivElement>(null);
-
   const { data: channels = [], isLoading, isError, refetch } = useChannels();
-
   const counts = useMemo(() => {
     const map: Record<string, number> = { [ALL_LABEL]: channels.length };
     for (const channel of channels) {
@@ -64,26 +57,21 @@ function ChannelsPage() {
     }
     return map;
   }, [channels]);
-
   const filtered = useMemo(() => {
     const byCategory =
       category === ALL_LABEL ? channels : channels.filter((ch) => ch.category === category);
     return filterChannels(byCategory, deferredQuery);
   }, [channels, category, deferredQuery]);
-
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [category, deferredQuery]);
-
   const visible = filtered.slice(0, visibleCount);
-
   function setCategory(next: string) {
     void navigate({
       search: { categoria: next === ALL_LABEL ? undefined : next },
       replace: true,
     });
   }
-
   useGSAP(
     () => {
       if (!gridRef.current || isLoading || visible.length === 0) return;
@@ -94,7 +82,6 @@ function ChannelsPage() {
     },
     { scope: gridRef, dependencies: [category, deferredQuery, isLoading, visible.length] },
   );
-
   return (
     <div className="page-container py-8 lg:py-12">
       <header className="flex flex-col gap-6 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between lg:pb-8">
@@ -113,7 +100,6 @@ function ChannelsPage() {
           </p>
         </div>
 
-        {/* Search input container */}
         <div className="w-full lg:max-w-md">
           <div className="relative flex items-center">
             <Search
@@ -141,7 +127,6 @@ function ChannelsPage() {
         </div>
       </header>
 
-      {/* Category Pills & Filter Bar */}
       <div className="py-5 sm:py-6">
         <div
           className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none"
@@ -178,7 +163,6 @@ function ChannelsPage() {
         </div>
       </div>
 
-      {/* Status Bar */}
       <div className="flex items-center justify-between border-b border-border pb-3.5">
         <div className="flex items-center gap-2">
           <span className="font-display text-sm font-semibold text-foreground">

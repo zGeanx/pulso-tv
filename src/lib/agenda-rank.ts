@@ -1,16 +1,10 @@
 import type { ApiSportEvent } from "@/lib/api";
 import { EVENT_STATUS_ORDER, getEventEffectiveStatus } from "@/lib/sport-status";
-
-/** A match below this is a lower division, a small league, or a minor fixture. */
 const MIN_FAME = 70;
-
 const WOMENS =
   /femin|femen|femmin|frauen|damen|\bladies\b|\bwomen\b|\bwoman\b|\bnwsl\b|\bwsl\b|\buwcl\b|\bfem\b/;
-
 const BLOCKED =
   /\b(amistosos?|friendly|friendlies|serie\s*[cd]|terceira divisao|quarta divisao|league (one|two)|3\.\s*liga|sub-?\d{2}|u-?\d{2}|under-?\d{2}|juvenil|futsal|campeonato turco|super lig)\b/;
-
-/** More specific leagues first. Score is how watched the competition is. */
 const LEAGUES: ReadonlyArray<[RegExp, number]> = [
   [/champions league|liga dos campeoes/, 100],
   [/copa do mundo|world cup/, 100],
@@ -36,8 +30,6 @@ const LEAGUES: ReadonlyArray<[RegExp, number]> = [
   [/\bufc\b/, 86],
   [/formula\s*1|\bf1\b/, 90],
 ];
-
-/** One score per club. Longer names are listed first so "real madrid" beats "madrid". */
 const CLUBS: ReadonlyArray<[string, number]> = [
   ["real madrid", 22],
   ["barcelona", 22],
@@ -87,32 +79,24 @@ const CLUBS: ReadonlyArray<[string, number]> = [
   ["trabzonspor", 8],
   ["braga", 8],
 ];
-
 function fold(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("pt-BR");
 }
-
 function blob(event: ApiSportEvent): string {
   return fold(
     `${event.competition} ${event.title} ${event.description ?? ""} ${event.category} ${event.teams?.home.name ?? ""} ${event.teams?.away.name ?? ""}`,
   );
 }
-
 const womensFixtures: string[] = [];
-
-/** Women's football never belongs on the agenda, in any competition or friendly. */
 export function isWomensLabel(value: string): boolean {
   return WOMENS.test(fold(value));
 }
-
 export function isWomensEvent(event: ApiSportEvent): boolean {
   return isWomensLabel(blob(event));
 }
-
-/** Remember fixtures removed from the agenda so the same match can be hidden on channel guides. */
 export function rememberWomensFixtures(events: readonly ApiSportEvent[]): void {
   womensFixtures.length = 0;
   for (const event of events) {
@@ -120,13 +104,11 @@ export function rememberWomensFixtures(events: readonly ApiSportEvent[]): void {
     if (title.length > 3) womensFixtures.push(title);
   }
 }
-
 export function isWomensBroadcast(title: string): boolean {
   if (isWomensLabel(title)) return true;
   const text = fold(title);
   return womensFixtures.some((fixture) => text.includes(fixture));
 }
-
 function clubScore(name: string): number {
   const padded = ` ${fold(name)
     .replace(/[^a-z0-9]+/g, " ")
@@ -138,8 +120,6 @@ function clubScore(name: string): number {
   }
   return best;
 }
-
-/** 0 when the match is outside the main leagues and clubs. */
 export function fameScore(event: ApiSportEvent): number {
   const text = blob(event);
   if (isWomensEvent(event) || BLOCKED.test(text)) return 0;
@@ -150,30 +130,24 @@ export function fameScore(event: ApiSportEvent): number {
     (event.teams ? clubScore(event.teams.away.name) : 0);
   return league[1] + teams + (event.popular ? 4 : 0);
 }
-
-/** Main leagues only, live and upcoming matches first, ordered by relevance and kickoff. */
 export function headlineEvents(events: ApiSportEvent[]): ApiSportEvent[] {
   const now = Date.now() / 1000;
   const list = events.filter((event) => fameScore(event) >= MIN_FAME);
-
   return list.sort((a, b) => {
     const statusA = getEventEffectiveStatus(a, now);
     const statusB = getEventEffectiveStatus(b, now);
     const statusDiff = EVENT_STATUS_ORDER[statusA] - EVENT_STATUS_ORDER[statusB];
     if (statusDiff !== 0) return statusDiff;
-
     if (statusA === "live") {
       const fame = fameScore(b) - fameScore(a);
       if (fame !== 0) return fame;
       return a.start_timestamp - b.start_timestamp;
     }
-
     if (statusA === "upcoming") {
       const timeDiff = a.start_timestamp - b.start_timestamp;
       if (timeDiff !== 0) return timeDiff;
       return fameScore(b) - fameScore(a);
     }
-
     const timeDiff = b.start_timestamp - a.start_timestamp;
     if (timeDiff !== 0) return timeDiff;
     return fameScore(b) - fameScore(a);

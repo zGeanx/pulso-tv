@@ -5,26 +5,19 @@ import { MediaImage } from "@/components/media-image";
 import { Button } from "@/components/ui/button";
 import { smoothHorizontalScroll } from "@/lib/motion";
 import type { ApiChannel } from "@/lib/api";
-
 interface ZappingBarProps {
   currentChannelId: string;
   channels: ApiChannel[];
   category?: string;
 }
-
 export function ZappingBar({ currentChannelId, channels, category }: ZappingBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Filtra canais relevantes (mesma categoria ou com EPG ativo), limitando a 16
   const pool = category ? channels.filter((ch) => ch.category === category) : channels;
   const displayChannels = pool.slice(0, 16);
-
   const scroll = (direction: -1 | 1) => {
     smoothHorizontalScroll(scrollRef.current, direction * 420);
   };
-
   if (displayChannels.length <= 1) return null;
-
   return (
     <div className="mt-6 rounded-2xl border border-border/80 bg-card/40 p-4 shadow-sm">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
@@ -59,7 +52,6 @@ export function ZappingBar({ currentChannelId, channels, category }: ZappingBarP
         {displayChannels.map((channel) => {
           const isCurrent = channel.id === currentChannelId;
           const currentProgram = channel.epg?.current?.title;
-
           return (
             <Link
               key={channel.id}

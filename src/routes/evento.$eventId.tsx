@@ -17,7 +17,6 @@ import {
   pickRelatedEvents,
   type ApiSportEvent,
 } from "@/lib/api";
-
 export const Route = createFileRoute("/evento/$eventId")({
   head: ({ params }) => {
     const label = labelFromSlug(params.eventId);
@@ -36,11 +35,9 @@ export const Route = createFileRoute("/evento/$eventId")({
   },
   component: EventWatchPage,
 });
-
 function stripMarkdown(text: string): string {
   return text.replace(/\*/g, "");
 }
-
 function EventDetailsPanel({
   event,
   isLive,
@@ -147,7 +144,6 @@ function EventDetailsPanel({
     </aside>
   );
 }
-
 function EventWatchPage() {
   const { eventId } = Route.useParams();
   const { data: event, isLoading, isError, refetch } = useSport(eventId);
@@ -155,11 +151,9 @@ function EventWatchPage() {
   const { data: channels = [] } = useChannels();
   const [theaterMode, setTheaterMode] = useState(false);
   const countdown = useKickoffCountdown(event?.start_timestamp ?? 0, event?.status === "upcoming");
-
   useEffect(() => {
     if (event) document.title = `${event.title} | Pulso TV`;
   }, [event]);
-
   const related = useMemo(
     () => (event ? pickRelatedEvents(events, event, 6) : []),
     [event, events],
@@ -168,7 +162,6 @@ function EventWatchPage() {
     () => (event ? channelsForEvent(event, channels) : []),
     [event, channels],
   );
-
   if (isLoading) {
     return (
       <div className="page-container py-8 lg:py-12">
@@ -184,7 +177,6 @@ function EventWatchPage() {
       </div>
     );
   }
-
   if (isError || !event) {
     return (
       <div className="page-container py-20 text-center">
@@ -206,11 +198,9 @@ function EventWatchPage() {
       </div>
     );
   }
-
   const description = event.description ? stripMarkdown(event.description) : null;
   const day = formatEventDay(event);
   const isLive = getEventEffectiveStatus(event) === "live";
-
   return (
     <div>
       <div
@@ -349,16 +339,13 @@ function EventWatchPage() {
     </div>
   );
 }
-
 function useKickoffCountdown(startTimestamp: number, enabled: boolean): string | null {
   const [now, setNow] = useState(() => Date.now());
-
   useEffect(() => {
     if (!enabled) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [enabled]);
-
   if (!enabled) return null;
   const remaining = startTimestamp * 1000 - now;
   if (remaining <= 0) return null;

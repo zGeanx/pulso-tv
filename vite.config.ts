@@ -5,8 +5,6 @@ import { nitro } from "nitro/vite";
 import { defineConfig, type Plugin } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import { PULSO_LOGO_ROUTE, PULSO_ORIGIN, pulsoLogoFile } from "./src/lib/pulso-assets";
-
-/** Vite answers `<img>` with 404 before the app server. Proxy those crests first. */
 function pulsoLogoDevProxy(): Plugin {
   return {
     name: "pulso-logo-proxy",
@@ -43,18 +41,15 @@ function pulsoLogoDevProxy(): Plugin {
     },
   };
 }
-
 export default defineConfig({
   plugins: [
     pulsoLogoDevProxy(),
     tsConfigPaths(),
     tailwindcss(),
     tanstackStart({
-      // SSR entry is src/server.ts, which wraps TanStack Start's server handler.
       server: { entry: "server" },
     }),
     viteReact(),
-    // Cloudflare worker output expected by scripts/cf-deploy.mjs.
     nitro({ preset: "cloudflare-module" }),
   ],
 });

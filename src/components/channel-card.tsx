@@ -3,14 +3,12 @@ import { Play } from "lucide-react";
 import type { ApiChannel } from "@/lib/api";
 import { epgProgress, formatEpgRange } from "@/lib/api";
 import { MediaImage } from "@/components/media-image";
-
 export function ChannelCard({ channel }: { channel: ApiChannel }) {
   const program = channel.epg?.current;
   const nextProgram = channel.epg?.next?.title ?? null;
   const cover = program?.image ?? null;
   const progress = program ? epgProgress(program) : 0;
   const range = program ? formatEpgRange(program) : "";
-
   return (
     <article className="group relative flex flex-col justify-between overflow-hidden rounded-xl border border-border/80 bg-card/60 card-interactive hover:bg-card/90">
       <Link
@@ -68,7 +66,6 @@ export function ChannelCard({ channel }: { channel: ApiChannel }) {
             </div>
           )}
 
-          {/* Desktop play affordance */}
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/30 opacity-0 backdrop-blur-[1px] transition-opacity duration-200 group-hover:opacity-100">
             <span className="flex size-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-200 scale-90 group-hover:scale-100">
               <Play className="size-5 fill-current ml-0.5" aria-hidden="true" />

@@ -1,10 +1,5 @@
 import type { ApiSportEvent } from "@/lib/api";
 import { normalizeTeamKey } from "@/lib/team-logos";
-
-/**
- * 2026 CBF rosters. The catalog sometimes swaps the division:
- * Vasco x Corinthians arrived as Série B, São Bernardo x Vila Nova as bare "Brasileirão".
- */
 const SERIE_A_2026 = new Set([
   "athletico pr",
   "atletico mg",
@@ -27,7 +22,6 @@ const SERIE_A_2026 = new Set([
   "vasco da gama",
   "vitoria",
 ]);
-
 const SERIE_B_2026 = new Set([
   "america mg",
   "athletic club",
@@ -50,18 +44,15 @@ const SERIE_B_2026 = new Set([
   "sport",
   "vila nova",
 ]);
-
 function fold(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLocaleLowerCase("pt-BR");
 }
-
 function isBrasileiraoLabel(competition: string): boolean {
   return /brasileir/.test(fold(competition));
 }
-
 function divisionOf(name: string): "A" | "B" | null {
   if (/\bbilbao\b/.test(fold(name))) return null;
   const key = normalizeTeamKey(name);
@@ -69,8 +60,6 @@ function divisionOf(name: string): "A" | "B" | null {
   if (SERIE_B_2026.has(key)) return "B";
   return null;
 }
-
-/** Replace a Brasileirão label when both clubs belong to the same 2026 division. */
 export function correctBrasileiraoEvent(event: ApiSportEvent): ApiSportEvent {
   if (!isBrasileiraoLabel(event.competition)) return event;
   const home = event.teams?.home.name ?? "";

@@ -1,6 +1,5 @@
 import type { ApiEmbed, ApiSportEvent } from "@/lib/api";
 import { normalizeTeamKey } from "@/lib/team-logos";
-
 export interface UclFixtureConfig {
   channels: string[];
   primaryChannel: string;
@@ -10,12 +9,6 @@ export interface UclFixtureConfig {
     allow?: string;
   }[];
 }
-
-/**
- * Fixture channel mapping for UEFA Champions League matches.
- * Resolves the real broadcast channels (TNT, Space, Max 1-5) and prevents
- * all matches from falling back to HBO Max 1 (PSG x Barcelona).
- */
 export const UCL_FIXTURES: Record<string, UclFixtureConfig> = {
   "barcelona|psg": {
     channels: ["HBO Max 1", "TNT", "SBT"],
@@ -164,7 +157,6 @@ export const UCL_FIXTURES: Record<string, UclFixtureConfig> = {
     primaryChannel: "Space",
   },
 };
-
 export function isUclEvent(event: { competition?: string | null; title?: string | null }): boolean {
   const text = `${event.competition ?? ""} ${event.title ?? ""}`
     .normalize("NFD")
@@ -172,8 +164,10 @@ export function isUclEvent(event: { competition?: string | null; title?: string 
     .toLocaleLowerCase("pt-BR");
   return /champions league|liga dos campeoes|\bucl\b/.test(text);
 }
-
-function eventTeamNames(event: ApiSportEvent): { home: string; away: string } | null {
+function eventTeamNames(event: ApiSportEvent): {
+  home: string;
+  away: string;
+} | null {
   const home = event.teams?.home.name?.trim() ?? "";
   const away = event.teams?.away.name?.trim() ?? "";
   if (home && away) return { home, away };
@@ -183,29 +177,24 @@ function eventTeamNames(event: ApiSportEvent): { home: string; away: string } | 
   if (!titleHome || !titleAway || parts.length !== 2) return null;
   return { home: titleHome, away: titleAway };
 }
-
 export function uclPairKey(home: string, away: string): string {
   const h = normalizeTeamKey(home);
   const a = normalizeTeamKey(away);
   return h < a ? `${h}|${a}` : `${a}|${h}`;
 }
-
 export function isBogusPulsoMatchUrl(pair: string, url: string): boolean {
   if (pair === "barcelona|psg") return false;
   return /(?:\/|=)max1(?:[^\d]|$)/i.test(url);
 }
-
 function isAlternative(provider: string): boolean {
   return /alternativo/i.test(provider);
 }
-
 function nameCarriesChannelId(provider: string): boolean {
   const match = /^(.*?)(?:\s*\[([^\]]+)\])\s*$/.exec(provider.trim());
   if (match?.[2]) return true;
   const stem = (match?.[1] ?? provider).trim().toLocaleLowerCase("pt-BR");
   return /\s\d+$/.test(stem);
 }
-
 function renumberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
   return embeds.map((embed, index) => {
     const policy = embed.allow?.trim();
@@ -218,17 +207,6 @@ function renumberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
     return next;
   });
 }
-
-/**
- * Curates a UEFA Champions League event to ensure:
- * 1. Only PSG x Barcelona has HBO Max 1 (beside TNT and SBT).
- * 2. Fenerbahçe x Slavia Praga, Liverpool x Villarreal, Bayern x Arsenal, Betis x Feyenoord have Space.
- * 3. Sabah x Borussia Dortmund and Real Madrid x RB Leipzig have TNT.
- * 4. Man City, Napoli, Porto, Roma have HBO Max 2, 3, 4, 5 respectively.
- * 5. General UCL matches are labeled as Max (never repeated "HBO Max 1" across all games).
- * 6. Bogus max1 streams from Pulso API are stripped from all non-PSG fixtures.
- * 7. Real match streams from esportesembed.org are preserved and prioritized.
- */
 export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
   if (!isUclEvent(event)) return event;
   const names = eventTeamNames(event);
@@ -237,24 +215,18 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
   const config = UCL_FIXTURES[pair];
   const primaryChannel = config?.primaryChannel || "Max";
   const isPsgBarca = pair === "barcelona|psg";
-
-  // Filter out any bogus max1 streams mistakenly attached to non-PSG fixtures
   const validEmbeds = event.embeds.filter((embed) => {
     if (isPsgBarca) return true;
     return !/(?:\/|=)max1(?:[^\d]|$)/i.test(embed.embed_url);
   });
-
   const embeds: ApiEmbed[] = [];
   const seen = new Set<string>();
-
   const push = (embed: ApiEmbed) => {
     if (!embed.embed_url || seen.has(embed.embed_url)) return;
     seen.add(embed.embed_url);
     embeds.push(embed);
   };
-
   if (isPsgBarca) {
-    // 1. HBO Max 1 catalog channel feeds
     for (const extra of config?.extraEmbeds ?? []) {
       push({
         provider: extra.provider,
@@ -263,8 +235,6 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
         ...(extra.allow ? { allow: extra.allow } : {}),
       });
     }
-
-    // 2. Real streams from Reidos (Option 1 is TNT feed, Option 2 is TNT Alternativo, Option 3 is SBT)
     for (const embed of validEmbeds) {
       let provider = embed.provider;
       if (/hbo/i.test(provider)) {
@@ -275,14 +245,11 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
         provider,
       });
     }
-
     return {
       ...event,
       embeds: renumberOptions(embeds),
     };
   }
-
-  // 1. Extra embeds for the designated channel (Space / HBO Max 2-5) if configured
   for (const extra of config?.extraEmbeds ?? []) {
     push({
       provider: extra.provider,
@@ -291,8 +258,6 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
       ...(extra.allow ? { allow: extra.allow } : {}),
     });
   }
-
-  // 2. Existing streams from Reidos/Pulso with provider rewritten cleanly (never generic "HBO Max 1")
   for (const embed of validEmbeds) {
     let provider = embed.provider;
     if (/hbo\s*max(\s*1)?|max\b/i.test(provider)) {
@@ -303,7 +268,6 @@ export function curateUclEvent(event: ApiSportEvent): ApiSportEvent {
       provider,
     });
   }
-
   return {
     ...event,
     embeds: renumberOptions(embeds),

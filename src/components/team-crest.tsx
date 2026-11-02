@@ -1,12 +1,10 @@
 import { MediaImage } from "@/components/media-image";
 import { cn } from "@/lib/utils";
-
 const SIZES = {
   sm: "h-11 w-11",
   md: "h-12 w-12",
   lg: "h-16 w-16",
 } as const;
-
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const first = parts[0];
@@ -15,13 +13,11 @@ function initials(name: string): string {
   if (!second) return first.slice(0, 2).toUpperCase();
   return `${first[0] ?? ""}${second[0] ?? ""}`.toUpperCase();
 }
-
 function crestHue(name: string): number {
   let hash = 0;
   for (const char of name) hash = (hash * 33 + char.charCodeAt(0)) >>> 0;
   return hash % 360;
 }
-
 function CrestFallback({ name }: { name: string }) {
   return (
     <div
@@ -32,7 +28,6 @@ function CrestFallback({ name }: { name: string }) {
     </div>
   );
 }
-
 export function TeamCrest({
   name,
   logo,

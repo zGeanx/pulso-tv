@@ -27,18 +27,14 @@ import {
   type PulsoEmbedSource,
   type PulsoMatch,
 } from "@/lib/pulso-api";
-
 const STORAGE_PREFIX = "pulso_cache_v2:";
-const MAX_STORAGE_AGE_MS = 30 * 60_000;
-
+const MAX_STORAGE_AGE_MS = 30 * 60000;
 interface StoredEntry<T> {
   ts: number;
   data: T;
 }
-
 const memoryStorageFallback = new Map<string, StoredEntry<unknown>>();
 let isClientHydrated = false;
-
 function readStorageCache<T>(
   key: string,
   maxAgeMs = MAX_STORAGE_AGE_MS,
@@ -47,7 +43,6 @@ function readStorageCache<T>(
   const fullKey = `${STORAGE_PREFIX}${key}`;
   const mem = memoryStorageFallback.get(fullKey) as StoredEntry<T> | undefined;
   if (mem && Date.now() - mem.ts <= maxAgeMs) return mem;
-
   try {
     const raw = window.localStorage.getItem(fullKey);
     if (!raw) return undefined;
@@ -66,7 +61,6 @@ function readStorageCache<T>(
     return undefined;
   }
 }
-
 function writeStorageCache<T>(key: string, data: T): void {
   if (typeof window === "undefined") return;
   const fullKey = `${STORAGE_PREFIX}${key}`;
@@ -74,11 +68,8 @@ function writeStorageCache<T>(key: string, data: T): void {
   memoryStorageFallback.set(fullKey, entry);
   try {
     window.localStorage.setItem(fullKey, JSON.stringify(entry));
-  } catch {
-    // Ignore storage quota or private mode errors
-  }
+  } catch {}
 }
-
 function useHydrateFromStorage<T>(
   queryClient: QueryClient,
   queryKey: readonly unknown[],
@@ -94,13 +85,11 @@ function useHydrateFromStorage<T>(
     }
   }, [queryClient, queryKey, storageKey, hasData]);
 }
-
 const PULSO_MATCHES_KEY = ["pulso", "matches"] as const;
 const PULSO_EMBEDS_KEY = ["pulso", "embeds"] as const;
 const REIDOS_SPORTS_KEY = ["reidos", "sports", REIDOS_ORIGIN] as const;
 const REIDOS_CHANNELS_KEY = ["reidos", "channels", REIDOS_ORIGIN] as const;
 const REIDOS_CATEGORIES_KEY = ["channels", "categories", REIDOS_ORIGIN] as const;
-
 function usePulsoMatches() {
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -114,7 +103,7 @@ function usePulsoMatches() {
       isClientHydrated ? readStorageCache<PulsoMatch[]>("pulso_matches")?.data : undefined,
     initialDataUpdatedAt: () =>
       isClientHydrated ? readStorageCache<PulsoMatch[]>("pulso_matches")?.ts : undefined,
-    staleTime: 30_000,
+    staleTime: 30000,
     retry: 0,
     refetchInterval: (q) =>
       sportsRefetchInterval(
@@ -127,7 +116,6 @@ function usePulsoMatches() {
   useHydrateFromStorage(queryClient, PULSO_MATCHES_KEY, "pulso_matches", query.data !== undefined);
   return query;
 }
-
 function usePulsoEmbeds() {
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -141,14 +129,13 @@ function usePulsoEmbeds() {
       isClientHydrated ? readStorageCache<PulsoEmbedSource[]>("pulso_embeds")?.data : undefined,
     initialDataUpdatedAt: () =>
       isClientHydrated ? readStorageCache<PulsoEmbedSource[]>("pulso_embeds")?.ts : undefined,
-    staleTime: 5 * 60_000,
+    staleTime: 5 * 60000,
     retry: 0,
-    refetchInterval: 5 * 60_000,
+    refetchInterval: 5 * 60000,
   });
   useHydrateFromStorage(queryClient, PULSO_EMBEDS_KEY, "pulso_embeds", query.data !== undefined);
   return query;
 }
-
 function useReidosSports() {
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -162,14 +149,13 @@ function useReidosSports() {
       isClientHydrated ? readStorageCache<ApiSportEvent[]>("reidos_sports")?.data : undefined,
     initialDataUpdatedAt: () =>
       isClientHydrated ? readStorageCache<ApiSportEvent[]>("reidos_sports")?.ts : undefined,
-    staleTime: 60_000,
+    staleTime: 60000,
     retry: 0,
-    refetchInterval: 5 * 60_000,
+    refetchInterval: 5 * 60000,
   });
   useHydrateFromStorage(queryClient, REIDOS_SPORTS_KEY, "reidos_sports", query.data !== undefined);
   return query;
 }
-
 function useReidosChannels() {
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -183,9 +169,9 @@ function useReidosChannels() {
       isClientHydrated ? readStorageCache<ApiChannel[]>("reidos_channels")?.data : undefined,
     initialDataUpdatedAt: () =>
       isClientHydrated ? readStorageCache<ApiChannel[]>("reidos_channels")?.ts : undefined,
-    staleTime: 60_000,
+    staleTime: 60000,
     retry: 0,
-    refetchInterval: 5 * 60_000,
+    refetchInterval: 5 * 60000,
   });
   useHydrateFromStorage(
     queryClient,
@@ -195,18 +181,15 @@ function useReidosChannels() {
   );
   return query;
 }
-
 const EMPTY_CHANNELS: ApiChannel[] = [];
 const EMPTY_EMBEDS: PulsoEmbedSource[] = [];
 const EMPTY_MATCHES: PulsoMatch[] = [];
 const EMPTY_SPORTS: ApiSportEvent[] = [];
-
 let lastChannelsMemo: {
   reidos: ApiChannel[];
   embeds: PulsoEmbedSource[];
   result: MergeChannelResult;
 } | null = null;
-
 function getMemoizedMergedChannels(
   reidos: ApiChannel[],
   embeds: PulsoEmbedSource[],
@@ -222,16 +205,13 @@ function getMemoizedMergedChannels(
   lastChannelsMemo = { reidos, embeds, result };
   return result;
 }
-
 type MergedSportsBundle = ReturnType<typeof composeSportsWithAbsorbed>;
-
 let lastSportsMemo: {
   reidos: ApiSportEvent[];
   matches: PulsoMatch[];
   embeds: PulsoEmbedSource[];
   result: MergedSportsBundle;
 } | null = null;
-
 function getMemoizedMergedSports(
   reidos: ApiSportEvent[],
   matches: PulsoMatch[],
@@ -249,7 +229,6 @@ function getMemoizedMergedSports(
   lastSportsMemo = { reidos, matches, embeds, result };
   return result;
 }
-
 export function useChannels() {
   const embeds = usePulsoEmbeds();
   const reidos = useReidosChannels();
@@ -259,7 +238,6 @@ export function useChannels() {
   }, [embeds.data, reidos.data]);
   const failed = embeds.isError && reidos.isError;
   const isComplete = !embeds.isPending && !reidos.isPending;
-
   return {
     data: result?.channels,
     absorbed: result?.absorbed,
@@ -269,29 +247,23 @@ export function useChannels() {
     refetch: () => Promise.all([embeds.refetch(), reidos.refetch()]),
   };
 }
-
 export function useChannel(id: string) {
   const channels = useChannels();
   const channel = useMemo(() => {
     const list = channels.data;
     if (!list || list.length === 0 || !id) return undefined;
-
     const slug = pulsoSlug(id);
     const targetId = slug && channels.absorbed ? (channels.absorbed.get(slug) ?? id) : id;
     const altPulsoId = slug ? slug : pulsoId(id);
-
     const exact = list.find(
       (item) => item.id === targetId || item.id === id || item.id === altPulsoId,
     );
     if (exact) return exact;
-
     const targetKey = channelGroupKey(labelFromSlug(slug ?? id));
     if (!targetKey) return undefined;
     return list.find((item) => channelGroupKey(item.name) === targetKey);
   }, [channels.data, channels.absorbed, id]);
-
   const isLoading = !channel && (channels.isLoading || !channels.isComplete);
-
   return {
     data: channel,
     isLoading,
@@ -299,7 +271,6 @@ export function useChannel(id: string) {
     refetch: channels.refetch,
   };
 }
-
 export function useChannelCategories() {
   const queryClient = useQueryClient();
   const remote = useQuery({
@@ -313,7 +284,7 @@ export function useChannelCategories() {
       isClientHydrated ? readStorageCache<ApiCategory[]>("reidos_categories")?.data : undefined,
     initialDataUpdatedAt: () =>
       isClientHydrated ? readStorageCache<ApiCategory[]>("reidos_categories")?.ts : undefined,
-    staleTime: 10 * 60_000,
+    staleTime: 10 * 60000,
     retry: 0,
   });
   useHydrateFromStorage(
@@ -322,11 +293,13 @@ export function useChannelCategories() {
     "reidos_categories",
     remote.data !== undefined,
   );
-
   const channels = useChannels();
   const data = useMemo(() => {
     if (remote.data && remote.data.length > 0) return remote.data;
-    const derived: { id: number; name: string }[] = [];
+    const derived: {
+      id: number;
+      name: string;
+    }[] = [];
     const seen = new Set<string>();
     for (const channel of channels.data ?? []) {
       if (!channel.category || seen.has(channel.category)) continue;
@@ -335,27 +308,28 @@ export function useChannelCategories() {
     }
     return derived;
   }, [remote.data, channels.data]);
-
   return { ...remote, data };
 }
-
 const SOON_WINDOW_SECONDS = 30 * 60;
-
 export function sportsRefetchInterval(
-  events: { status: string; start_timestamp: number }[] | undefined,
+  events:
+    | {
+        status: string;
+        start_timestamp: number;
+      }[]
+    | undefined,
   nowSeconds = Date.now() / 1000,
 ): number {
-  if (!events || events.length === 0) return 5 * 60_000;
-  if (events.some((event) => event.status === "live")) return 30_000;
+  if (!events || events.length === 0) return 5 * 60000;
+  if (events.some((event) => event.status === "live")) return 30000;
   const startingSoon = events.some(
     (event) =>
       event.status === "upcoming" &&
       event.start_timestamp >= nowSeconds &&
       event.start_timestamp - nowSeconds <= SOON_WINDOW_SECONDS,
   );
-  return startingSoon ? 60_000 : 5 * 60_000;
+  return startingSoon ? 60000 : 5 * 60000;
 }
-
 export function useSports(params: SportsParams = {}) {
   const matches = usePulsoMatches();
   const embeds = usePulsoEmbeds();
@@ -365,7 +339,6 @@ export function useSports(params: SportsParams = {}) {
   const search = params.search;
   const limit = params.limit;
   const offset = params.offset;
-
   const baseResult = useMemo(() => {
     if (!matches.data && !reidos.data) return undefined;
     return getMemoizedMergedSports(
@@ -374,7 +347,6 @@ export function useSports(params: SportsParams = {}) {
       embeds.data ?? EMPTY_EMBEDS,
     );
   }, [matches.data, embeds.data, reidos.data]);
-
   const events = useMemo(() => {
     if (!baseResult) return undefined;
     if (!status && !category && !search && limit == null && offset == null) {
@@ -388,10 +360,8 @@ export function useSports(params: SportsParams = {}) {
       ...(offset != null ? { offset } : {}),
     });
   }, [baseResult, status, category, search, limit, offset]);
-
   const failed = matches.isError && reidos.isError;
   const isComplete = !matches.isPending && !reidos.isPending;
-
   return {
     data: events,
     absorbed: baseResult?.absorbed,
@@ -402,22 +372,17 @@ export function useSports(params: SportsParams = {}) {
     refetch: () => Promise.all([matches.refetch(), embeds.refetch(), reidos.refetch()]),
   };
 }
-
 export function useSport(id: string) {
   const sports = useSports();
   const event = useMemo(() => {
     const list = sports.data;
     if (!list || list.length === 0 || !id) return undefined;
-
     const slug = pulsoSlug(id);
     const targetId = slug && sports.slugToId ? (sports.slugToId.get(slug) ?? id) : id;
     const altPulsoId = slug ? slug : pulsoId(id);
-
     return list.find((item) => item.id === targetId || item.id === id || item.id === altPulsoId);
   }, [sports.data, sports.slugToId, id]);
-
   const isLoading = !event && (sports.isLoading || !sports.isComplete);
-
   return {
     data: event,
     isLoading,
@@ -425,13 +390,12 @@ export function useSport(id: string) {
     refetch: sports.refetch,
   };
 }
-
 export function useSearch(query: string) {
   return useQuery({
     queryKey: ["search", query],
     queryFn: () => fetchMergedSearch(query),
     enabled: query.trim().length >= 2,
-    staleTime: 30_000,
+    staleTime: 30000,
     retry: 0,
   });
 }

@@ -4,7 +4,6 @@ import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { prefersReducedMotion } from "@/lib/motion";
-
 export const Route = createFileRoute("/disney")({
   head: () => ({
     meta: [
@@ -24,10 +23,8 @@ export const Route = createFileRoute("/disney")({
   }),
   component: DisneyPage,
 });
-
 function DisneyPage() {
   const iconRef = useRef<SVGSVGElement>(null);
-
   useGSAP(
     () => {
       if (prefersReducedMotion() || !iconRef.current) return;
@@ -45,7 +42,6 @@ function DisneyPage() {
     },
     { scope: iconRef },
   );
-
   return (
     <div className="page-container py-8 lg:py-12">
       <header className="grid gap-6 border-b border-border pb-8 lg:grid-cols-12">

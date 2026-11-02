@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-
 function initials(label: string): string {
   const parts = label.trim().split(/\s+/).filter(Boolean);
   const first = parts[0];
@@ -9,12 +8,10 @@ function initials(label: string): string {
   if (!second) return first.slice(0, 2).toUpperCase();
   return `${first[0] ?? ""}${second[0] ?? ""}`.toUpperCase();
 }
-
 function listedSources(src: string | readonly string[] | null | undefined): string[] {
   const values = typeof src === "string" ? [src] : (src ?? []);
   return values.map((item) => item.trim()).filter((item) => item.length > 0);
 }
-
 interface MediaImageProps {
   src?: string | readonly string[] | null;
   alt: string;
@@ -24,7 +21,6 @@ interface MediaImageProps {
   fallback?: ReactNode;
   eager?: boolean;
 }
-
 export function MediaImage({
   src,
   alt,
@@ -40,19 +36,15 @@ export function MediaImage({
   const [status, setStatus] = useState<"loading" | "ready" | "error">(
     sources.length > 0 ? "loading" : "error",
   );
-
   useEffect(() => {
     setIndex(0);
     setStatus(sources.length > 0 ? "loading" : "error");
   }, [sourceKey, sources.length]);
-
   const current = sources[index] ?? "";
   const label = fallbackLabel ?? alt;
-
   function showReady() {
     setStatus("ready");
   }
-
   function showNext() {
     setIndex((value) => {
       const next = value + 1;
@@ -64,7 +56,6 @@ export function MediaImage({
       return value;
     });
   }
-
   return (
     <div className={cn("relative overflow-hidden bg-card", className)}>
       {status === "loading" && <div className="absolute inset-0 animate-pulse bg-muted" />}

@@ -2,16 +2,12 @@ import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { applyTheme, readDocumentTheme, type Theme } from "@/lib/theme";
-
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
-
   useEffect(() => {
     setTheme(readDocumentTheme());
   }, []);
-
   const isLight = theme === "light";
-
   return (
     <Button
       variant="ghost"

@@ -7,14 +7,12 @@ import { TeamCrest } from "@/components/team-crest";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSearch } from "@/hooks/use-api";
 import { formatEventDay, formatEventTime, SPORT_STATUS_LABEL } from "@/lib/api";
-
 const navItems = [
   { to: "/" as const, label: "Início", icon: Home },
   { to: "/canais" as const, label: "Canais", icon: Tv },
   { to: "/agenda" as const, label: "Agenda", icon: CalendarDays },
   { to: "/disney" as const, label: "Disney+", icon: Clapperboard },
 ];
-
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link to="/" aria-label="Pulso TV — início" className="font-display font-bold text-foreground">
@@ -24,49 +22,40 @@ function Brand({ compact = false }: { compact?: boolean }) {
     </Link>
   );
 }
-
 export function PulsoShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-
   useEffect(() => {
     setSearchOpen(false);
     setQuery("");
   }, [pathname]);
-
   useEffect(() => {
     function onGlobalKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       const isEditing =
         target &&
         (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
-
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setSearchOpen((prev) => !prev);
         return;
       }
-
       if (e.key === "/" && !isEditing && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         setSearchOpen(true);
         return;
       }
-
       if (e.key === "Escape" && searchOpen) {
         e.preventDefault();
         setSearchOpen(false);
         setQuery("");
       }
     }
-
     document.addEventListener("keydown", onGlobalKeyDown);
     return () => document.removeEventListener("keydown", onGlobalKeyDown);
   }, [searchOpen]);
-
   const { data: results, isFetching } = useSearch(query);
-
   const channelResults = results?.channels?.slice(0, 5) ?? [];
   const sportResults = results?.events?.slice(0, 5) ?? [];
   const noResults =
@@ -74,7 +63,6 @@ export function PulsoShell({ children }: { children: ReactNode }) {
     !isFetching &&
     channelResults.length === 0 &&
     sportResults.length === 0;
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">

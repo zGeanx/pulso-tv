@@ -1,10 +1,7 @@
 import type { ApiSportEvent } from "@/lib/api";
 import { pulsoLogoFile, resolvePulsoAsset } from "@/lib/pulso-assets";
-
 const runtimeLogoCache = new Map<string, string>();
-
 const CLUB_WORDS = /\b(fc|sk|cf|ac|cr|ec|clube|club|futebol|futsal|fk|bsc|gnk|rc)\b/g;
-
 const STATE_CODES = new Set([
   "ac",
   "al",
@@ -34,11 +31,6 @@ const STATE_CODES = new Set([
   "sp",
   "to",
 ]);
-
-/**
- * Shared team key for crest lookup and fixture matching.
- * State codes stay (`Atlético-MG` and `Atlético-GO` do not collapse).
- */
 export function normalizeTeamKey(name: string): string {
   const normalized = baseTeamName(name);
   if (!normalized) return "";
@@ -48,7 +40,6 @@ export function normalizeTeamKey(name: string): string {
   if (!stripped || stripped === normalized) return normalized;
   return TEAM_ALIASES.get(stripped) ?? stripped;
 }
-
 function baseTeamName(name: string): string {
   return name
     .replace(/[øØ]/g, "o")
@@ -63,7 +54,6 @@ function baseTeamName(name: string): string {
     .trim()
     .replace(/\s+/g, " ");
 }
-
 const TEAM_ALIASES = new Map<string, string>([
   ["gimmnasia la plata", "gimnasia la plata"],
   ["gimnasia y esgrima la plata", "gimnasia la plata"],
@@ -241,7 +231,6 @@ const TEAM_ALIASES = new Map<string, string>([
   ["paraguay", "paraguai"],
   ["morocco", "marrocos"],
 ]);
-
 const NATIONAL_TEAMS = new Set([
   "brasil",
   "argentina",
@@ -313,7 +302,6 @@ const NATIONAL_TEAMS = new Set([
   "china",
   "nova zelandia",
 ]);
-
 const KNOWN_LOGOS: Record<string, string> = {
   palmeiras: "https://cdn.sportmonks.com/images/soccer/teams/30/3422.png",
   santos: "https://cdn.sportmonks.com/images/soccer/teams/4/3684.png",
@@ -498,24 +486,19 @@ const KNOWN_LOGOS: Record<string, string> = {
   chile: "/logos/teams/chile.png",
   "colon uru": "/logos/teams/colon.png",
 };
-
 rememberStateSuffixes(Object.keys(KNOWN_LOGOS));
-
-/** Catalog files that depict a different club, even when the name matches. */
 const MISLABELED_CREST_STEMS = new Set([
   "teams/boca_juniors",
   "teams/libertad",
   "teams/nacional",
   "teams/cerro_porteno",
 ]);
-
 export function isMislabeledCrest(url: string): boolean {
   const file = pulsoLogoFile(url);
   if (!file) return false;
   const stem = file.replace(/\.(png|jpe?g|webp|svg)$/i, "");
   return MISLABELED_CREST_STEMS.has(stem);
 }
-
 export function curatedTeamCrest(name: string): string {
   const key = normalizeTeamKey(name);
   if (!key) return "";
@@ -523,11 +506,6 @@ export function curatedTeamCrest(name: string): string {
   if (!url || isMislabeledCrest(url)) return "";
   return url;
 }
-
-/**
- * Hosted `teams/` crests are the catalog, except the files known to show another club.
- * A remote URL still has to match the curated crest when one exists.
- */
 export function catalogCrestFitsTeam(url: string, teamName: string): boolean {
   if (!url || isMislabeledCrest(url)) return false;
   const file = pulsoLogoFile(url);
@@ -538,7 +516,6 @@ export function catalogCrestFitsTeam(url: string, teamName: string): boolean {
   }
   return true;
 }
-
 function rememberStateSuffixes(keys: string[]) {
   const known = new Set(keys);
   for (const key of keys) {
@@ -551,17 +528,14 @@ function rememberStateSuffixes(keys: string[]) {
     }
   }
 }
-
 export function isNationalTeam(name: string): boolean {
   const key = normalizeTeamKey(name);
   return key.length > 0 && NATIONAL_TEAMS.has(key);
 }
-
 function cacheableCrest(url: string): boolean {
   if (!url || url.startsWith("data:")) return false;
   return !/\/flags\//i.test(url);
 }
-
 export function registerTeamLogo(name: string, logoUrl: string): void {
   if (!name || !cacheableCrest(logoUrl) || !catalogCrestFitsTeam(logoUrl, name)) return;
   const key = normalizeTeamKey(name);
@@ -569,7 +543,6 @@ export function registerTeamLogo(name: string, logoUrl: string): void {
     runtimeLogoCache.set(key, logoUrl);
   }
 }
-
 export function registerTeamLogosFromEvents(events: ApiSportEvent[]): void {
   for (const event of events) {
     if (event.teams?.home?.name && event.teams.home.logo) {
@@ -580,8 +553,6 @@ export function registerTeamLogosFromEvents(events: ApiSportEvent[]): void {
     }
   }
 }
-
-/** Local map first, then a crest seen on another listing. */
 export function resolveTeamCrests(name: string): string[] {
   const key = normalizeTeamKey(name);
   if (!key) return [];
@@ -595,7 +566,6 @@ export function resolveTeamCrests(name: string): string[] {
   push(runtimeLogoCache.get(key));
   return urls;
 }
-
 export function resolveTeamLogo(name: string): string {
   return resolveTeamCrests(name)[0] ?? "";
 }

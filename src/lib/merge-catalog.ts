@@ -12,27 +12,21 @@ import {
   resolveTeamCrests,
 } from "@/lib/team-logos";
 import { curateUclEvent, isBogusPulsoMatchUrl } from "@/lib/ucl-fixtures";
-
 export const PULSO_ID_PREFIX = "pulso-";
-
 const SAO_PAULO_OFFSET = "-03:00";
-
 export interface MergeSportResult {
   events: ApiSportEvent[];
   absorbed: Map<number, string>;
 }
-
 export interface MergeChannelResult {
   channels: ApiChannel[];
   absorbed: Map<string, string>;
 }
-
 interface MergeOptions {
   includeUnmatched?: boolean;
   now?: number;
   channels?: PulsoEmbedSource[];
 }
-
 interface PreparedMatch {
   source: PulsoMatch;
   day: string;
@@ -41,7 +35,6 @@ interface PreparedMatch {
   home: string;
   away: string;
 }
-
 interface PreparedEvent {
   event: ApiSportEvent;
   day: string;
@@ -49,23 +42,19 @@ interface PreparedEvent {
   home: string;
   away: string;
 }
-
 export function pulsoId(slug: string): string {
   return `${PULSO_ID_PREFIX}${slug}`;
 }
-
 export function pulsoSlug(id: string): string | null {
   if (!id.startsWith(PULSO_ID_PREFIX)) return null;
   const slug = id.slice(PULSO_ID_PREFIX.length);
   return safeSlug(slug);
 }
-
 export function eventSearchBlob(event: ApiSportEvent): string {
   return `${event.title} ${event.competition} ${event.category} ${event.teams?.home.name ?? ""} ${event.teams?.away.name ?? ""}`.toLocaleLowerCase(
     "pt-BR",
   );
 }
-
 export function mergeSportEvents(
   reidosEvents: ApiSportEvent[],
   pulsoMatches: PulsoMatch[],
@@ -82,12 +71,10 @@ export function mergeSportEvents(
   });
   const consumed = new Set<number>();
   const absorbed = new Map<number, string>();
-
   const preparedReidos = reidosEvents.map((event) => ({
     event,
     prepared: prepareEvent(event),
   }));
-
   const events = preparedReidos.map(({ event, prepared }) => {
     const candidates = available.filter(
       (match) => !consumed.has(match.source.id) && sameFixture(prepared, match),
@@ -110,11 +97,9 @@ export function mergeSportEvents(
     absorbed.set(chosen.source.id, merged.id);
     return merged;
   });
-
   if (!includeUnmatched) {
     return { events: publishEvents(events), absorbed };
   }
-
   const preparedEvents = events.map(prepareEvent);
   const extras: ApiSportEvent[] = [];
   const pending = available.filter((match) => {
@@ -132,20 +117,16 @@ export function mergeSportEvents(
     extras.push(event);
   }
   extras.sort((a, b) => a.start_timestamp - b.start_timestamp);
-
   return { events: publishEvents([...events, ...extras]), absorbed };
 }
-
 function publishEvents(events: ApiSportEvent[]): ApiSportEvent[] {
   return withoutWomens(withoutDisneyOnly(events)).map(correctBrasileiraoEvent);
 }
-
 function withoutWomens(events: ApiSportEvent[]): ApiSportEvent[] {
   const hidden = events.filter((event) => isWomensEvent(event));
   rememberWomensFixtures(hidden);
   return events.filter((event) => !isWomensEvent(event));
 }
-
 export function mergeChannelLists(
   reidosChannels: ApiChannel[],
   pulsoEmbeds: PulsoEmbedSource[],
@@ -155,7 +136,6 @@ export function mergeChannelLists(
   const absorbed = new Map<string, string>();
   const extrasByKey = new Map<string, PulsoEmbedSource[]>();
   const plainBases = plainChannelBases(pulsoEmbeds);
-
   for (const embed of pulsoEmbeds) {
     if (!embed.active || !safeSlug(embed.slug)) continue;
     if (!isPlayable(embed.title || embed.slug, embed.url, embed.type)) continue;
@@ -165,7 +145,6 @@ export function mergeChannelLists(
     if (group) group.push(embed);
     else extrasByKey.set(key, [embed]);
   }
-
   const usedKeys = new Set<string>();
   const channels = reidosChannels.map((channel) => {
     const key = catalogGroupKey(channel.name, plainBases);
@@ -179,10 +158,8 @@ export function mergeChannelLists(
       embeds: presentChannelEmbeds(channel.name, channel.embeds, extras ?? []),
     };
   });
-
   if (!includeUnmatched)
     return { channels: labelRepeatedChannels(channels, pulsoEmbeds), absorbed };
-
   const unmatched: ApiChannel[] = [];
   for (const [key, group] of extrasByKey) {
     if (usedKeys.has(key)) continue;
@@ -192,15 +169,11 @@ export function mergeChannelLists(
     unmatched.push(channel);
   }
   unmatched.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-
   return { channels: labelRepeatedChannels([...channels, ...unmatched], pulsoEmbeds), absorbed };
 }
-
-/** Plain "HBO Max" is feed 1 when "HBO Max 1 …" also exists. Put that id in the name. */
 function labelRepeatedChannels(list: ApiChannel[], catalog: PulsoEmbedSource[]): ApiChannel[] {
   const bases = plainChannelBases(catalog);
   const twinBases = getTwinBases(catalog, bases);
-
   return list.map((channel) => {
     const name = nameWithChannelId(channel.name, bases, twinBases);
     const embeds = channel.embeds.map((embed) => {
@@ -216,7 +189,6 @@ function labelRepeatedChannels(list: ApiChannel[], catalog: PulsoEmbedSource[]):
     return { ...channel, name, embeds };
   });
 }
-
 function getTwinBases(catalog: PulsoEmbedSource[], bases: Set<string>): Set<string> {
   const twins = new Set<string>();
   for (const channel of catalog) {
@@ -229,14 +201,12 @@ function getTwinBases(catalog: PulsoEmbedSource[], bases: Set<string>): Set<stri
   }
   return twins;
 }
-
 function nameWithChannelId(title: string, bases: Set<string>, twinBases: Set<string>): string {
   if (splitChannelTag(title).tag || isNumberedDuplicate(title, bases)) return title;
   const base = channelBase(title, bases);
   if (!base || !bases.has(base)) return title;
   return twinBases.has(base) ? identifiedChannelTitle(title) : title;
 }
-
 function prepareMatch(match: PulsoMatch): PreparedMatch | null {
   if (!match.active || match.status === "cancelled" || !safeSlug(match.slug)) return null;
   const kickoff = parseKickoff(match.kickoff_at);
@@ -253,7 +223,6 @@ function prepareMatch(match: PulsoMatch): PreparedMatch | null {
     away,
   };
 }
-
 function prepareEvent(event: ApiSportEvent): PreparedEvent {
   const names = eventTeamNames(event);
   const home = names ? canonicalTeam(names.home) : "";
@@ -266,7 +235,6 @@ function prepareEvent(event: ApiSportEvent): PreparedEvent {
     away,
   };
 }
-
 function findIncomplete(
   event: PreparedEvent,
   available: PreparedMatch[],
@@ -284,7 +252,6 @@ function findIncomplete(
   });
   return candidates.length === 1 ? (candidates[0] ?? null) : null;
 }
-
 function applyPulso(
   event: ApiSportEvent,
   match: PreparedMatch,
@@ -323,10 +290,13 @@ function applyPulso(
     channelArts,
   );
 }
-
 function presentEvent(
   event: ApiSportEvent,
-  replacement: { title: string; url: string; allow: string } | null,
+  replacement: {
+    title: string;
+    url: string;
+    allow: string;
+  } | null,
   channels: PulsoEmbedSource[],
   channelArts?: Set<string>,
 ): ApiSportEvent {
@@ -337,7 +307,6 @@ function presentEvent(
   });
   return curateUclEvent(presented);
 }
-
 function withTeamCrests(event: ApiSportEvent): ApiSportEvent {
   const names = eventTeamNames(event);
   if (!names) return event;
@@ -349,34 +318,28 @@ function withTeamCrests(event: ApiSportEvent): ApiSportEvent {
     },
   };
 }
-
 function teamSide(name: string, catalogLogo: string | undefined): ApiTeam {
   const logos = crestCandidates(name, catalogLogo);
   return { name, logo: logos[0] ?? "", logos };
 }
-
 function crestCandidates(name: string, catalogLogo: string | undefined): string[] {
   const logos: string[] = [];
   const push = (url: string) => {
     if (url && !logos.includes(url)) logos.push(url);
   };
-
   const raw = catalogLogo?.trim() ?? "";
   const resolved = raw && !raw.startsWith("data:") ? resolvePulsoAsset(raw) : "";
   if (resolved && !isPlaceholderLogo(resolved) && catalogCrestFitsTeam(raw, name)) {
     push(resolved);
   }
-
   const curated = curatedTeamCrest(name);
   if (curated) push(resolvePulsoAsset(curated));
-
   for (const url of resolveTeamCrests(name)) {
     if (catalogCrestFitsTeam(url, name)) push(url);
   }
   if (isNationalTeam(name) && resolved && isFlagLogo(resolved)) push(resolved);
   return logos;
 }
-
 function toPulsoEvent(
   match: PreparedMatch,
   nowMs: number,
@@ -413,7 +376,6 @@ function toPulsoEvent(
     ),
   };
 }
-
 function channelFromPulsoGroup(group: PulsoEmbedSource[]): ApiChannel | null {
   const playable = group.filter(
     (embed) =>
@@ -439,15 +401,12 @@ function channelFromPulsoGroup(group: PulsoEmbedSource[]): ApiChannel | null {
     epg: null,
   };
 }
-
-/** Prefer the untagged main feed so "CazéTV [HLS]" does not become the channel name. */
 function pickPrimaryPulsoEmbed(group: PulsoEmbedSource[]): PulsoEmbedSource {
   return group.reduce((best, embed) => {
     const score = pulsoEmbedScore(embed);
     return score > pulsoEmbedScore(best) ? embed : best;
   });
 }
-
 function pulsoEmbedScore(embed: PulsoEmbedSource): number {
   const { stem, tag } = splitChannelTag(embed.title);
   let score = stem.length;
@@ -456,11 +415,6 @@ function pulsoEmbedScore(embed: PulsoEmbedSource): number {
   if (embed.description.trim()) score += 10;
   return score;
 }
-
-/**
- * Pulso embeds have no category field. Guess from the channel name so the home
- * grid still has Notícias / Infantil / etc. when Rei dos Canais is down.
- */
 function inferChannelCategory(name: string): string {
   const value = normalizeLabel(name);
   if (/\b(band news|bloomberg|bm c|cnn|globo news|globonews|record news|jornal)\b/.test(value)) {
@@ -492,7 +446,6 @@ function inferChannelCategory(name: string): string {
   }
   return "Esportes";
 }
-
 function presentChannelEmbeds(
   channelName: string,
   embeds: ApiEmbed[],
@@ -500,35 +453,34 @@ function presentChannelEmbeds(
 ): ApiEmbed[] {
   const seen = new Set<string>();
   const ordered: ApiEmbed[] = [];
-
   const push = (embed: ApiEmbed) => {
     if (!embed.embed_url || seen.has(embed.embed_url)) return;
     seen.add(embed.embed_url);
     ordered.push(embed);
   };
-
-  // 1. Playable Pulso embeds first so Opção 1 is immediately functional across all networks
   for (const extra of replacements) {
     push(rawEmbed(extra.title || channelName, extra.url, extra.allow));
   }
-
-  // 2. Original embeds from Reidos as additional options
   for (const embed of embeds) {
     push(rawEmbed(embed.provider || channelName, embed.embed_url, embed.allow ?? ""));
   }
-
   return numberOptions(preferPremiumServers(ordered));
 }
-
 function presentEventEmbeds(
   embeds: ApiEmbed[],
-  replacement: { title: string; url: string; allow: string } | null,
+  replacement: {
+    title: string;
+    url: string;
+    allow: string;
+  } | null,
   channels: PulsoEmbedSource[] = [],
 ): ApiEmbed[] {
-  const groups: { name: string; embeds: ApiEmbed[] }[] = [];
+  const groups: {
+    name: string;
+    embeds: ApiEmbed[];
+  }[] = [];
   const indexByKey = new Map<string, number>();
   const hadAlternative = new Set<string>();
-
   const ensure = (name: string) => {
     const key = canonicalChannel(name) || normalizeLabel(name);
     const existing = key ? indexByKey.get(key) : undefined;
@@ -538,7 +490,6 @@ function presentEventEmbeds(
     groups.push(slot);
     return slot;
   };
-
   for (const embed of embeds) {
     const name = baseProvider(embed.provider);
     if (!name) continue;
@@ -546,7 +497,6 @@ function presentEventEmbeds(
     if (!slot || slot.embeds.some((item) => item.embed_url === embed.embed_url)) continue;
     slot.embeds.push(embed);
   }
-
   if (replacement && replacement.url) {
     const target =
       pickReplacementGroup(groups, hadAlternative, replacement.title) ?? ensure(replacement.title);
@@ -559,9 +509,7 @@ function presentEventEmbeds(
       target.embeds.unshift(extra);
     }
   }
-
   addCatalogFeeds(groups, channels);
-
   const ordered = groups.flatMap((slot) => {
     return slot.embeds.map((embed) => {
       const isAlt = isAlternative(embed.provider);
@@ -579,17 +527,11 @@ function presentEventEmbeds(
   });
   return numberOptions(preferPremiumServers(ordered));
 }
-
-/**
- * "HBO Max" and "HBO MAX 1 [MPHD2]" are the same feed family. Group them
- * together so every registered player shows up on that channel.
- */
 function catalogGroupKey(name: string, plainBases: Set<string>): string {
   const key = channelGroupKey(name);
   if (!key) return "";
   return channelBase(key, plainBases);
 }
-
 function plainChannelBases(channels: PulsoEmbedSource[]): Set<string> {
   const bases = new Set<string>();
   for (const channel of channels) {
@@ -599,7 +541,6 @@ function plainChannelBases(channels: PulsoEmbedSource[]): Set<string> {
   }
   return bases;
 }
-
 function channelBase(title: string, plainBases: Set<string>): string {
   const { stem } = splitChannelTag(baseProvider(title));
   const normalized = normalizeLabel(stem);
@@ -607,33 +548,30 @@ function channelBase(title: string, plainBases: Set<string>): string {
   if (duplicate?.[1] && plainBases.has(duplicate[1])) return duplicate[1];
   return normalized;
 }
-
 function isNumberedDuplicate(title: string, plainBases: Set<string>): boolean {
   const { stem } = splitChannelTag(baseProvider(title));
   const normalized = normalizeLabel(stem);
   const duplicate = /^(.*)\s1$/.exec(normalized);
   return Boolean(duplicate?.[1] && plainBases.has(duplicate[1]));
 }
-
 function identifiedChannelTitle(title: string): string {
   const { stem, tag } = splitChannelTag(title);
   const named = `${stem} 1`;
   return tag ? `${named} [${tag}]` : named;
 }
-
-function splitChannelTag(title: string): { stem: string; tag: string | null } {
+function splitChannelTag(title: string): {
+  stem: string;
+  tag: string | null;
+} {
   const match = /^(.*?)(?:\s*\[([^\]]+)\])\s*$/.exec(title.trim());
   if (!match?.[1]) return { stem: title.trim(), tag: null };
   return { stem: match[1].trim(), tag: match[2]?.trim() || null };
 }
-
-/**
- * A match used to keep only the two servers that came with the fixture.
- * Every playable embed registered for that same channel is an option too.
- * Plain "CazéTV" stays the main game: numbered siblings are other matches.
- */
 function addCatalogFeeds(
-  groups: { name: string; embeds: ApiEmbed[] }[],
+  groups: {
+    name: string;
+    embeds: ApiEmbed[];
+  }[],
   channels: PulsoEmbedSource[],
 ) {
   if (groups.length === 0 || channels.length === 0) return;
@@ -653,12 +591,17 @@ function addCatalogFeeds(
     }
   }
 }
-
 function pickReplacementGroup(
-  groups: { name: string; embeds: ApiEmbed[] }[],
+  groups: {
+    name: string;
+    embeds: ApiEmbed[];
+  }[],
   hadAlternative: Set<string>,
   title: string,
-): { name: string; embeds: ApiEmbed[] } | null {
+): {
+  name: string;
+  embeds: ApiEmbed[];
+} | null {
   const wanted = canonicalChannel(title);
   if (!wanted) return null;
   const exact = groups.find((slot) => canonicalChannel(slot.name) === wanted);
@@ -674,7 +617,6 @@ function pickReplacementGroup(
   const onlyAlternative = groups.filter((slot) => hadAlternative.has(canonicalChannel(slot.name)));
   return onlyAlternative.length === 1 ? (onlyAlternative[0] ?? null) : null;
 }
-
 function spliceReplacement(
   embeds: ApiEmbed[],
   replaces: (embed: ApiEmbed) => boolean,
@@ -695,8 +637,6 @@ function spliceReplacement(
   if (!inserted) pushUnique(kept, extras);
   return kept;
 }
-
-/** "Servidor Premium" from Rei dos Canais should open first when available. */
 function preferPremiumServers(embeds: ApiEmbed[]): ApiEmbed[] {
   const premium: ApiEmbed[] = [];
   const rest: ApiEmbed[] = [];
@@ -706,7 +646,6 @@ function preferPremiumServers(embeds: ApiEmbed[]): ApiEmbed[] {
   }
   return premium.length > 0 ? [...premium, ...rest] : embeds;
 }
-
 function numberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
   return embeds.map((embed, index) => {
     const next: ApiEmbed = {
@@ -719,13 +658,11 @@ function numberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
     return next;
   });
 }
-
 function nameCarriesChannelId(provider: string): boolean {
   const { stem, tag } = splitChannelTag(provider);
   if (tag) return true;
   return /\s\d+$/.test(normalizeLabel(stem));
 }
-
 function rawEmbed(title: string, url: string, allow: string): ApiEmbed {
   const embed: ApiEmbed = {
     provider: title.trim() || "Player",
@@ -736,18 +673,15 @@ function rawEmbed(title: string, url: string, allow: string): ApiEmbed {
   if (policy) embed.allow = policy;
   return embed;
 }
-
 function pushUnique(target: ApiEmbed[], extras: ApiEmbed[]) {
   for (const extra of extras) {
     if (target.some((item) => item.embed_url === extra.embed_url)) continue;
     target.push(extra);
   }
 }
-
 function isAlternative(provider: string): boolean {
   return /alternativo/i.test(provider);
 }
-
 function baseProvider(provider: string): string {
   return provider
     .replace(/\s*\(alternativo\)\s*/gi, " ")
@@ -755,9 +689,7 @@ function baseProvider(provider: string): string {
     .replace(/\s+/g, " ")
     .trim();
 }
-
 const PULSO_LIVE_WINDOW_MS = (2 * 60 + 15) * 60 * 1000;
-
 function mapPulsoStatus(status: string, kickoffUnix: number, nowMs: number): ApiSportStatus {
   if (status === "finished") return "finished";
   const startMs = kickoffUnix * 1000;
@@ -766,7 +698,6 @@ function mapPulsoStatus(status: string, kickoffUnix: number, nowMs: number): Api
   if (nowMs >= startMs && nowMs < startMs + PULSO_LIVE_WINDOW_MS) return "live";
   return "upcoming";
 }
-
 function inferCategory(text: string): string {
   const value = text
     .normalize("NFD")
@@ -780,13 +711,11 @@ function inferCategory(text: string): string {
   if (/\b(formula\s*1|f1)\b/.test(value)) return "F1";
   return "Futebol";
 }
-
 function withInferredCategory(event: ApiSportEvent): ApiSportEvent {
   const inferred = inferCategory(`${event.competition} ${event.title}`);
   if (inferred === "Futebol" || (event.category && event.category !== "Futebol")) return event;
   return { ...event, category: inferred };
 }
-
 function withoutDisneyOnly(events: ApiSportEvent[]): ApiSportEvent[] {
   return events.filter((event) => {
     if (event.embeds.length === 0) return true;
@@ -795,8 +724,10 @@ function withoutDisneyOnly(events: ApiSportEvent[]): ApiSportEvent[] {
     );
   });
 }
-
-function eventTeamNames(event: ApiSportEvent): { home: string; away: string } | null {
+function eventTeamNames(event: ApiSportEvent): {
+  home: string;
+  away: string;
+} | null {
   const home = event.teams?.home.name?.trim() ?? "";
   const away = event.teams?.away.name?.trim() ?? "";
   if (home && away) return { home, away };
@@ -806,14 +737,20 @@ function eventTeamNames(event: ApiSportEvent): { home: string; away: string } | 
   if (!titleHome || !titleAway || parts.length !== 2) return null;
   return { home: titleHome, away: titleAway };
 }
-
 function pairKey(home: string, away: string): string {
   return home < away ? `${home}|${away}` : `${away}|${home}`;
 }
-
 function sameFixture(
-  left: { day: string; home: string; away: string },
-  right: { day: string; home: string; away: string },
+  left: {
+    day: string;
+    home: string;
+    away: string;
+  },
+  right: {
+    day: string;
+    home: string;
+    away: string;
+  },
 ): boolean {
   if (!left.day || left.day !== right.day) return false;
   if (!left.home || !left.away || !right.home || !right.away) return false;
@@ -823,8 +760,6 @@ function sameFixture(
     teamsLooselyEqual(left.home, right.away) && teamsLooselyEqual(left.away, right.home);
   return direct || swapped;
 }
-
-/** "América" and "América-MG" are the same club; "Botafogo" and "Botafogo-SP" only match when the opponent does too. */
 function teamsLooselyEqual(left: string, right: string): boolean {
   if (left === right) return true;
   const a = left.split(" ").filter(Boolean);
@@ -833,7 +768,6 @@ function teamsLooselyEqual(left: string, right: string): boolean {
   const [shorter, longer] = a.length < b.length ? [a, b] : [b, a];
   return shorter.every((token, index) => longer[index] === token);
 }
-
 function groupFixtures(matches: PreparedMatch[]): PreparedMatch[][] {
   const groups: PreparedMatch[][] = [];
   for (const match of matches) {
@@ -843,19 +777,16 @@ function groupFixtures(matches: PreparedMatch[]): PreparedMatch[][] {
   }
   return groups;
 }
-
 function richestMatch(matches: PreparedMatch[]): PreparedMatch {
   return matches.reduce((best, match) =>
     matchRichness(match) > matchRichness(best) ? match : best,
   );
 }
-
 function matchRichness(match: PreparedMatch): number {
   const names = match.home.length + match.away.length;
   const art = realPoster(match.source.match_image, [], match.source.thumbnail) ? 1000 : 0;
   return art + names;
 }
-
 function channelArtSet(channels: PulsoEmbedSource[]): Set<string> {
   const set = new Set<string>();
   for (const channel of channels) {
@@ -868,7 +799,6 @@ function channelArtSet(channels: PulsoEmbedSource[]): Set<string> {
   }
   return set;
 }
-
 function realPoster(
   value: string | null | undefined,
   channels: PulsoEmbedSource[] | Set<string>,
@@ -897,21 +827,17 @@ function realPoster(
   }
   return resolved;
 }
-
 function isStockPhoto(url: string): boolean {
   return /images\.unsplash\.com/i.test(url);
 }
-
 function tokensOverlap(team: string, blob: string): boolean {
   const tokens = team.split(" ").filter((token) => token.length >= 4);
   if (tokens.length === 0) return team.length > 0 && blob.includes(team);
   return tokens.every((token) => blob.includes(token));
 }
-
 function canonicalTeam(name: string): string {
   return normalizeTeamKey(name);
 }
-
 const CHANNEL_ALIASES = new Map<string, string>([
   ["caze tv", "cazetv"],
   ["caze tv 1", "cazetv"],
@@ -930,7 +856,6 @@ const CHANNEL_ALIASES = new Map<string, string>([
   ["paramount", "paramount plus"],
   ["band sports", "bandsports"],
 ]);
-
 function canonicalChannel(name: string): string {
   const normalized = normalizeLabel(name)
     .replace(/\bfc\b/g, " ")
@@ -940,12 +865,9 @@ function canonicalChannel(name: string): string {
   if (!normalized) return "";
   return CHANNEL_ALIASES.get(normalized) ?? normalized;
 }
-
-/** Strip feed tags like [MPHD] so every ESPN mirror lands in one channel. */
 export function channelGroupKey(name: string): string {
   return canonicalChannel(splitChannelTag(baseProvider(name)).stem);
 }
-
 function normalizeLabel(value: string): string {
   return value
     .normalize("NFD")
@@ -957,8 +879,10 @@ function normalizeLabel(value: string): string {
     .trim()
     .replace(/\s+/g, " ");
 }
-
-function parseKickoff(kickoff: string): { day: string; unix: number } | null {
+function parseKickoff(kickoff: string): {
+  day: string;
+  unix: number;
+} | null {
   const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(kickoff.trim());
   if (!match) return null;
   const day = match[1];
@@ -969,14 +893,12 @@ function parseKickoff(kickoff: string): { day: string; unix: number } | null {
   if (Number.isNaN(unixMs)) return null;
   return { day, unix: Math.floor(unixMs / 1000) };
 }
-
 const SAO_PAULO_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Sao_Paulo",
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
 });
-
 function saoPauloDay(unixSeconds: number): string {
   const parts = SAO_PAULO_DAY_FORMATTER.formatToParts(new Date(unixSeconds * 1000));
   const year = parts.find((part) => part.type === "year")?.value ?? "";
@@ -985,12 +907,10 @@ function saoPauloDay(unixSeconds: number): string {
   if (!year || !month || !day) return "";
   return `${year}-${month}-${day}`;
 }
-
 function safeSlug(slug: string): string | null {
   const trimmed = slug.trim();
   return /^[a-z0-9-]+$/i.test(trimmed) ? trimmed : null;
 }
-
 function isPlayable(title: string, url: string, type: string): boolean {
   if (!url || /disney/i.test(title) || /disney/i.test(url)) return false;
   let parsed: URL;

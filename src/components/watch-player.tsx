@@ -1,21 +1,17 @@
 import { Check, ChevronDown, Link2, Maximize2, Minimize2, Share2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { ApiEmbed } from "@/lib/api";
-
 interface WatchPlayerProps {
   title: string;
   embeds: ApiEmbed[];
   theaterMode?: boolean;
   onToggleTheater?: () => void;
 }
-
 const DEFAULT_IFRAME_ALLOW = "autoplay; fullscreen; picture-in-picture";
-
 function optionLabel(embed: ApiEmbed) {
   const parts = [embed.provider, embed.quality].filter((part) => part.trim().length > 0);
   return parts.join(" · ");
 }
-
 function iframeAllow(embed: ApiEmbed): string {
   const extra = embed.allow?.trim();
   if (!extra) return DEFAULT_IFRAME_ALLOW;
@@ -31,7 +27,6 @@ function iframeAllow(embed: ApiEmbed): string {
   }
   return parts.join("; ");
 }
-
 async function copyText(value: string) {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(value);
@@ -47,7 +42,6 @@ async function copyText(value: string) {
   document.execCommand("copy");
   document.body.removeChild(field);
 }
-
 export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: WatchPlayerProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [open, setOpen] = useState(false);
@@ -57,7 +51,6 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
   const boxRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const current = embeds[selectedIndex];
-
   function placeMenu() {
     const rect = boxRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -69,7 +62,6 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
     setMenuAbove(openAbove);
     setMenuMaxHeight(Math.max(96, Math.floor(room)));
   }
-
   useEffect(() => {
     function onPointer(event: MouseEvent) {
       if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
@@ -83,7 +75,6 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
         onToggleTheater?.();
       }
     }
-
     document.addEventListener("mousedown", onPointer);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -91,19 +82,16 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
       document.removeEventListener("keydown", onKey);
     };
   }, [open, onToggleTheater]);
-
   useEffect(() => {
     if (!copied) return;
     const timer = window.setTimeout(() => setCopied(null), 1600);
     return () => window.clearTimeout(timer);
   }, [copied]);
-
   async function copyEmbed() {
     if (!current) return;
     await copyText(current.embed_url);
     setCopied("embed");
   }
-
   async function sharePage() {
     const url = window.location.href;
     if (navigator.share) {
@@ -117,13 +105,10 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
     await copyText(url);
     setCopied("share");
   }
-
   return (
     <div className="w-full">
       <div
-        className={`relative overflow-hidden rounded-xl bg-black border border-border/80 shadow-2xl transition-[max-height,max-width,border-color,box-shadow] duration-300 ease-[var(--ease-out)] ${
-          theaterMode ? "aspect-video w-full max-h-[82vh] mx-auto" : "aspect-video w-full"
-        }`}
+        className={`relative overflow-hidden rounded-xl bg-black border border-border/80 shadow-2xl transition-[max-height,max-width,border-color,box-shadow] duration-300 ease-[var(--ease-out)] ${theaterMode ? "aspect-video w-full max-h-[82vh] mx-auto" : "aspect-video w-full"}`}
       >
         {current ? (
           <iframe
@@ -169,9 +154,7 @@ export function WatchPlayer({ title, embeds, theaterMode, onToggleTheater }: Wat
                 role="listbox"
                 aria-label="Servidores de transmissão"
                 style={{ maxHeight: menuMaxHeight }}
-                className={`dropdown-pop absolute left-0 z-30 w-max min-w-full max-w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md py-1.5 shadow-xl ${
-                  menuAbove ? "bottom-[calc(100%+0.35rem)]" : "top-[calc(100%+0.35rem)]"
-                }`}
+                className={`dropdown-pop absolute left-0 z-30 w-max min-w-full max-w-[min(24rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border/80 bg-popover/95 backdrop-blur-md py-1.5 shadow-xl ${menuAbove ? "bottom-[calc(100%+0.35rem)]" : "top-[calc(100%+0.35rem)]"}`}
               >
                 {embeds.map((embed, index) => {
                   const selected = index === selectedIndex;

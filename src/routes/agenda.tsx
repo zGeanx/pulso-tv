@@ -32,32 +32,26 @@ import { headlineEvents } from "@/lib/agenda-rank";
 import { eventSearchBlob } from "@/lib/merge-catalog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamCrest } from "@/components/team-crest";
-
 const ALL_TAB = "Todos os jogos" as const;
 type TabLabel = typeof ALL_TAB | SportStatusLabel;
-
 const tabs: TabLabel[] = [ALL_TAB, ...ALL_SPORT_STATUS_LABELS];
-
 const tabIcons: Record<TabLabel, ElementType> = {
   "Todos os jogos": List,
   "Ao vivo agora": RadioTower,
   "Hoje & Próximos": Clock3,
   Encerrados: CheckCircle2,
 };
-
 const labelToApiStatus: Record<SportStatusLabel, ApiSportStatus> = {
   "Ao vivo agora": "live",
   "Hoje & Próximos": "upcoming",
   Encerrados: "finished",
 };
-
 const emptyCopy: Record<TabLabel, string> = {
   "Todos os jogos": "Nenhum jogo ao vivo ou agendado no momento",
   "Ao vivo agora": "Nenhum jogo ao vivo agora",
   "Hoje & Próximos": "Nenhum jogo próximo no momento",
   Encerrados: "Nenhum jogo encerrado na lista",
 };
-
 export const Route = createFileRoute("/agenda")({
   head: () => ({
     meta: [
@@ -77,13 +71,11 @@ export const Route = createFileRoute("/agenda")({
   }),
   component: AgendaPage,
 });
-
 function AgendaPage() {
   const [tab, setTab] = useState<TabLabel>(ALL_TAB);
   const [query, setQuery] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const { data: events = [], isLoading, isError, refetch } = useSports();
-
   const normalizedEvents = useMemo(() => {
     const nowSec = Date.now() / 1000;
     return events.map((event) => {
@@ -91,19 +83,15 @@ function AgendaPage() {
       return effective === event.status ? event : { ...event, status: effective };
     });
   }, [events]);
-
   const headlines = useMemo(() => headlineEvents(normalizedEvents), [normalizedEvents]);
-
   const activeHeadlines = useMemo(
     () => headlines.filter((event) => !isEventFinished(event)),
     [headlines],
   );
-
   const finishedHeadlines = useMemo(
     () => headlines.filter((event) => isEventFinished(event)),
     [headlines],
   );
-
   const counts: Record<TabLabel, number> = {
     "Todos os jogos": activeHeadlines.length,
     "Ao vivo agora": activeHeadlines.filter((event) => getEventEffectiveStatus(event) === "live")
@@ -113,7 +101,6 @@ function AgendaPage() {
     ).length,
     Encerrados: finishedHeadlines.length,
   };
-
   const filtered = useMemo(() => {
     let inTab: ApiSportEvent[];
     if (tab === ALL_TAB) {
@@ -128,7 +115,6 @@ function AgendaPage() {
     const q = query.trim();
     return q ? inTab.filter((event) => fold(eventSearchBlob(event)).includes(fold(q))) : inTab;
   }, [activeHeadlines, finishedHeadlines, query, tab]);
-
   useGSAP(
     () => {
       if (!listRef.current || isLoading || filtered.length === 0) return;
@@ -139,7 +125,6 @@ function AgendaPage() {
     },
     { scope: listRef, dependencies: [tab, query, isLoading, filtered.length] },
   );
-
   return (
     <div className="page-container py-8 lg:py-12">
       <header className="flex flex-col gap-6 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between lg:pb-8">
@@ -156,7 +141,6 @@ function AgendaPage() {
           </p>
         </div>
 
-        {/* Search input */}
         <div className="w-full lg:max-w-md">
           <div className="relative flex items-center">
             <Search
@@ -184,7 +168,6 @@ function AgendaPage() {
         </div>
       </header>
 
-      {/* Filter Tabs */}
       <div className="py-5 sm:py-6">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist">
           {tabs.map((item) => {
@@ -276,7 +259,6 @@ function AgendaPage() {
             const previous = filtered[index - 1];
             const showDivider = !previous || formatAgendaDay(previous) !== divider;
             const channels = eventChannelNames(event);
-
             return (
               <div key={event.id}>
                 {showDivider && (
@@ -294,7 +276,6 @@ function AgendaPage() {
                   className="group block rounded-2xl border border-border/70 bg-card/40 p-4 transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card/80 hover:shadow-lg hover:shadow-black/20"
                 >
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-center">
-                    {/* Zona 1: Horário & Torneio */}
                     <div className="flex items-center gap-3 lg:col-span-3">
                       <div className="flex min-w-[4.25rem] flex-col items-center justify-center rounded-xl border border-border/70 bg-background/60 px-3 py-2 text-center shadow-inner">
                         <span className="font-display text-base sm:text-lg font-bold tabular-nums text-foreground group-hover:text-primary transition-colors">
@@ -316,11 +297,9 @@ function AgendaPage() {
                       </div>
                     </div>
 
-                    {/* Zona 2: Confronto & Transmissão */}
                     <div className="flex flex-col justify-center min-w-0 lg:col-span-6">
                       {event.teams ? (
                         <div className="flex items-center gap-3 sm:gap-4">
-                          {/* Time Mandante */}
                           <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-end">
                             <span className="truncate font-display text-sm sm:text-base font-semibold text-foreground text-right group-hover:text-primary transition-colors">
                               {event.teams.home.name}
@@ -333,12 +312,10 @@ function AgendaPage() {
                             />
                           </div>
 
-                          {/* Divisor VS */}
                           <span className="shrink-0 rounded-full border border-border/80 bg-background/90 px-2.5 py-0.5 font-display text-[11px] font-bold text-muted-foreground shadow-sm">
                             ×
                           </span>
 
-                          {/* Time Visitante */}
                           <div className="flex items-center gap-2.5 min-w-0 flex-1 justify-start">
                             <TeamCrest
                               name={event.teams.away.name}
@@ -359,7 +336,6 @@ function AgendaPage() {
                         </div>
                       )}
 
-                      {/* Canais de Transmissão */}
                       {channels.length > 0 && (
                         <div className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
                           <Tv className="size-3 text-primary shrink-0" />
@@ -368,7 +344,6 @@ function AgendaPage() {
                       )}
                     </div>
 
-                    {/* Zona 3: Status & Ação Contextual */}
                     <div className="flex items-center justify-between lg:justify-end gap-3 lg:col-span-3 pt-2 lg:pt-0 border-t border-border/40 lg:border-t-0">
                       {isLive ? (
                         <div className="flex items-center gap-2.5">
@@ -417,7 +392,6 @@ function AgendaPage() {
     </div>
   );
 }
-
 function fold(value: string): string {
   return value
     .normalize("NFD")

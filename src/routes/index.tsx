@@ -41,7 +41,6 @@ import {
   pickScheduleChannels,
 } from "@/lib/api";
 import type { ApiChannel, ApiSportEvent } from "@/lib/api";
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -61,7 +60,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
-
 const categoryIcons: Record<string, LucideIcon> = {
   "Canais Abertos": Tv,
   Entretenimento: Sparkles,
@@ -71,11 +69,9 @@ const categoryIcons: Record<string, LucideIcon> = {
   Infantil: Baby,
   Documentários: BookOpen,
 };
-
 function isSportEvent(hero: ApiSportEvent | ApiChannel): hero is ApiSportEvent {
   return "competition" in hero;
 }
-
 function pickHero(
   events: ApiSportEvent[],
   channels: ApiChannel[],
@@ -88,16 +84,12 @@ function pickHero(
     [...items].sort(
       (a, b) => Math.abs(a.start_timestamp - now) - Math.abs(b.start_timestamp - now),
     );
-
   const live = nearest(pool.filter((event) => getEventEffectiveStatus(event) === "live"));
   if (live[0]) return live[0];
-
   const upcoming = nearest(pool.filter((event) => getEventEffectiveStatus(event) === "upcoming"));
   if (upcoming[0]) return upcoming[0];
-
   return channels.find((channel) => channel.embeds.length > 0) ?? channels[0];
 }
-
 function heroKicker(hero: ApiSportEvent | ApiChannel | undefined): string {
   if (!hero || !isSportEvent(hero)) return "Transmissão em destaque";
   const status = getEventEffectiveStatus(hero);
@@ -111,24 +103,19 @@ function heroKicker(hero: ApiSportEvent | ApiChannel | undefined): string {
   }
   return "Encerrado";
 }
-
 function stripMarkdown(text: string): string {
   return text.replace(/\*/g, "");
 }
-
 interface HeroSectionProps {
   hero: ApiSportEvent | ApiChannel | undefined;
 }
-
 function HeroSection({ hero }: HeroSectionProps) {
   const kicker = heroKicker(hero);
-
   if (hero && isSportEvent(hero)) {
     const event = hero;
     const isLive = getEventEffectiveStatus(event) === "live";
     const hasEmbeds = event.embeds.length > 0;
     const description = event.description ? stripMarkdown(event.description) : null;
-
     return (
       <section className="border-b border-border">
         <div className="page-container grid gap-8 py-8 lg:grid-cols-12 lg:py-12">
@@ -210,7 +197,6 @@ function HeroSection({ hero }: HeroSectionProps) {
           </div>
 
           <div className="relative order-first self-start lg:order-none lg:col-span-7">
-            {/* Ambient stadium glow */}
             <div
               className="pointer-events-none absolute -inset-2 rounded-2xl bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent blur-2xl opacity-60"
               aria-hidden="true"
@@ -258,12 +244,10 @@ function HeroSection({ hero }: HeroSectionProps) {
       </section>
     );
   }
-
   const channel = hero as ApiChannel | undefined;
   const featuredProgram = channel?.epg?.current?.title ?? "Ao vivo";
   const featuredNext = channel?.epg?.next?.title;
   const epgRange = channel?.epg?.current ? formatEpgRange(channel.epg.current) : "";
-
   return (
     <section className="border-b border-border">
       <div className="page-container grid gap-8 py-8 lg:grid-cols-12 lg:py-12">
@@ -308,7 +292,6 @@ function HeroSection({ hero }: HeroSectionProps) {
         </div>
 
         <div id="player" className="relative order-first self-start lg:order-none lg:col-span-7">
-          {/* Ambient stadium glow */}
           <div
             className="pointer-events-none absolute -inset-2 rounded-2xl bg-gradient-to-tr from-primary/20 via-primary/5 to-transparent blur-2xl opacity-60"
             aria-hidden="true"
@@ -345,7 +328,6 @@ function HeroSection({ hero }: HeroSectionProps) {
     </section>
   );
 }
-
 const categoryStyles: Record<
   string,
   {
@@ -392,13 +374,11 @@ const categoryStyles: Record<
     iconBg: "bg-orange-500/15 text-orange-400 group-hover:bg-orange-500/25",
   },
 };
-
 function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
   const sorted = pickLiveNow(
     channels.filter((channel) => !isWomensBroadcast(channel.epg?.current?.title ?? "")),
     3,
   );
-
   return (
     <div className="lg:col-span-7">
       <div className="flex items-center justify-between border-b border-border pb-3">
@@ -453,24 +433,22 @@ function LiveNowSection({ channels }: { channels: ApiChannel[] }) {
     </div>
   );
 }
-
 function ExploreSection({
   categories,
   channels,
 }: {
-  categories: { name: string }[];
+  categories: {
+    name: string;
+  }[];
   channels: ApiChannel[];
 }) {
   const counts = channels.reduce<Record<string, number>>((acc, ch) => {
     acc[ch.category] = (acc[ch.category] ?? 0) + 1;
     return acc;
   }, {});
-
   const sorted = [...categories].sort((a, b) => (counts[b.name] ?? 0) - (counts[a.name] ?? 0));
-
   const mainCategory = sorted[0];
   const otherCategories = sorted.slice(1);
-
   return (
     <aside className="lg:col-span-5">
       <div className="flex items-center justify-between border-b border-border pb-3">
@@ -497,7 +475,6 @@ function ExploreSection({
               badgeText: "Destaque",
             };
             const count = counts[mainCategory.name] ?? 0;
-
             return (
               <Link
                 key={mainCategory.name}
@@ -540,7 +517,6 @@ function ExploreSection({
             iconBg: "bg-card/80 text-muted-foreground",
           };
           const count = counts[cat.name] ?? 0;
-
           return (
             <Link
               key={cat.name}
@@ -571,10 +547,8 @@ function ExploreSection({
     </aside>
   );
 }
-
 function FeaturedChannelsSection({ channels }: { channels: ApiChannel[] }) {
   const featured = pickFeaturedChannels(channels, 4);
-
   return (
     <div className="lg:col-span-5">
       <div className="flex items-center justify-between border-b border-border pb-3">
@@ -626,12 +600,10 @@ function FeaturedChannelsSection({ channels }: { channels: ApiChannel[] }) {
     </div>
   );
 }
-
 function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
   const scheduleItems = pickScheduleChannels(channels, 6).filter(
     (channel) => !isWomensBroadcast(channel.epg?.current?.title ?? ""),
   );
-
   return (
     <div className="lg:col-span-7">
       <div className="flex items-center justify-between border-b border-border pb-3">
@@ -675,7 +647,6 @@ function ScheduleSection({ channels }: { channels: ApiChannel[] }) {
     </div>
   );
 }
-
 function HeroSkeleton() {
   return (
     <section className="border-b border-border">
@@ -691,7 +662,6 @@ function HeroSkeleton() {
     </section>
   );
 }
-
 function ChannelCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={className ?? "border-b border-border pb-5"}>
@@ -701,14 +671,11 @@ function ChannelCardSkeleton({ className }: { className?: string }) {
     </div>
   );
 }
-
 function SportsAgendaSection({ events, loading }: { events: ApiSportEvent[]; loading: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const scroll = (direction: -1 | 1) => {
     smoothHorizontalScroll(scrollRef.current, direction * 560);
   };
-
   return (
     <section className="border-b border-border">
       <div className="page-container py-8 sm:py-10">
@@ -774,18 +741,15 @@ function SportsAgendaSection({ events, loading }: { events: ApiSportEvent[]; loa
     </section>
   );
 }
-
 function Index() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { data: channels = [], isLoading: loadingChannels } = useChannels();
   const { data: events = [], isLoading: loadingEvents } = useSports();
   const { data: categories = [] } = useChannelCategories();
-
   const guideChannels = decorateChannelsWithEvents(channels, events);
   const hero = pickHero(events, guideChannels);
   const heroLoading = loadingEvents || (events.length === 0 && loadingChannels);
   const featuredEvents = pickFeaturedEvents(events, 8);
-
   useGSAP(
     () => {
       if (!containerRef.current) return;
@@ -802,7 +766,6 @@ function Index() {
     },
     { scope: containerRef, dependencies: [loadingEvents, featuredEvents.length] },
   );
-
   return (
     <div ref={containerRef}>
       {heroLoading ? <HeroSkeleton /> : <HeroSection hero={hero} />}

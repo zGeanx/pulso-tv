@@ -2,7 +2,6 @@ import type { ApiSportEvent } from "@/lib/api";
 import { formatEventDay, formatEventTime } from "@/lib/api";
 import { TeamCrest } from "@/components/team-crest";
 import { cn } from "@/lib/utils";
-
 export function MatchCover({
   event,
   size = "card",
@@ -16,7 +15,6 @@ export function MatchCover({
   const time = formatEventTime(event);
   const when = day && day !== "Hoje" ? `${day} · ${time}` : time;
   const hero = size === "hero";
-
   return (
     <div
       className={cn(

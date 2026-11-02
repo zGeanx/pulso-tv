@@ -1,10 +1,6 @@
 export const PULSO_ORIGIN = "https://api.pulso-tv.online";
 export const PULSO_LOGO_ROUTE = "/api/pulso/logo";
-
-/** Underscores stay: the catalog uses names like `sao_paulo.png`. */
 const LOGO_FILE = /^(teams|channels|flags)\/[a-z0-9][a-z0-9._+-]*\.(png|jpe?g|svg|webp)$/i;
-
-/** `teams/alverca.png` when the value points at a Pulso catalog file. */
 export function pulsoLogoFile(value: string): string | null {
   const raw = value.trim();
   if (!raw || raw.startsWith("data:")) return null;
@@ -13,12 +9,6 @@ export function pulsoLogoFile(value: string): string | null {
   const file = pathname.slice("/logos/".length);
   return LOGO_FILE.test(file) ? file : null;
 }
-
-/**
- * The API sends `Cross-Origin-Resource-Policy: same-origin` on `/logos`.
- * Rewrite those files to the same-origin proxy so the browser can paint them.
- * Vite serves extension URLs itself, so the proxy path cannot end in `.png`.
- */
 export function resolvePulsoAsset(value: string): string {
   const raw = value.trim();
   if (!raw || raw.startsWith("data:")) return raw;
@@ -27,17 +17,14 @@ export function resolvePulsoAsset(value: string): string {
   if (raw.startsWith("//")) return `https:${raw}`;
   return raw;
 }
-
 export function isFlagLogo(url: string): boolean {
   return pulsoLogoFile(url)?.startsWith("flags/") ?? false;
 }
-
 function hostedLogoFile(file: string | null): string | null {
   if (!file) return null;
   if (file.startsWith("teams/") && /\.png$/i.test(file)) return file.replace(/\.png$/i, ".webp");
   return file;
 }
-
 function logoPathname(raw: string): string | null {
   if (raw.startsWith("/logos/")) return raw.split("?")[0] ?? raw;
   if (raw.startsWith(PULSO_LOGO_ROUTE)) {

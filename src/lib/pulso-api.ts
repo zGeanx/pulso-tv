@@ -18,7 +18,6 @@ import {
 } from "@/lib/merge-catalog";
 import { supplementCazeMatches } from "@/lib/caze-broadcasts";
 import { isFlagLogo, PULSO_ORIGIN, resolvePulsoAsset } from "@/lib/pulso-assets";
-
 export interface PulsoMatch {
   id: number;
   slug: string;
@@ -37,7 +36,6 @@ export interface PulsoMatch {
   home_logo?: string;
   away_logo?: string;
 }
-
 export interface PulsoEmbedSource {
   id: number;
   slug: string;
@@ -49,26 +47,20 @@ export interface PulsoEmbedSource {
   thumbnail: string;
   active: boolean;
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-
 function readString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
-
-/** Initials avatars and country flags are not club crests. */
 export function isPlaceholderLogo(url: string): boolean {
   if (!url || url.startsWith("data:")) return true;
   return isFlagLogo(url);
 }
-
 function readAsset(values: unknown[]): string {
   const urls = values.map((value) => resolvePulsoAsset(readString(value))).filter(Boolean);
   return urls.find((url) => !isPlaceholderLogo(url)) ?? urls[0] ?? "";
 }
-
 function nestedTeamLogo(value: Record<string, unknown>, side: "home" | "away"): string {
   const direct = value[side];
   const teams = value["teams"];
@@ -77,13 +69,10 @@ function nestedTeamLogo(value: Record<string, unknown>, side: "home" | "away"): 
   if (!source) return "";
   return readString(source["logo"]) || readString(source["badge"]) || readString(source["image"]);
 }
-
 function flagEnabled(value: unknown): boolean {
   return value !== false;
 }
-
-const PULSO_TIMEOUT_MS = 3_500;
-
+const PULSO_TIMEOUT_MS = 3500;
 async function fetchPulsoList(proxyPath: string, upstreamPath: string): Promise<unknown[]> {
   const url = typeof window === "undefined" ? `${PULSO_ORIGIN}${upstreamPath}` : proxyPath;
   const response = await fetch(url, {
@@ -99,17 +88,14 @@ async function fetchPulsoList(proxyPath: string, upstreamPath: string): Promise<
   }
   return payload;
 }
-
 function readMatch(value: unknown): PulsoMatch | null {
   if (!isRecord(value)) return null;
   const id = value["id"];
   const slug = readString(value["slug"]);
   if (typeof id !== "number" || !Number.isFinite(id) || !slug) return null;
-
   const channel = isRecord(value["channel"]) ? value["channel"] : null;
   const channelActive =
     channel == null || (flagEnabled(channel["active"]) && flagEnabled(channel["enabled"]));
-
   const home_logo = readAsset([
     value["home_team_logo"],
     value["home_logo"],
@@ -117,7 +103,6 @@ function readMatch(value: unknown): PulsoMatch | null {
     value["home_team_image"],
     nestedTeamLogo(value, "home"),
   ]);
-
   const away_logo = readAsset([
     value["away_team_logo"],
     value["away_logo"],
@@ -125,7 +110,6 @@ function readMatch(value: unknown): PulsoMatch | null {
     value["away_team_image"],
     nestedTeamLogo(value, "away"),
   ]);
-
   return {
     id,
     slug,
@@ -152,13 +136,11 @@ function readMatch(value: unknown): PulsoMatch | null {
     away_logo,
   };
 }
-
 function readEmbed(value: unknown): PulsoEmbedSource | null {
   if (!isRecord(value)) return null;
   const id = value["id"];
   const slug = readString(value["slug"]);
   if (typeof id !== "number" || !Number.isFinite(id) || !slug) return null;
-
   return {
     id,
     slug,
@@ -176,7 +158,6 @@ function readEmbed(value: unknown): PulsoEmbedSource | null {
     active: flagEnabled(value["active"]) && flagEnabled(value["enabled"]),
   };
 }
-
 export async function fetchPulsoMatches(): Promise<PulsoMatch[]> {
   const payload = await fetchPulsoList("/api/pulso/matches", "/api/public/matches");
   const matches = payload.flatMap((item) => {
@@ -185,7 +166,6 @@ export async function fetchPulsoMatches(): Promise<PulsoMatch[]> {
   });
   return supplementCazeMatches(matches);
 }
-
 export function composeSports(
   reidosEvents: ApiSportEvent[],
   pulsoMatches: PulsoMatch[],
@@ -195,13 +175,16 @@ export function composeSports(
   const { events } = mergeSportEvents(reidosEvents, pulsoMatches, { channels: embeds });
   return sliceSports(events, params);
 }
-
 export function composeSportsWithAbsorbed(
   reidosEvents: ApiSportEvent[],
   pulsoMatches: PulsoMatch[],
   embeds: PulsoEmbedSource[],
   params: SportsParams = {},
-): { events: ApiSportEvent[]; absorbed: Map<number, string>; slugToId: Map<string, string> } {
+): {
+  events: ApiSportEvent[];
+  absorbed: Map<number, string>;
+  slugToId: Map<string, string>;
+} {
   const { events, absorbed } = mergeSportEvents(reidosEvents, pulsoMatches, { channels: embeds });
   const slugToId = new Map<string, string>();
   for (const match of pulsoMatches) {
@@ -212,7 +195,6 @@ export function composeSportsWithAbsorbed(
   }
   return { events: sliceSports(events, params), absorbed, slugToId };
 }
-
 export async function fetchPulsoEmbeds(): Promise<PulsoEmbedSource[]> {
   const payload = await fetchPulsoList("/api/pulso/embeds", "/api/public/embeds");
   return payload.flatMap((item) => {
@@ -220,7 +202,6 @@ export async function fetchPulsoEmbeds(): Promise<PulsoEmbedSource[]> {
     return embed ? [embed] : [];
   });
 }
-
 export function sliceSports(events: ApiSportEvent[], params: SportsParams): ApiSportEvent[] {
   let list = events;
   if (params.status) list = list.filter((event) => event.status === params.status);
@@ -234,7 +215,6 @@ export function sliceSports(events: ApiSportEvent[], params: SportsParams): ApiS
   const skipped = offset > 0 ? ordered.slice(offset) : ordered;
   return params.limit != null ? skipped.slice(0, params.limit) : skipped;
 }
-
 export async function fetchMergedSports(params: SportsParams = {}): Promise<ApiSportEvent[]> {
   const [reidos, pulso, catalog] = await Promise.allSettled([
     fetchSports({}),
@@ -251,12 +231,10 @@ export async function fetchMergedSports(params: SportsParams = {}): Promise<ApiS
     params,
   );
 }
-
 export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
   const sports = await fetchMergedSports();
   const direct = sports.find((event) => event.id === id);
   if (direct) return direct;
-
   const slug = pulsoSlug(id);
   if (slug) {
     const [reidos, pulso, catalog] = await Promise.allSettled([
@@ -277,7 +255,6 @@ export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
     if (!host) throw new Error(`Evento não encontrado: ${id}`);
     return host;
   }
-
   const [reidos, pulso, catalog] = await Promise.allSettled([
     fetchSport(id),
     fetchPulsoMatches(),
@@ -291,7 +268,6 @@ export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
   });
   return events[0] ?? reidos.value;
 }
-
 export async function fetchMergedChannels(): Promise<ApiChannel[]> {
   const [reidos, pulso] = await Promise.allSettled([fetchChannels(), fetchPulsoEmbeds()]);
   if (reidos.status === "rejected" && pulso.status === "rejected") {
@@ -303,7 +279,6 @@ export async function fetchMergedChannels(): Promise<ApiChannel[]> {
   );
   return channels;
 }
-
 export async function fetchMergedChannel(id: string): Promise<ApiChannel> {
   const slug = pulsoSlug(id);
   if (slug) {
@@ -320,14 +295,12 @@ export async function fetchMergedChannel(id: string): Promise<ApiChannel> {
     if (!host) throw new Error(`Canal não encontrado: ${id}`);
     return host;
   }
-
   const [reidos, pulso] = await Promise.allSettled([fetchChannel(id), fetchPulsoEmbeds()]);
   if (reidos.status === "rejected") throw reidos.reason;
   const embeds = pulso.status === "fulfilled" ? pulso.value : [];
   const { channels } = mergeChannelLists([reidos.value], embeds, { includeUnmatched: false });
   return channels[0] ?? reidos.value;
 }
-
 export async function fetchMergedSearch(query: string): Promise<ApiSearchResult> {
   const needle = query.trim().toLocaleLowerCase("pt-BR");
   const [remote, matchesResult, embedsResult] = await Promise.allSettled([
@@ -342,14 +315,12 @@ export async function fetchMergedSearch(query: string): Promise<ApiSearchResult>
   ) {
     throw remote.reason;
   }
-
   const base =
     remote.status === "fulfilled"
       ? remote.value
       : { channels: [] as ApiChannel[], events: [] as ApiSportEvent[] };
   const matches = matchesResult.status === "fulfilled" ? matchesResult.value : [];
   const embeds = embedsResult.status === "fulfilled" ? embedsResult.value : [];
-
   const eventsMerged = mergeSportEvents(base.events, matches, {
     includeUnmatched: false,
     channels: embeds,
@@ -365,7 +336,6 @@ export async function fetchMergedSearch(query: string): Promise<ApiSearchResult>
       return eventSearchBlob(event).includes(needle);
     }),
   ];
-
   const channelsMerged = mergeChannelLists(base.channels, embeds, { includeUnmatched: false });
   const channelsSolo = mergeChannelLists([], embeds);
   const channels = [
@@ -377,6 +347,5 @@ export async function fetchMergedSearch(query: string): Promise<ApiSearchResult>
       return blob.includes(needle);
     }),
   ];
-
   return { channels, events };
 }
