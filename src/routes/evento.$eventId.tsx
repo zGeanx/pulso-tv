@@ -238,8 +238,8 @@ function EventWatchPage() {
             <span className="text-foreground font-medium">{event.title}</span>
           </nav>
 
-          <div className={theaterMode ? "w-full" : "grid gap-8 lg:grid-cols-12"}>
-            <div className={theaterMode ? "w-full" : "lg:col-span-8"}>
+          <div className={theaterMode ? "w-full" : "grid min-w-0 gap-8 lg:grid-cols-12"}>
+            <div className={theaterMode ? "w-full" : "min-w-0 lg:col-span-8"}>
               <WatchPlayer
                 title={event.title}
                 embeds={event.embeds}
