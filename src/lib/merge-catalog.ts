@@ -517,7 +517,7 @@ function presentChannelEmbeds(
     push(rawEmbed(embed.provider || channelName, embed.embed_url, embed.allow ?? ""));
   }
 
-  return numberOptions(ordered);
+  return numberOptions(preferPremiumServers(ordered));
 }
 
 function presentEventEmbeds(
@@ -577,7 +577,7 @@ function presentEventEmbeds(
       return rawEmbed(title, embed.embed_url, embed.allow ?? "");
     });
   });
-  return numberOptions(ordered);
+  return numberOptions(preferPremiumServers(ordered));
 }
 
 /**
@@ -694,6 +694,17 @@ function spliceReplacement(
   }
   if (!inserted) pushUnique(kept, extras);
   return kept;
+}
+
+/** "Servidor Premium" from Rei dos Canais should open first when available. */
+function preferPremiumServers(embeds: ApiEmbed[]): ApiEmbed[] {
+  const premium: ApiEmbed[] = [];
+  const rest: ApiEmbed[] = [];
+  for (const embed of embeds) {
+    if (/servidor\s*premium/i.test(embed.provider)) premium.push(embed);
+    else rest.push(embed);
+  }
+  return premium.length > 0 ? [...premium, ...rest] : embeds;
 }
 
 function numberOptions(embeds: ApiEmbed[]): ApiEmbed[] {
