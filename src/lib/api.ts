@@ -175,8 +175,11 @@ export const SPORT_STATUS_LABEL = {
 } as const satisfies Record<ApiSportStatus, string>;
 export type SportStatusLabel = (typeof SPORT_STATUS_LABEL)[ApiSportStatus];
 export const ALL_SPORT_STATUS_LABELS = Object.values(SPORT_STATUS_LABEL) as SportStatusLabel[];
+const SAO_PAULO_TZ = "America/Sao_Paulo";
+const SAO_PAULO_OFFSET_MS = -3 * 60 * 60 * 1000;
 function formatClock(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toLocaleTimeString("pt-BR", {
+    timeZone: SAO_PAULO_TZ,
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -188,18 +191,22 @@ export function formatEventTime(event: Pick<ApiSportEvent, "start_timestamp">): 
     return "--:--";
   }
 }
-function startOfDay(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+function saoPauloDayIndex(unixMs: number): number {
+  return Math.floor((unixMs + SAO_PAULO_OFFSET_MS) / 86400000);
 }
-export function formatEventDay(event: Pick<ApiSportEvent, "start_timestamp">): string | null {
-  const eventDate = new Date(event.start_timestamp * 1000);
-  const today = startOfDay(new Date());
-  const eventDay = startOfDay(eventDate);
-  const dayMs = 86400000;
+export function formatEventDay(
+  event: Pick<ApiSportEvent, "start_timestamp">,
+  nowMs = Date.now(),
+): string | null {
+  const eventMs = event.start_timestamp * 1000;
+  if (!Number.isFinite(eventMs)) return null;
+  const today = saoPauloDayIndex(nowMs);
+  const eventDay = saoPauloDayIndex(eventMs);
   if (eventDay === today) return "Hoje";
-  if (eventDay === today + dayMs) return "Amanhã";
-  if (eventDay === today - dayMs) return "Ontem";
-  return eventDate.toLocaleDateString("pt-BR", {
+  if (eventDay === today + 1) return "Amanhã";
+  if (eventDay === today - 1) return "Ontem";
+  return new Date(eventMs).toLocaleDateString("pt-BR", {
+    timeZone: SAO_PAULO_TZ,
     weekday: "short",
     day: "2-digit",
     month: "2-digit",
@@ -460,8 +467,14 @@ export function formatAgendaDay(event: Pick<ApiSportEvent, "start_timestamp">): 
   const label = formatEventDay(event);
   if (label === "Hoje" || label === "Amanhã" || label === "Ontem") return label;
   const date = new Date(event.start_timestamp * 1000);
-  const weekday = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(/\.$/, "");
-  const datePart = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  const weekday = date
+    .toLocaleDateString("pt-BR", { timeZone: SAO_PAULO_TZ, weekday: "short" })
+    .replace(/\.$/, "");
+  const datePart = date.toLocaleDateString("pt-BR", {
+    timeZone: SAO_PAULO_TZ,
+    day: "2-digit",
+    month: "2-digit",
+  });
   return `${weekday}., ${datePart}`;
 }
 function looseChannelName(value: string): string {
