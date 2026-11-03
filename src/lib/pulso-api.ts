@@ -14,6 +14,7 @@ import {
   eventSearchBlob,
   mergeChannelLists,
   mergeSportEvents,
+  normalizePulsoMatches,
   pulsoSlug,
 } from "@/lib/merge-catalog";
 import { supplementCazeMatches } from "@/lib/caze-broadcasts";
@@ -35,6 +36,7 @@ export interface PulsoMatch {
   channelTitle: string;
   home_logo?: string;
   away_logo?: string;
+  created_at?: string;
 }
 export interface PulsoEmbedSource {
   id: number;
@@ -134,6 +136,7 @@ function readMatch(value: unknown): PulsoMatch | null {
       (channel ? readString(channel["title"]) : "") || readString(value["channel_name"]),
     home_logo,
     away_logo,
+    created_at: readString(value["createdAt"]) || readString(value["created_at"]),
   };
 }
 function readEmbed(value: unknown): PulsoEmbedSource | null {
@@ -164,7 +167,7 @@ export async function fetchPulsoMatches(): Promise<PulsoMatch[]> {
     const match = readMatch(item);
     return match ? [match] : [];
   });
-  return supplementCazeMatches(matches);
+  return supplementCazeMatches(normalizePulsoMatches(matches));
 }
 export function composeSports(
   reidosEvents: ApiSportEvent[],
