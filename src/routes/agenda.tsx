@@ -356,7 +356,7 @@ function AgendaPage() {
                             Assistir
                           </span>
                         </div>
-                      ) : event.status === "upcoming" ? (
+                      ) : effectiveStatus === "upcoming" ? (
                         <div className="flex items-center gap-2">
                           <span className="rounded-full border border-border/80 bg-background/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                             {statusLabel}
