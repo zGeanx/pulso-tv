@@ -65,16 +65,20 @@ export function mergeSportEvents(
   const now = options.now ?? Date.now();
   const channels = options.channels ?? [];
   const channelArts = channelArtSet(channels);
-  const available = pulsoMatches.flatMap((match) => {
-    const prepared = prepareMatch(match);
-    return prepared ? [prepared] : [];
-  });
-  const consumed = new Set<number>();
-  const absorbed = new Map<number, string>();
   const preparedReidos = reidosEvents.map((event) => ({
     event,
     prepared: prepareEvent(event),
   }));
+  const normalizedPulso = normalizePulsoMatches(pulsoMatches);
+  const available = reconcileMatchesWithReidos(
+    normalizedPulso.flatMap((match) => {
+      const prepared = prepareMatch(match);
+      return prepared ? [prepared] : [];
+    }),
+    preparedReidos,
+  );
+  const consumed = new Set<number>();
+  const absorbed = new Map<number, string>();
   const events = preparedReidos.map(({ event, prepared }) => {
     const candidates = available.filter(
       (match) => !consumed.has(match.source.id) && sameFixture(prepared, match),
@@ -260,12 +264,15 @@ function applyPulso(
   channels: PulsoEmbedSource[],
   channelArts?: Set<string>,
 ): ApiSportEvent {
-  const pulsoStatus = mapPulsoStatus(match.source.status, match.unix, nowMs);
+  const effectiveKickoffUnix = event.start_timestamp > 0 ? event.start_timestamp : match.unix;
+  const pulsoStatus = mapPulsoStatus(match.source.status, effectiveKickoffUnix, nowMs);
   let status: ApiSportStatus = event.status;
-  if (
+  if (effectiveKickoffUnix > 0 && nowMs < effectiveKickoffUnix * 1000) {
+    status = "upcoming";
+  } else if (
     pulsoStatus === "finished" ||
     event.status === "finished" ||
-    (event.start_timestamp > 0 && nowMs >= event.start_timestamp * 1000 + PULSO_LIVE_WINDOW_MS)
+    (effectiveKickoffUnix > 0 && nowMs >= effectiveKickoffUnix * 1000 + PULSO_LIVE_WINDOW_MS)
   ) {
     status = "finished";
   } else if (event.status === "upcoming" && pulsoStatus === "live") {
@@ -690,13 +697,94 @@ function baseProvider(provider: string): string {
     .trim();
 }
 const PULSO_LIVE_WINDOW_MS = (2 * 60 + 15) * 60 * 1000;
+const REGRESSION_THRESHOLD_MS = 2 * 60 * 60 * 1000;
+const CREATED_AFTER_KICKOFF_GRACE_MS = 30 * 60 * 1000;
+const ADJACENT_FIXTURE_WINDOW_SECONDS = 36 * 60 * 60;
 function mapPulsoStatus(status: string, kickoffUnix: number, nowMs: number): ApiSportStatus {
-  if (status === "finished") return "finished";
   const startMs = kickoffUnix * 1000;
+  if (startMs > 0 && nowMs < startMs) return "upcoming";
+  if (status === "finished") return "finished";
   if (startMs > 0 && nowMs >= startMs + PULSO_LIVE_WINDOW_MS) return "finished";
   if (status === "live") return "live";
-  if (nowMs >= startMs && nowMs < startMs + PULSO_LIVE_WINDOW_MS) return "live";
+  if (startMs > 0 && nowMs >= startMs && nowMs < startMs + PULSO_LIVE_WINDOW_MS) return "live";
   return "upcoming";
+}
+export function normalizePulsoMatches(matches: PulsoMatch[]): PulsoMatch[] {
+  if (matches.length === 0) return matches;
+  const indexed = matches.map((match, index) => ({
+    match,
+    index,
+    kickoff: parseKickoff(match.kickoff_at),
+    createdMs: parseUtcTimestamp(match.created_at),
+  }));
+  const byId = [...indexed].sort((a, b) => a.match.id - b.match.id || a.index - b.index);
+  const shiftedIds = new Set<number>();
+  const dayState = new Map<
+    string,
+    {
+      maxKickoffMs: number;
+      inNextDayBlock: boolean;
+      lastShiftedKickoffMs: number;
+    }
+  >();
+  for (const item of byId) {
+    const { match, kickoff, createdMs } = item;
+    if (!kickoff) continue;
+    const kickoffMs = kickoff.unix * 1000;
+    const state = dayState.get(kickoff.day) ?? {
+      maxKickoffMs: kickoffMs,
+      inNextDayBlock: false,
+      lastShiftedKickoffMs: 0,
+    };
+    const createdAfterFinished =
+      createdMs !== null &&
+      createdMs - kickoffMs >= PULSO_LIVE_WINDOW_MS &&
+      createdMs - kickoffMs < 24 * 60 * 60 * 1000;
+    const regressedInBatch =
+      kickoffMs + REGRESSION_THRESHOLD_MS < state.maxKickoffMs &&
+      (createdMs === null || kickoffMs < createdMs - CREATED_AFTER_KICKOFF_GRACE_MS);
+    const continuesNextDayBlock =
+      state.inNextDayBlock && kickoffMs + REGRESSION_THRESHOLD_MS >= state.lastShiftedKickoffMs;
+    if (createdAfterFinished || regressedInBatch || continuesNextDayBlock) {
+      shiftedIds.add(match.id);
+      state.inNextDayBlock = true;
+      state.lastShiftedKickoffMs = kickoffMs;
+    } else if (kickoffMs > state.maxKickoffMs) {
+      state.maxKickoffMs = kickoffMs;
+    }
+    dayState.set(kickoff.day, state);
+  }
+  if (shiftedIds.size === 0) return matches;
+  return matches.map((match) => (shiftedIds.has(match.id) ? shiftPulsoMatchDay(match, 1) : match));
+}
+function reconcileMatchesWithReidos(
+  matches: PreparedMatch[],
+  reidos: { event: ApiSportEvent; prepared: PreparedEvent }[],
+): PreparedMatch[] {
+  if (matches.length === 0 || reidos.length === 0) return matches;
+  return matches.map((match) => {
+    if (!match.home || !match.away) return match;
+    if (reidos.some(({ prepared }) => sameFixture(prepared, match))) return match;
+    const adjacent = reidos.find(
+      ({ event, prepared }) =>
+        prepared.day &&
+        prepared.day !== match.day &&
+        sameTeams(prepared, match) &&
+        event.start_timestamp > 0 &&
+        Math.abs(event.start_timestamp - match.unix) <= ADJACENT_FIXTURE_WINDOW_SECONDS,
+    );
+    if (!adjacent) return match;
+    return {
+      ...match,
+      day: adjacent.prepared.day,
+      unix: adjacent.event.start_timestamp,
+      source: {
+        ...match.source,
+        kickoff_at: adjacent.event.start_time || match.source.kickoff_at,
+        status: "scheduled",
+      },
+    };
+  });
 }
 function inferCategory(text: string): string {
   const value = text
@@ -753,6 +841,18 @@ function sameFixture(
   },
 ): boolean {
   if (!left.day || left.day !== right.day) return false;
+  return sameTeams(left, right);
+}
+function sameTeams(
+  left: {
+    home: string;
+    away: string;
+  },
+  right: {
+    home: string;
+    away: string;
+  },
+): boolean {
   if (!left.home || !left.away || !right.home || !right.away) return false;
   const direct =
     teamsLooselyEqual(left.home, right.home) && teamsLooselyEqual(left.away, right.away);
@@ -892,6 +992,31 @@ function parseKickoff(kickoff: string): {
   const unixMs = Date.parse(`${day}T${hours}:${minutes}:${match[4] ?? "00"}${SAO_PAULO_OFFSET}`);
   if (Number.isNaN(unixMs)) return null;
   return { day, unix: Math.floor(unixMs / 1000) };
+}
+function parseUtcTimestamp(value: string | undefined): number | null {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) return null;
+  const iso = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?$/.test(trimmed)
+    ? `${trimmed.replace(" ", "T")}Z`
+    : trimmed;
+  const unixMs = Date.parse(iso);
+  return Number.isNaN(unixMs) ? null : unixMs;
+}
+function shiftPulsoMatchDay(match: PulsoMatch, days: number): PulsoMatch {
+  const parsed = /^(\d{4})-(\d{2})-(\d{2})([ T]\d{2}:\d{2}(?::\d{2})?.*)$/.exec(
+    match.kickoff_at.trim(),
+  );
+  if (!parsed) return match;
+  const utc = Date.UTC(Number(parsed[1]), Number(parsed[2]) - 1, Number(parsed[3]) + days);
+  const nextDate = new Date(utc);
+  const year = nextDate.getUTCFullYear();
+  const month = String(nextDate.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(nextDate.getUTCDate()).padStart(2, "0");
+  return {
+    ...match,
+    kickoff_at: `${year}-${month}-${day}${parsed[4]}`,
+    status: "scheduled",
+  };
 }
 const SAO_PAULO_DAY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Sao_Paulo",
