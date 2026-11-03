@@ -113,7 +113,8 @@ function HeroSection({ hero }: HeroSectionProps) {
   const kicker = heroKicker(hero);
   if (hero && isSportEvent(hero)) {
     const event = hero;
-    const isLive = getEventEffectiveStatus(event) === "live";
+    const effectiveStatus = getEventEffectiveStatus(event);
+    const isLive = effectiveStatus === "live";
     const hasEmbeds = event.embeds.length > 0;
     const description = event.description ? stripMarkdown(event.description) : null;
     return (
@@ -168,7 +169,7 @@ function HeroSection({ hero }: HeroSectionProps) {
               <span>/</span>
               {isLive ? (
                 <span className="text-live">Ao vivo</span>
-              ) : event.status === "upcoming" ? (
+              ) : effectiveStatus === "upcoming" ? (
                 <span>Em breve</span>
               ) : (
                 <span>Encerrado</span>
@@ -234,7 +235,7 @@ function HeroSection({ hero }: HeroSectionProps) {
                   </span>
                 ) : (
                   <span className="status-label border border-border bg-background/85 text-muted-foreground backdrop-blur-md">
-                    {event.status === "upcoming" ? "EM BREVE" : "ENCERRADO"}
+                    {effectiveStatus === "upcoming" ? "EM BREVE" : "ENCERRADO"}
                   </span>
                 )}
               </div>
