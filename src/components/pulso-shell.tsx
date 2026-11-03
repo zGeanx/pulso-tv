@@ -6,7 +6,12 @@ import { MediaImage } from "@/components/media-image";
 import { TeamCrest } from "@/components/team-crest";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useSearch } from "@/hooks/use-api";
-import { formatEventDay, formatEventTime, SPORT_STATUS_LABEL } from "@/lib/api";
+import {
+  formatEventDay,
+  formatEventTime,
+  getEventEffectiveStatus,
+  SPORT_STATUS_LABEL,
+} from "@/lib/api";
 const navItems = [
   { to: "/" as const, label: "Início", icon: Home },
   { to: "/canais" as const, label: "Canais", icon: Tv },
@@ -276,15 +281,14 @@ export function PulsoShell({ children }: { children: ReactNode }) {
                           <small className="text-muted-foreground">{item.competition}</small>
                         </span>
                       </span>
-                      {item.status === "live" ? (
+                      {getEventEffectiveStatus(item) === "live" ? (
                         <span className="status-label status-live text-[10px]">
                           <span className="live-dot" />
                           AO VIVO
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">
-                          {SPORT_STATUS_LABEL[item.status as keyof typeof SPORT_STATUS_LABEL] ??
-                            "Agendado"}
+                          {SPORT_STATUS_LABEL[getEventEffectiveStatus(item)] ?? "Agendado"}
                         </span>
                       )}
                     </Link>
