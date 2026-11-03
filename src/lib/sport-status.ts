@@ -12,15 +12,15 @@ export function getEventEffectiveStatus(
   },
   nowSeconds = Date.now() / 1000,
 ): ApiSportStatus {
-  if (event.status === "finished") return "finished";
   if (!event.start_timestamp || !Number.isFinite(event.start_timestamp)) return event.status;
+  if (nowSeconds < event.start_timestamp) {
+    return "upcoming";
+  }
+  if (event.status === "finished") return "finished";
   if (nowSeconds >= event.start_timestamp + MATCH_DURATION_SECONDS) {
     return "finished";
   }
-  if (nowSeconds >= event.start_timestamp) {
-    return "live";
-  }
-  return "upcoming";
+  return "live";
 }
 export function isEventFinished(
   event: {
