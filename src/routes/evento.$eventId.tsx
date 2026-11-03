@@ -65,7 +65,7 @@ function EventDetailsPanel({
         <span className={isLive ? "status-label status-live" : "status-label"}>
           {isLive
             ? "AO VIVO"
-            : (SPORT_STATUS_LABEL[event.status as keyof typeof SPORT_STATUS_LABEL] ?? "Agendado")}
+            : (SPORT_STATUS_LABEL[getEventEffectiveStatus(event)] ?? "Agendado")}
         </span>
         {event.category && <span className="status-label">{event.category}</span>}
         {event.competition && <span className="status-label">{event.competition}</span>}
@@ -150,7 +150,10 @@ function EventWatchPage() {
   const { data: events = [] } = useSports();
   const { data: channels = [] } = useChannels();
   const [theaterMode, setTheaterMode] = useState(false);
-  const countdown = useKickoffCountdown(event?.start_timestamp ?? 0, event?.status === "upcoming");
+  const countdown = useKickoffCountdown(
+    event?.start_timestamp ?? 0,
+    event ? getEventEffectiveStatus(event) === "upcoming" : false,
+  );
   useEffect(() => {
     if (event) document.title = `${event.title} | Pulso TV`;
   }, [event]);
