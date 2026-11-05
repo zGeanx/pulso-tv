@@ -250,7 +250,7 @@ export async function fetchMergedSport(id: string): Promise<ApiSportEvent> {
     if (!match) throw new Error(`Evento não encontrado: ${id}`);
     const { events, absorbed } = mergeSportEvents(
       reidos.status === "fulfilled" ? reidos.value : [],
-      [match],
+      matches,
       { channels: catalog.status === "fulfilled" ? catalog.value : [] },
     );
     const hostId = absorbed.get(match.id);
