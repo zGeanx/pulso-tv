@@ -1,4 +1,4 @@
-import { headlineEvents } from "@/lib/agenda-rank";
+import { fameScore, headlineEvents } from "@/lib/agenda-rank";
 export const REIDOS_ORIGIN = "https://api.reidoscanais.my";
 const REIDOS_PROXY_PREFIX = "/api/reidos";
 const REIDOS_TIMEOUT_MS = 3500;
@@ -239,17 +239,45 @@ export function formatEventRelative(
   }
   return null;
 }
+function formatBroadcastChannelName(provider: string): string {
+  const clean = provider
+    .replace(/\s*\[[^\]]+\]\s*$/g, "")
+    .replace(/\s*\(alternativo\)\s*/gi, " ")
+    .replace(/\s*·\s*[^[\]]+$/i, " ")
+    .replace(/\b(hd|sd|fhd|uhd|4k|hls|fc|clubes)\b/gi, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!clean || /^player$/i.test(clean)) return "";
+  if (/^(?:hbo\s*)?max(?:\s*1)?$/i.test(clean)) return "Max";
+  const maxNum = /^(?:hbo\s*)?max\s*(\d+)$/i.exec(clean);
+  if (maxNum?.[1]) return `Max ${maxNum[1]}`;
+  if (/^caz[eé]\s*tv(?:\s*1)?$/i.test(clean)) return "CazéTV 1";
+  const cazeNum = /^caz[eé]\s*tv\s*(\d+)$/i.exec(clean);
+  if (cazeNum?.[1]) return `CazéTV ${cazeNum[1]}`;
+  if (/^espn(?:\s*1)?$/i.test(clean)) return "ESPN";
+  const espnNum = /^espn\s*(\d+)$/i.exec(clean);
+  if (espnNum?.[1]) return `ESPN ${espnNum[1]}`;
+  if (/^spor?\s*tv(?:\s*1)?$/i.test(clean)) return "SporTV";
+  const sportvNum = /^spor?\s*tv\s*(\d+)$/i.exec(clean);
+  if (sportvNum?.[1]) return `SporTV ${sportvNum[1]}`;
+  if (/^premiere(?:\s*1)?$/i.test(clean)) return "Premiere";
+  const premNum = /^premiere\s*(\d+)$/i.exec(clean);
+  if (premNum?.[1]) return `Premiere ${premNum[1]}`;
+  if (/^prime\s*video(?:\s*1)?$/i.test(clean)) return "Prime Video";
+  const primeNum = /^prime\s*video\s*(\d+)$/i.exec(clean);
+  if (primeNum?.[1]) return `Prime Video ${primeNum[1]}`;
+  if (/^paramount\s*\+?(?:\s*1)?$/i.test(clean)) return "Paramount+";
+  const paraNum = /^paramount\s*\+?\s*(\d+)$/i.exec(clean);
+  if (paraNum?.[1]) return `Paramount+ ${paraNum[1]}`;
+  if (/^band\s*sports?$/i.test(clean)) return "BandSports";
+  return clean;
+}
 export function eventChannelNames(event: Pick<ApiSportEvent, "embeds">): string[] {
   const names: string[] = [];
   const seen = new Set<string>();
   for (const embed of event.embeds) {
-    let clean = embed.provider
-      .replace(/\s*\[[^\]]+\]\s*$/g, "")
-      .replace(/\s*\(alternativo\)\s*/gi, " ")
-      .trim()
-      .replace(/\s+/g, " ");
-    if (!clean || /^player$/i.test(clean)) continue;
-    if (/^hbo\s*max(\s*1)?$/i.test(clean)) clean = "Max";
+    const clean = formatBroadcastChannelName(embed.provider);
+    if (!clean) continue;
     const key = clean.toLocaleLowerCase("pt-BR");
     if (seen.has(key)) continue;
     seen.add(key);
@@ -373,9 +401,38 @@ export function sortEvents(events: ApiSportEvent[]): ApiSportEvent[] {
   });
 }
 export function pickFeaturedEvents(events: ApiSportEvent[], count = 4): ApiSportEvent[] {
-  const ranked = headlineEvents(events);
-  const active = ranked.filter((event) => !isEventFinished(event));
-  return active.slice(0, count);
+  const now = Date.now() / 1000;
+  const ranked = headlineEvents(events).filter((event) => !isEventFinished(event, now));
+  if (ranked.length <= count) return ranked;
+  const live = ranked.filter((event) => getEventEffectiveStatus(event, now) === "live");
+  const upcoming = ranked
+    .filter((event) => getEventEffectiveStatus(event, now) !== "live")
+    .sort((a, b) => fameScore(b) - fameScore(a) || a.start_timestamp - b.start_timestamp);
+  const picked: ApiSportEvent[] = [];
+  const seenIds = new Set<string>();
+  const slotCounts = new Map<string, number>();
+  const slotKey = (event: ApiSportEvent) =>
+    `${event.competition.toLocaleLowerCase("pt-BR")}|${event.start_timestamp}`;
+  const takeFrom = (pool: ApiSportEvent[], limit: number, maxPerSlot: number) => {
+    for (const event of pool) {
+      if (picked.length >= limit) break;
+      if (seenIds.has(event.id)) continue;
+      const key = slotKey(event);
+      const used = slotCounts.get(key) ?? 0;
+      if (used >= maxPerSlot) continue;
+      seenIds.add(event.id);
+      slotCounts.set(key, used + 1);
+      picked.push(event);
+    }
+  };
+  if (live.length > 0 && upcoming.length > 0) {
+    const liveQuota = Math.min(live.length, Math.ceil(count / 2));
+    takeFrom(live, liveQuota, 2);
+    takeFrom(upcoming, count, 2);
+  }
+  takeFrom(ranked, count, 2);
+  takeFrom(ranked, count, Number.POSITIVE_INFINITY);
+  return picked;
 }
 export function pickScheduleChannels(channels: ApiChannel[], count = 6): ApiChannel[] {
   const sports = sortSportsFirst(samplePool(channels).filter((ch) => ch.category === "Esportes"));
@@ -481,6 +538,9 @@ function looseChannelName(value: string): string {
   return value
     .replace(/\s*\[[^\]]+\]\s*$/g, "")
     .replace(/\s*\(alternativo\)\s*/gi, " ")
+    .replace(/\b(hd|sd|fhd|uhd|4k|hls|fc|clubes)\b/gi, " ")
+    .replace(/\b(espn|sportv|premiere)(\d+)\b/gi, "$1 $2")
+    .replace(/\bband\s+sports\b/gi, "bandsports")
     .trim()
     .toLocaleLowerCase("pt-BR")
     .replace(/\s+/g, " ");
@@ -489,11 +549,15 @@ function channelTag(value: string): string {
   return /\[([^\]]+)\]\s*$/.exec(value.trim())?.[1]?.toLocaleLowerCase("pt-BR") ?? "";
 }
 function sameBroadcastChannel(provider: string, channelName: string): boolean {
-  if (channelTag(provider) !== channelTag(channelName)) return false;
+  const pTag = channelTag(provider);
+  const cTag = channelTag(channelName);
+  if (pTag && cTag && pTag !== cTag) return false;
   const providerKey = looseChannelName(provider);
   const channelKey = looseChannelName(channelName);
   if (providerKey === channelKey) return true;
-  return providerKey.endsWith(" 1") && channelKey === providerKey.slice(0, -2);
+  if (providerKey.endsWith(" 1") && channelKey === providerKey.slice(0, -2)) return true;
+  if (channelKey.endsWith(" 1") && providerKey === channelKey.slice(0, -2)) return true;
+  return false;
 }
 export function channelsForEvent(event: ApiSportEvent, channels: ApiChannel[]): ApiChannel[] {
   const matched: ApiChannel[] = [];
