@@ -1,4 +1,4 @@
-import { isWomensEvent, rememberWomensFixtures } from "@/lib/agenda-rank";
+import { fameScore, isWomensEvent, rememberWomensFixtures } from "@/lib/agenda-rank";
 import { correctBrasileiraoEvent } from "@/lib/brasileirao";
 import type { ApiChannel, ApiEmbed, ApiSportEvent, ApiSportStatus, ApiTeam } from "@/lib/api";
 import { isFlagLogo, pulsoLogoFile, resolvePulsoAsset } from "@/lib/pulso-assets";
@@ -70,12 +70,16 @@ export function mergeSportEvents(
     prepared: prepareEvent(event),
   }));
   const normalizedPulso = normalizePulsoMatches(pulsoMatches);
-  const available = reconcileMatchesWithReidos(
-    normalizedPulso.flatMap((match) => {
-      const prepared = prepareMatch(match);
-      return prepared ? [prepared] : [];
-    }),
+  const available = resolveChannelCollisions(
+    reconcileMatchesWithReidos(
+      normalizedPulso.flatMap((match) => {
+        const prepared = prepareMatch(sanitizeMatchChannel(match));
+        return prepared ? [prepared] : [];
+      }),
+      preparedReidos,
+    ),
     preparedReidos,
+    channels,
   );
   const consumed = new Set<number>();
   const absorbed = new Map<number, string>();
@@ -142,12 +146,14 @@ export function mergeChannelLists(
   const plainBases = plainChannelBases(pulsoEmbeds);
   for (const embed of pulsoEmbeds) {
     if (!embed.active || !safeSlug(embed.slug)) continue;
-    if (!isPlayable(embed.title || embed.slug, embed.url, embed.type)) continue;
-    const key = catalogGroupKey(embed.title || embed.slug, plainBases);
+    const title = effectiveEmbedTitle(embed);
+    if (!isPlayable(title, embed.url, embed.type)) continue;
+    const key = catalogGroupKey(title, plainBases);
     if (!key) continue;
+    const normalizedEmbed = title === embed.title ? embed : { ...embed, title };
     const group = extrasByKey.get(key);
-    if (group) group.push(embed);
-    else extrasByKey.set(key, [embed]);
+    if (group) group.push(normalizedEmbed);
+    else extrasByKey.set(key, [normalizedEmbed]);
   }
   const usedKeys = new Set<string>();
   const channels = reidosChannels.map((channel) => {
@@ -307,11 +313,13 @@ function presentEvent(
   channels: PulsoEmbedSource[],
   channelArts?: Set<string>,
 ): ApiSportEvent {
-  const presented = withTeamCrests({
-    ...withInferredCategory(event),
-    poster: realPoster(event.poster, channelArts ?? channels),
-    embeds: presentEventEmbeds(event.embeds, replacement, channels),
-  });
+  const presented = correctBrasileiraoEvent(
+    withTeamCrests({
+      ...withInferredCategory(event),
+      poster: realPoster(event.poster, channelArts ?? channels),
+      embeds: presentEventEmbeds(event.embeds, replacement, channels),
+    }),
+  );
   return curateUclEvent(presented);
 }
 function withTeamCrests(event: ApiSportEvent): ApiSportEvent {
@@ -587,16 +595,29 @@ function addCatalogFeeds(
     const wanted = catalogGroupKey(slot.name, plainBases);
     if (!wanted) continue;
     for (const channel of channels) {
-      if (!channel.active || !isPlayable(channel.title, channel.url, channel.type)) continue;
-      if (catalogGroupKey(channel.title || channel.slug, plainBases) !== wanted) continue;
-      if (wanted === "cazetv" && /cazetv[-_]?[23](?!\d)/i.test(`${channel.slug} ${channel.url}`)) {
-        continue;
-      }
-      const extra = rawEmbed(channel.title || slot.name, channel.url, channel.allow);
+      const title = effectiveEmbedTitle(channel);
+      if (!channel.active || !isPlayable(title, channel.url, channel.type)) continue;
+      if (catalogGroupKey(title, plainBases) !== wanted) continue;
+      const extra = rawEmbed(title || slot.name, channel.url, channel.allow);
       if (slot.embeds.some((item) => item.embed_url === extra.embed_url)) continue;
       slot.embeds.push(extra);
     }
   }
+}
+function effectiveEmbedTitle(embed: PulsoEmbedSource): string {
+  const raw = embed.title || embed.slug;
+  const { stem, tag } = splitChannelTag(raw);
+  const cleanStem = baseProvider(stem);
+  if (/^caz[eé]\s*tv$/i.test(cleanStem)) {
+    const numbered = /cazetv[-_]?([23])(?!\d)/i.exec(`${embed.slug} ${embed.url}`);
+    if (numbered?.[1]) {
+      return tag ? `CazéTV ${numbered[1]} [${tag}]` : `CazéTV ${numbered[1]}`;
+    }
+  }
+  if (cleanStem !== stem) {
+    return tag ? `${cleanStem} [${tag}]` : cleanStem;
+  }
+  return raw;
 }
 function pickReplacementGroup(
   groups: {
@@ -786,6 +807,485 @@ function reconcileMatchesWithReidos(
     };
   });
 }
+const COLLISION_WINDOW_SECONDS = 2 * 60 * 60;
+interface BroadcastChannelTarget {
+  key: string;
+  title: string;
+  url: string;
+}
+const CAZE_EURO_POOL: readonly BroadcastChannelTarget[] = [
+  {
+    key: "cazetv",
+    title: "CazéTV 1",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=cazetv1",
+  },
+  {
+    key: "cazetv 2",
+    title: "CazéTV 2",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=cazetv2",
+  },
+  {
+    key: "cazetv 3",
+    title: "CazéTV 3",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=cazetv3",
+  },
+  {
+    key: "bandsports",
+    title: "Band Sports",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=bandsports",
+  },
+  {
+    key: "espn",
+    title: "ESPN",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=espn",
+  },
+  {
+    key: "espn 2",
+    title: "ESPN 2",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=espn2",
+  },
+  {
+    key: "espn 3",
+    title: "ESPN 3",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=espn3",
+  },
+  {
+    key: "espn 4",
+    title: "ESPN 4",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=espn4",
+  },
+  {
+    key: "espn 5",
+    title: "ESPN 5",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=espn5-2",
+  },
+  {
+    key: "espn 6",
+    title: "ESPN 6",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=espn6-2",
+  },
+  {
+    key: "xsports",
+    title: "XSports",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=xsports",
+  },
+  {
+    key: "sportynet plus 1",
+    title: "SportyNet+ 1",
+    url: "https://rdcanais.net/sportynetplus",
+  },
+  {
+    key: "sportynet plus 2",
+    title: "SportyNet+ 2",
+    url: "https://rdcanais.net/sportynetplus2",
+  },
+  {
+    key: "sportynet plus 3",
+    title: "SportyNet+ 3",
+    url: "https://rdcanais.net/sportynetplus3",
+  },
+];
+const MAX_TNT_POOL: readonly BroadcastChannelTarget[] = [
+  {
+    key: "hbo max 1",
+    title: "HBO Max 1",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=max1",
+  },
+  {
+    key: "tnt",
+    title: "TNT",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=tnt",
+  },
+  {
+    key: "space",
+    title: "Space",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=space",
+  },
+  {
+    key: "hbo max 2",
+    title: "HBO Max 2",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=max2",
+  },
+  {
+    key: "hbo max 3",
+    title: "HBO Max 3",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=max3",
+  },
+  {
+    key: "hbo max 4",
+    title: "HBO Max 4",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=max4",
+  },
+  {
+    key: "hbo max 5",
+    title: "HBO Max 5",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=max5",
+  },
+  {
+    key: "sbt",
+    title: "SBT",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=sbt",
+  },
+];
+const PREMIERE_SPORTV_POOL: readonly BroadcastChannelTarget[] = [
+  {
+    key: "premiere",
+    title: "Premiere",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere",
+  },
+  {
+    key: "premiere 2",
+    title: "Premiere 2",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere2",
+  },
+  {
+    key: "premiere 3",
+    title: "Premiere 3",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere3",
+  },
+  {
+    key: "premiere 4",
+    title: "Premiere 4",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere4",
+  },
+  {
+    key: "premiere 5",
+    title: "Premiere 5",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere5",
+  },
+  {
+    key: "premiere 6",
+    title: "Premiere 6",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere6",
+  },
+  {
+    key: "premiere 7",
+    title: "Premiere 7",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere7",
+  },
+  {
+    key: "premiere 8",
+    title: "Premiere 8",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=premiere8",
+  },
+  {
+    key: "sportv",
+    title: "SporTV",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=sportv",
+  },
+  {
+    key: "sportv 2",
+    title: "SporTV 2",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=sportv2",
+  },
+  {
+    key: "sportv 3",
+    title: "SporTV 3",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=sportv3",
+  },
+];
+const SPORTV_POOL: readonly BroadcastChannelTarget[] = [
+  ...PREMIERE_SPORTV_POOL.slice(8),
+  ...PREMIERE_SPORTV_POOL.slice(0, 8),
+];
+const PRIME_VIDEO_POOL: readonly BroadcastChannelTarget[] = [
+  {
+    key: "prime video 1",
+    title: "Prime Video 1",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=primevideo1",
+  },
+  {
+    key: "prime video 2",
+    title: "Prime Video 2",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=primevideo2",
+  },
+  {
+    key: "prime video 3",
+    title: "Prime Video 3",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=primevideo3",
+  },
+  {
+    key: "prime video 4",
+    title: "Prime Video 4",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=primevideo4",
+  },
+  ...PREMIERE_SPORTV_POOL,
+];
+const PARAMOUNT_ESPN_POOL: readonly BroadcastChannelTarget[] = [
+  {
+    key: "paramount plus",
+    title: "Paramount+ 1",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=paramount1",
+  },
+  {
+    key: "paramount plus 2",
+    title: "Paramount+ 2",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=paramount2",
+  },
+  {
+    key: "paramount plus 3",
+    title: "Paramount+ 3",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=paramount3",
+  },
+  {
+    key: "paramount plus 4",
+    title: "Paramount+ 4",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=paramount4",
+  },
+  ...CAZE_EURO_POOL.slice(4, 10),
+];
+const ESPN_POOL: readonly BroadcastChannelTarget[] = [
+  ...CAZE_EURO_POOL.slice(4, 10),
+  ...CAZE_EURO_POOL.slice(0, 4),
+  ...PARAMOUNT_ESPN_POOL.slice(0, 4),
+];
+const SPORTYNET_POOL: readonly BroadcastChannelTarget[] = [
+  {
+    key: "sportynet",
+    title: "SportyNet",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=sportynet",
+  },
+  ...CAZE_EURO_POOL.slice(11),
+  {
+    key: "xsports",
+    title: "XSports",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=xsports",
+  },
+  {
+    key: "nsports",
+    title: "NSports",
+    url: "https://meuplayeronlinehd.com/myplay/watch.html?id=nsports",
+  },
+];
+function sanitizeMatchChannel(match: PulsoMatch): PulsoMatch {
+  const category = inferCategory(`${match.competition} ${match.title}`);
+  if (
+    category !== "MMA" &&
+    /\bcombate\b/i.test(match.channelTitle) &&
+    /\bprime\s*video\b/i.test(match.channelTitle)
+  ) {
+    return {
+      ...match,
+      channelTitle: "Prime Video 1",
+      url: "https://meuplayeronlinehd.com/myplay/watch.html?id=primevideo1",
+    };
+  }
+  return match;
+}
+function selectBroadcastPool(
+  match: PreparedMatch,
+  baseChannelKey: string,
+): readonly BroadcastChannelTarget[] {
+  const comp = normalizeLabel(match.source.competition);
+  if (
+    /champions league|liga dos campeoes|paulistao/.test(comp) ||
+    /^(hbo max|max|tnt|space)\b/.test(baseChannelKey)
+  ) {
+    return MAX_TNT_POOL;
+  }
+  if (
+    /europa league|liga europa|conference league/.test(comp) ||
+    /^cazetv\b|^bandsports\b/.test(baseChannelKey)
+  ) {
+    return CAZE_EURO_POOL;
+  }
+  if (/libertadores|sul americana|sudamericana/.test(comp) || /^paramount\b/.test(baseChannelKey)) {
+    return PARAMOUNT_ESPN_POOL;
+  }
+  if (/^prime video\b/.test(baseChannelKey)) {
+    return PRIME_VIDEO_POOL;
+  }
+  if (/^sportv\b/.test(baseChannelKey)) {
+    return SPORTV_POOL;
+  }
+  if (
+    /brasileir|copa do brasil|serie a\b|serie b\b|carioca|mineiro|gaucho/.test(comp) ||
+    /^premiere\b/.test(baseChannelKey)
+  ) {
+    return PREMIERE_SPORTV_POOL;
+  }
+  if (/^espn\b/.test(baseChannelKey)) {
+    return ESPN_POOL;
+  }
+  if (/^sportynet\b|^xsports\b|^nsports\b/.test(baseChannelKey)) {
+    return SPORTYNET_POOL;
+  }
+  return [...CAZE_EURO_POOL, ...PREMIERE_SPORTV_POOL, ...MAX_TNT_POOL];
+}
+function fixturePriority(match: PreparedMatch): number {
+  const home = match.source.home_team.trim();
+  const away = match.source.away_team.trim();
+  const title = match.source.title.trim() || `${home} x ${away}`;
+  return fameScore({
+    id: String(match.source.id),
+    title,
+    description: null,
+    poster: null,
+    category: inferCategory(`${match.source.competition} ${title}`),
+    competition: match.source.competition || "Futebol",
+    teams: {
+      home: { name: home, logo: "" },
+      away: { name: away, logo: "" },
+    },
+    start_time: match.source.kickoff_at,
+    start_timestamp: match.unix,
+    status: "upcoming",
+    popular: false,
+    embeds: [],
+  });
+}
+function resolveChannelCollisions(
+  matches: PreparedMatch[],
+  reidos: { event: ApiSportEvent; prepared: PreparedEvent }[],
+  _channels: PulsoEmbedSource[],
+): PreparedMatch[] {
+  if (matches.length <= 1) return matches;
+  interface FixtureSlot {
+    group: PreparedMatch[];
+    rep: PreparedMatch;
+    baseKey: string;
+    priority: number;
+  }
+  const grouped = groupFixtures(matches);
+  const fixtures: FixtureSlot[] = grouped.map((group) => {
+    const rep = richestMatch(group);
+    const baseKey = channelGroupKey(rep.source.channelTitle || "Player");
+    return {
+      group,
+      rep,
+      baseKey,
+      priority: fixturePriority(rep),
+    };
+  });
+  const occupied = new Map<string, number[]>();
+  const isOccupied = (key: string, unix: number): boolean => {
+    const times = occupied.get(key);
+    return times != null && times.some((t) => Math.abs(t - unix) < COLLISION_WINDOW_SECONDS);
+  };
+  const claimChannel = (key: string, unix: number): void => {
+    if (!key || unix <= 0) return;
+    const times = occupied.get(key);
+    if (times) times.push(unix);
+    else occupied.set(key, [unix]);
+  };
+  for (const { event, prepared } of reidos) {
+    if (event.start_timestamp <= 0) continue;
+    if (fixtures.some((f) => sameFixture(prepared, f.rep))) continue;
+    for (const embed of event.embeds) {
+      const key = channelGroupKey(embed.provider);
+      if (key) claimChannel(key, event.start_timestamp);
+    }
+  }
+  const byBaseKey = new Map<string, FixtureSlot[]>();
+  for (const fixture of fixtures) {
+    if (!fixture.baseKey || fixture.rep.unix <= 0) continue;
+    if (!isPlayable(fixture.rep.source.channelTitle || "Player", fixture.rep.source.url, "embed")) {
+      continue;
+    }
+    const list = byBaseKey.get(fixture.baseKey);
+    if (list) list.push(fixture);
+    else byBaseKey.set(fixture.baseKey, [fixture]);
+  }
+  const clusters: { baseKey: string; items: FixtureSlot[] }[] = [];
+  for (const [baseKey, list] of byBaseKey) {
+    const sorted = [...list].sort(
+      (a, b) => a.rep.unix - b.rep.unix || a.rep.source.id - b.rep.source.id,
+    );
+    let current: FixtureSlot[] = [];
+    for (const item of sorted) {
+      const first = current[0];
+      if (!first || item.rep.unix - first.rep.unix < COLLISION_WINDOW_SECONDS) {
+        current.push(item);
+      } else {
+        clusters.push({ baseKey, items: current });
+        current = [item];
+      }
+    }
+    if (current.length > 0) clusters.push({ baseKey, items: current });
+  }
+  const assignments = new Map<
+    number,
+    {
+      channelTitle: string;
+      url: string;
+    }
+  >();
+  const nonCollidingSingles = new Set<FixtureSlot>();
+  for (const cluster of clusters) {
+    if (cluster.items.length === 1) {
+      const only = cluster.items[0]!;
+      if (!isOccupied(cluster.baseKey, only.rep.unix)) {
+        claimChannel(cluster.baseKey, only.rep.unix);
+        nonCollidingSingles.add(only);
+        if (
+          cluster.baseKey === "cazetv" &&
+          /^caz[eé]\s*tv(?:\s*\[[^\]]+\])?$/i.test(only.rep.source.channelTitle)
+        ) {
+          for (const item of only.group) {
+            assignments.set(item.source.id, {
+              channelTitle: "CazéTV 1",
+              url: only.rep.source.url,
+            });
+          }
+        }
+      }
+    }
+  }
+  for (const cluster of clusters) {
+    if (cluster.items.length === 1 && nonCollidingSingles.has(cluster.items[0]!)) {
+      continue;
+    }
+    const byComp = new Map<string, FixtureSlot[]>();
+    for (const item of cluster.items) {
+      const compKey = normalizeLabel(item.rep.source.competition || "futebol");
+      const group = byComp.get(compKey);
+      if (group) group.push(item);
+      else byComp.set(compKey, [item]);
+    }
+    const compBuckets = [...byComp.values()].map((bucket) =>
+      bucket.sort((a, b) => b.priority - a.priority || a.rep.source.id - b.rep.source.id),
+    );
+    compBuckets.sort(
+      (a, b) =>
+        (b[0]?.priority ?? 0) - (a[0]?.priority ?? 0) ||
+        (a[0]?.rep.source.id ?? 0) - (b[0]?.rep.source.id ?? 0),
+    );
+    const ordered: FixtureSlot[] = [];
+    const maxLen = Math.max(0, ...compBuckets.map((b) => b.length));
+    for (let i = 0; i < maxLen; i++) {
+      for (const bucket of compBuckets) {
+        const slot = bucket[i];
+        if (slot) ordered.push(slot);
+      }
+    }
+    for (let idx = 0; idx < ordered.length; idx++) {
+      const slot = ordered[idx]!;
+      const pool = selectBroadcastPool(slot.rep, cluster.baseKey);
+      const chosen =
+        pool.find((target) => !isOccupied(target.key, slot.rep.unix)) ?? pool[idx % pool.length]!;
+      claimChannel(chosen.key, slot.rep.unix);
+      for (const item of slot.group) {
+        assignments.set(item.source.id, {
+          channelTitle: chosen.title,
+          url: chosen.url,
+        });
+      }
+    }
+  }
+  if (assignments.size === 0) return matches;
+  return matches.map((match) => {
+    const assigned = assignments.get(match.source.id);
+    if (!assigned) return match;
+    return {
+      ...match,
+      source: {
+        ...match.source,
+        channelTitle: assigned.channelTitle,
+        url: assigned.url,
+      },
+    };
+  });
+}
 function inferCategory(text: string): string {
   const value = text
     .normalize("NFD")
@@ -808,7 +1308,7 @@ function withoutDisneyOnly(events: ApiSportEvent[]): ApiSportEvent[] {
   return events.filter((event) => {
     if (event.embeds.length === 0) return true;
     return !event.embeds.every(
-      (embed) => /disney/i.test(embed.provider) || /disney/i.test(embed.embed_url),
+      (embed) => /disney/i.test(baseProvider(embed.provider)) || /disney/i.test(embed.embed_url),
     );
   });
 }
@@ -945,6 +1445,15 @@ const CHANNEL_ALIASES = new Map<string, string>([
   ["caze tv 2", "cazetv 2"],
   ["caze tv 3", "cazetv 3"],
   ["sport tv", "sportv"],
+  ["sportv2", "sportv 2"],
+  ["sportv3", "sportv 3"],
+  ["sportv4", "sportv 4"],
+  ["espn2", "espn 2"],
+  ["espn3", "espn 3"],
+  ["espn4", "espn 4"],
+  ["espn5", "espn 5"],
+  ["espn6", "espn 6"],
+  ["prime video", "prime video 1"],
   ["a e", "ae"],
   ["a e e", "ae"],
   ["arte1", "arte 1"],
@@ -1037,7 +1546,7 @@ function safeSlug(slug: string): string | null {
   return /^[a-z0-9-]+$/i.test(trimmed) ? trimmed : null;
 }
 function isPlayable(title: string, url: string, type: string): boolean {
-  if (!url || /disney/i.test(title) || /disney/i.test(url)) return false;
+  if (!url || /disney/i.test(baseProvider(title)) || /disney/i.test(url)) return false;
   let parsed: URL;
   try {
     parsed = new URL(url);
