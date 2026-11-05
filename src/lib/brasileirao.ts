@@ -53,6 +53,12 @@ function fold(value: string): string {
 function isBrasileiraoLabel(competition: string): boolean {
   return /brasileir/.test(fold(competition));
 }
+const FOREIGN_OR_GENERIC_LEAGUE =
+  /^(futebol)?$|\b(uefa|champions league|liga dos campeoes|europa league|liga europa|conference league|premier league|la\s*liga|bundesliga|ligue 1|eredivisie|liga portugal|primeira liga)\b/;
+function canCorrectCompetition(competition: string): boolean {
+  const folded = fold(competition).trim();
+  return isBrasileiraoLabel(folded) || FOREIGN_OR_GENERIC_LEAGUE.test(folded);
+}
 function divisionOf(name: string): "A" | "B" | null {
   if (/\bbilbao\b/.test(fold(name))) return null;
   const key = normalizeTeamKey(name);
@@ -61,7 +67,7 @@ function divisionOf(name: string): "A" | "B" | null {
   return null;
 }
 export function correctBrasileiraoEvent(event: ApiSportEvent): ApiSportEvent {
-  if (!isBrasileiraoLabel(event.competition)) return event;
+  if (!canCorrectCompetition(event.competition)) return event;
   const home = event.teams?.home.name ?? "";
   const away = event.teams?.away.name ?? "";
   if (!home || !away) return event;
