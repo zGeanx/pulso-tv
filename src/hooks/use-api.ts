@@ -27,7 +27,7 @@ import {
   type PulsoEmbedSource,
   type PulsoMatch,
 } from "@/lib/pulso-api";
-const STORAGE_PREFIX = "pulso_cache_v3:";
+const STORAGE_PREFIX = "pulso_cache_v4:";
 const MAX_STORAGE_AGE_MS = 30 * 60000;
 interface StoredEntry<T> {
   ts: number;
